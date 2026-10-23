@@ -1,0 +1,30 @@
+# Build
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.o
+*.a
+*.so
+*.exe
+forge
+tests
+CTestTestfile.cmake
+
+# Data
+*.db
+*.dat
+data/
+forge.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

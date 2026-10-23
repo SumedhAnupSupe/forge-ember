@@ -12,7 +12,7 @@ add_executable(forge_tests
     test_integration.cpp
 )
 
-target_include_directories(forge_tests PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(forge_tests PRIVATE ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/third_party)
 target_link_libraries(forge_tests PRIVATE forge_core Threads::Threads)
 
 if(ARGON2_LIBRARY AND ARGON2_INCLUDE_DIR)

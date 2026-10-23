@@ -1,0 +1,1 @@
+/usr/bin/c++ "CMakeFiles/forge-server.dir/src/server/main_server.cpp.o" "CMakeFiles/forge-server.dir/src/server/server.cpp.o" -o forge-server  libforge_core.a 

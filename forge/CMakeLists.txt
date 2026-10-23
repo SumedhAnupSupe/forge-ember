@@ -9,6 +9,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
+include_directories(${PROJECT_SOURCE_DIR}/third_party)
 
 find_package(Threads REQUIRED)
 
@@ -47,6 +48,15 @@ elseif(EXISTS "/usr/lib/x86_64-linux-gnu/libargon2.so.1")
     endif()
 endif()
 
+# Server
+add_executable(forge-server src/server/main_server.cpp src/server/server.cpp)
+target_link_libraries(forge-server PRIVATE forge_core Threads::Threads)
+
+# CLI
+add_executable(forge-cli src/cli/cli_main.cpp src/cli/cli.cpp)
+target_link_libraries(forge-cli PRIVATE Threads::Threads)
+
+# Original forge executable
 add_executable(forge src/main.cpp)
 target_link_libraries(forge PRIVATE forge_core)
 

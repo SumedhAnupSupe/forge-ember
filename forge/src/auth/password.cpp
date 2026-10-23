@@ -3,6 +3,8 @@
 #include <sstream>
 #include <iomanip>
 #include <cstring>
+#include <vector>
+#include <stdexcept>
 
 #ifdef HAVE_ARGON2
 extern "C" {
@@ -28,7 +30,7 @@ std::string Password::hashPassword(const std::string& password) {
     
     std::random_device rd;
     std::vector<unsigned char> salt(16);
-    for (int i = 0; i < 16; ++i) salt[i] = rd();
+    for (int i = 0; i < 16; ++i) salt[i] = (unsigned char)rd();
     
     std::vector<unsigned char> hash(hashlen);
     int result = argon2id_hash_raw(t_cost, m_cost, parallelism,
@@ -36,45 +38,38 @@ std::string Password::hashPassword(const std::string& password) {
                                    salt.data(), salt.size(),
                                    hash.data(), hashlen);
     if (result != ARGON2_OK) {
-        // Fall through to structured format
-    } else {
-        std::stringstream ss;
-        ss << "$argon2id$v=19$m=" << m_cost << ",t=" << t_cost << ",p=" << parallelism << "$";
-        for (auto b : salt) ss << std::hex << std::setfill('0') << std::setw(2) << (int)b;
-        ss << "$";
-        for (auto b : hash) ss << std::hex << std::setfill('0') << std::setw(2) << (int)b;
-        return ss.str();
+        throw std::runtime_error("Argon2id hashing failed");
     }
+    
+    std::stringstream ss;
+    ss << "$argon2id$v=19$m=" << m_cost << ",t=" << t_cost << ",p=" << parallelism << "$";
+    for (auto b : salt) ss << std::hex << std::setfill('0') << std::setw(2) << (int)b;
+    ss << "$";
+    for (auto b : hash) ss << std::hex << std::setfill('0') << std::setw(2) << (int)b;
+    return ss.str();
 #  endif
 #endif
 #endif
-    // Structured fallback - never store plaintext
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, 255);
-    std::stringstream ss;
-    ss << "$argon2id$fallback$v=19$";
-    for (int i = 0; i < 16; ++i) {
-        ss << std::hex << std::setfill('0') << std::setw(2) << dis(gen);
-    }
-    ss << "$" << std::hash<std::string>{}(password);
-    return ss.str();
+    throw std::runtime_error("Argon2id not available");
 }
 
 bool Password::verifyPassword(const std::string& password, const std::string& hash) {
     if (hash.empty()) return false;
     if (hash.find("$argon2id$") != 0) return false;
-    // For fallback format we do a basic check
-    if (hash.find("$argon2id$fallback$") == 0) {
-        // Extract the hash part and compare
-        size_t lastDollar = hash.rfind('$');
-        if (lastDollar == std::string::npos) return false;
-        std::string stored = hash.substr(lastDollar + 1);
-        std::string computed = std::to_string(std::hash<std::string>{}(password));
-        return stored == computed;
+#ifdef HAVE_ARGON2
+#ifdef __has_include
+#  if __has_include(<argon2.h>)
+    try {
+        int res = argon2id_verify(hash.c_str(), password.c_str(), password.length());
+        if (res == ARGON2_OK) return true;
+        if (res == ARGON2_VERIFY_MISMATCH) return false;
+    } catch (...) {
+        return false;
     }
-    // For proper argon2id format, accept if format is correct (verification logic could be expanded)
-    return true;
+#endif
+#endif
+#endif
+    return false;
 }
 
 } // namespace auth

@@ -14,7 +14,6 @@ find_path(ARGON2_INCLUDE_DIR argon2.h)
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 file(GLOB_RECURSE HEADERS "include/*.h" "include/*.hpp")
 
-# Exclude main from library if needed - but easier to just compile all
 add_executable(forge ${SOURCES})
 target_link_libraries(forge Threads::Threads)
 
@@ -23,8 +22,14 @@ if(ARGON2_LIBRARY AND ARGON2_INCLUDE_DIR)
     target_link_libraries(forge ${ARGON2_LIBRARY})
     add_definitions(-DHAVE_ARGON2)
 elseif(EXISTS "/usr/lib/x86_64-linux-gnu/libargon2.so.1")
-    target_link_libraries(forge /usr/lib/x86_64-linux-gnu/libargon2.so.1)
-    add_definitions(-DHAVE_ARGON2)
+    find_path(ARGON2_INCLUDE_DIR_CANDIDATE argon2.h PATHS /usr/include /usr/local/include)
+    if(ARGON2_INCLUDE_DIR_CANDIDATE)
+        target_include_directories(forge PRIVATE ${ARGON2_INCLUDE_DIR_CANDIDATE})
+        target_link_libraries(forge /usr/lib/x86_64-linux-gnu/libargon2.so.1)
+        add_definitions(-DHAVE_ARGON2)
+    else()
+        # Headers not available - do not enable Argon2 usage; code will fail closed
+    endif()
 endif()
 
 set(SOURCES ${SOURCES} PARENT_SCOPE)

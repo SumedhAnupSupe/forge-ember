@@ -1,6 +1,8 @@
 # Build
 build/
-cmake-build-*/
+build-*/
+build-test/
+build-check/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
@@ -10,7 +12,9 @@ Makefile
 *.so
 *.exe
 forge
-tests
+!src/forge
+!include/forge
+forge_tests
 CTestTestfile.cmake
 
 # Data

@@ -9,7 +9,7 @@ namespace forge {
 
 struct HashNode {
     std::string key;
-    uint32_t value; // can store record id or slot
+    uint32_t value;
     HashNode* next;
     HashNode(const std::string& k, uint32_t v) : key(k), value(v), next(nullptr) {}
 };
@@ -18,6 +18,10 @@ class HashTable {
 public:
     HashTable(size_t bucketCount = 1009);
     ~HashTable();
+    HashTable(const HashTable&) = delete;
+    HashTable& operator=(const HashTable&) = delete;
+    HashTable(HashTable&& other) noexcept;
+    HashTable& operator=(HashTable&& other) noexcept;
     
     // FNV-1a 32-bit hash
     static uint32_t fnv1aHash(const std::string& data);

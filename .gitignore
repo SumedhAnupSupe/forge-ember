@@ -1,71 +1,7 @@
-
-# ==============================
-# Build directories and artifacts
-# ==============================
-/build/
-/cmake-build-*/
-**/build/
-**/cmake-build-*/
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-Makefile
-compile_commands.json
-CTestTestfile.cmake
-Testing/
-*.o
-*.obj
-*.a
-*.lib
-*.so
-*.dylib
-*.dll
-*.exe
-*.out
-*.pdb
-
-# ==============================
-# C++ generated files
-# ==============================
-*.gcda
-*.gcno
-*.profraw
-*.profdata
-
-# ==============================
-# IDE and editor files
-# ==============================
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# ==============================
-# Operating system files
-# ==============================
+/forge/build/
+/forge/build-*/
+/forge/build-test/
+/forge/build-check/
+/forge/data/
+/forge/*.db
 .DS_Store
-Thumbs.db
-desktop.ini
-
-# ==============================
-# Logs and temporary files
-# ==============================
-*.log
-*.tmp
-*.temp
-*.bak
-
-# ==============================
-# Environment and secrets
-# ==============================
-.env
-.env.*
-!.env.example
-!.env.sample
-
-# ==============================
-# FORGE runtime data
-# ==============================
-*.db-journal
-*.sqlite-journal

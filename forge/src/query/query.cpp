@@ -1,7 +1,9 @@
 #include "query/query.h"
+#include "storage/storage.h"
 #include <algorithm>
 #include <cctype>
 #include <iostream>
+#include <stdexcept>
 
 namespace forge {
 namespace query {
@@ -19,23 +21,24 @@ void Lexer::advance() {
 }
 
 void Lexer::skipWhitespace() {
-    while (pos_ < input_.size() && isspace(currentChar())) {
+    while (pos_ < input_.size() && isspace((unsigned char)currentChar())) {
         advance();
     }
 }
 
 Token Lexer::readIdentifier() {
     std::string result;
-    while (pos_ < input_.size() && (isalnum(currentChar()) || currentChar() == '_')) {
+    size_t startPos = pos_;
+    while (pos_ < input_.size() && (isalnum((unsigned char)currentChar()) || currentChar() == '_')) {
         result += currentChar();
         advance();
     }
     
-    // Check keywords
     std::string upper = result;
     std::transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
     
     Token token;
+    token.position = startPos;
     if (upper == "SELECT") token.type = TokenType::SELECT;
     else if (upper == "INSERT") token.type = TokenType::INSERT;
     else if (upper == "UPDATE") token.type = TokenType::UPDATE;
@@ -50,9 +53,8 @@ Token Lexer::readIdentifier() {
     else if (upper == "SET") token.type = TokenType::SET;
     else if (upper == "AND") token.type = TokenType::AND;
     else if (upper == "OR") token.type = TokenType::OR;
-    else if (upper == "TO") { token.type = TokenType::IDENTIFIER; token.value = result; return token; }
-    else if (upper == "CC") { token.type = TokenType::IDENTIFIER; token.value = result; return token; }
-    else if (upper == "BCC") { token.type = TokenType::IDENTIFIER; token.value = result; return token; }
+    else if (upper == "ASC") token.type = TokenType::ASC;
+    else if (upper == "DESC") token.type = TokenType::DESC;
     else token.type = TokenType::IDENTIFIER;
     
     token.value = result;
@@ -61,28 +63,47 @@ Token Lexer::readIdentifier() {
 
 Token Lexer::readNumber() {
     std::string result;
-    while (pos_ < input_.size() && isdigit(currentChar())) {
+    size_t startPos = pos_;
+    while (pos_ < input_.size() && isdigit((unsigned char)currentChar())) {
         result += currentChar();
         advance();
     }
     Token token;
     token.type = TokenType::NUMBER;
     token.value = result;
+    token.position = startPos;
     return token;
 }
 
 Token Lexer::readString() {
     std::string result;
+    size_t startPos = pos_;
     char quote = currentChar();
     advance(); // skip opening quote
     while (pos_ < input_.size() && currentChar() != quote) {
+        if (currentChar() == '\\') {
+            advance();
+            if (pos_ < input_.size()) {
+                result += currentChar();
+                advance();
+                continue;
+            }
+        }
         result += currentChar();
         advance();
     }
-    if (pos_ < input_.size()) advance(); // skip closing quote
+    if (pos_ >= input_.size() || currentChar() != quote) {
+        Token token;
+        token.type = TokenType::END; // indicate error
+        token.value = "unterminated string";
+        token.position = startPos;
+        return token;
+    }
+    advance(); // skip closing quote
     Token token;
     token.type = TokenType::STRING;
     token.value = result;
+    token.position = startPos;
     return token;
 }
 
@@ -93,251 +114,289 @@ std::vector<Token> Lexer::tokenize() {
         if (pos_ >= input_.size()) break;
         char c = currentChar();
         
-        if (isalpha(c) || c == '_') {
+        if (isalpha((unsigned char)c) || c == '_') {
             tokens.push_back(readIdentifier());
-        } else if (isdigit(c)) {
+        } else if (isdigit((unsigned char)c)) {
             tokens.push_back(readNumber());
         } else if (c == '"' || c == '\'') {
-            tokens.push_back(readString());
+            Token t = readString();
+            if (t.type == TokenType::END && t.value == "unterminated string") {
+                tokens.push_back(t);
+                return tokens;
+            }
+            tokens.push_back(t);
         } else if (c == ',') {
-            tokens.push_back({TokenType::COMMA, ","});
+            tokens.push_back({TokenType::COMMA, ",", pos_});
             advance();
         } else if (c == ';') {
-            tokens.push_back({TokenType::SEMICOLON, ";"});
+            tokens.push_back({TokenType::SEMICOLON, ";", pos_});
             advance();
         } else if (c == '(') {
-            tokens.push_back({TokenType::LPAREN, "("});
+            tokens.push_back({TokenType::LPAREN, "(", pos_});
             advance();
         } else if (c == ')') {
-            tokens.push_back({TokenType::RPAREN, ")"});
+            tokens.push_back({TokenType::RPAREN, ")", pos_});
             advance();
         } else if (c == '*') {
-            tokens.push_back({TokenType::STAR, "*"});
+            tokens.push_back({TokenType::STAR, "*", pos_});
             advance();
         } else if (c == '=') {
-            tokens.push_back({TokenType::EQ, "="});
+            tokens.push_back({TokenType::EQ, "=", pos_});
             advance();
         } else if (c == '!') {
             advance();
-            if (currentChar() == '=') {
-                tokens.push_back({TokenType::NEQ, "!="});
+            if (pos_ < input_.size() && currentChar() == '=') {
+                tokens.push_back({TokenType::NEQ, "!=", pos_});
                 advance();
+            } else {
+                // Unsupported char
+                return tokens;
             }
         } else if (c == '<') {
             advance();
-            if (currentChar() == '=') {
-                tokens.push_back({TokenType::LTE, "<="});
+            if (pos_ < input_.size() && currentChar() == '=') {
+                tokens.push_back({TokenType::LTE, "<=", pos_});
                 advance();
             } else {
-                tokens.push_back({TokenType::LT, "<"});
+                tokens.push_back({TokenType::LT, "<", pos_});
             }
         } else if (c == '>') {
             advance();
-            if (currentChar() == '=') {
-                tokens.push_back({TokenType::GTE, ">="});
+            if (pos_ < input_.size() && currentChar() == '=') {
+                tokens.push_back({TokenType::GTE, ">=", pos_});
                 advance();
             } else {
-                tokens.push_back({TokenType::GT, ">"});
+                tokens.push_back({TokenType::GT, ">", pos_});
             }
         } else {
-            advance();
+            // Unsupported character
+            return tokens;
         }
     }
-    tokens.push_back({TokenType::END, ""});
+    tokens.push_back({TokenType::END, "", pos_});
     return tokens;
 }
 
-Parser::Parser(const std::vector<Token>& tokens) : tokens_(tokens), pos_(0) {
-}
-
-Token Parser::currentToken() {
-    if (pos_ >= tokens_.size()) return {TokenType::END, ""};
-    return tokens_[pos_];
-}
-
-void Parser::advance() {
-    if (pos_ < tokens_.size()) ++pos_;
-}
-
-Token Parser::eat(TokenType type) {
-    Token token = currentToken();
-    if (token.type != type) {
-        // Try to be lenient
-    }
-    advance();
-    return token;
-}
-
-std::unique_ptr<ASTNode> Parser::parse() {
-    Token token = currentToken();
-    if (token.type == TokenType::SELECT) {
-        return parseSelect();
-    } else if (token.type == TokenType::INSERT) {
-        return parseInsert();
-    } else if (token.type == TokenType::UPDATE) {
-        return parseUpdate();
-    } else if (token.type == TokenType::DELETE) {
-        return parseDelete();
-    }
-    return nullptr;
-}
-
-std::unique_ptr<SelectNode> Parser::parseSelect() {
-    auto node = std::make_unique<SelectNode>();
-    eat(TokenType::SELECT);
-    
-    if (currentToken().type == TokenType::STAR) {
-        node->columns.push_back("*");
-        advance();
-    } else {
-        while (currentToken().type == TokenType::IDENTIFIER) {
-            node->columns.push_back(currentToken().value);
-            advance();
-            if (currentToken().type == TokenType::COMMA) {
-                advance();
-            } else {
-                break;
-            }
-        }
-    }
-    
-    if (currentToken().type == TokenType::FROM) {
-        eat(TokenType::FROM);
-        if (currentToken().type == TokenType::IDENTIFIER) {
-            node->table = currentToken().value;
-            advance();
-        }
-    }
-    
-    if (currentToken().type == TokenType::WHERE) {
-        eat(TokenType::WHERE);
-        // Simple where clause - just consume tokens until ORDER BY or LIMIT or END
-        std::string whereStr;
-        while (currentToken().type != TokenType::ORDER && 
-               currentToken().type != TokenType::LIMIT &&
-               currentToken().type != TokenType::END &&
-               currentToken().type != TokenType::SEMICOLON) {
-            whereStr += currentToken().value + " ";
-            advance();
-        }
-        node->whereClause = whereStr;
-    }
-    
-    if (currentToken().type == TokenType::ORDER) {
-        eat(TokenType::ORDER);
-        if (currentToken().type == TokenType::BY) {
-            eat(TokenType::BY);
-            std::string orderStr;
-            while (currentToken().type != TokenType::LIMIT &&
-                   currentToken().type != TokenType::END &&
-                   currentToken().type != TokenType::SEMICOLON) {
-                orderStr += currentToken().value + " ";
-                advance();
-            }
-            node->orderBy = orderStr;
-        }
-    }
-    
-    if (currentToken().type == TokenType::LIMIT) {
-        eat(TokenType::LIMIT);
-        if (currentToken().type == TokenType::NUMBER) {
-            node->limit = std::stoi(currentToken().value);
-            advance();
-        }
-    }
-    
-    return node;
-}
-
-std::unique_ptr<InsertNode> Parser::parseInsert() {
-    auto node = std::make_unique<InsertNode>();
-    eat(TokenType::INSERT);
-    if (currentToken().type == TokenType::INTO) eat(TokenType::INTO);
-    if (currentToken().type == TokenType::IDENTIFIER) {
-        node->table = currentToken().value;
-        advance();
-    }
-    // Simplified parsing
-    if (currentToken().type == TokenType::LPAREN) {
-        advance();
-        while (currentToken().type == TokenType::IDENTIFIER) {
-            node->columns.push_back(currentToken().value);
-            advance();
-            if (currentToken().type == TokenType::COMMA) advance();
-            else break;
-        }
-        if (currentToken().type == TokenType::RPAREN) advance();
-    }
-    if (currentToken().type == TokenType::VALUES) eat(TokenType::VALUES);
-    if (currentToken().type == TokenType::LPAREN) {
-        advance();
-        while (currentToken().type == TokenType::STRING || currentToken().type == TokenType::NUMBER || currentToken().type == TokenType::IDENTIFIER) {
-            node->values.push_back(currentToken().value);
-            advance();
-            if (currentToken().type == TokenType::COMMA) advance();
-            else break;
-        }
-        if (currentToken().type == TokenType::RPAREN) advance();
-    }
-    return node;
-}
-
-std::unique_ptr<UpdateNode> Parser::parseUpdate() {
-    auto node = std::make_unique<UpdateNode>();
-    eat(TokenType::UPDATE);
-    if (currentToken().type == TokenType::IDENTIFIER) {
-        node->table = currentToken().value;
-        advance();
-    }
-    if (currentToken().type == TokenType::SET) eat(TokenType::SET);
-    // Simplified
-    while (currentToken().type == TokenType::IDENTIFIER) {
-        std::string col = currentToken().value;
-        advance();
-        if (currentToken().type == TokenType::EQ) advance();
-        if (currentToken().type == TokenType::STRING || currentToken().type == TokenType::NUMBER) {
-            node->setClauses[col] = currentToken().value;
-            advance();
-        }
-        if (currentToken().type == TokenType::COMMA) advance();
-        else break;
-    }
-    if (currentToken().type == TokenType::WHERE) {
-        eat(TokenType::WHERE);
-        std::string whereStr;
-        while (currentToken().type != TokenType::END && currentToken().type != TokenType::SEMICOLON) {
-            whereStr += currentToken().value + " ";
-            advance();
-        }
-        node->whereClause = whereStr;
-    }
-    return node;
-}
-
-std::unique_ptr<DeleteNode> Parser::parseDelete() {
-    auto node = std::make_unique<DeleteNode>();
-    eat(TokenType::DELETE);
-    if (currentToken().type == TokenType::FROM) eat(TokenType::FROM);
-    if (currentToken().type == TokenType::IDENTIFIER) {
-        node->table = currentToken().value;
-        advance();
-    }
-    if (currentToken().type == TokenType::WHERE) {
-        eat(TokenType::WHERE);
-        std::string whereStr;
-        while (currentToken().type != TokenType::END && currentToken().type != TokenType::SEMICOLON) {
-            whereStr += currentToken().value + " ";
-            advance();
-        }
-        node->whereClause = whereStr;
-    }
-    return node;
+QueryExecutor::QueryExecutor(std::shared_ptr<forge::Storage> storage) : storage_(storage) {
 }
 
 QueryResult QueryExecutor::execute(const std::string& query) {
     QueryResult result;
     result.success = false;
-    result.message = "Query execution not fully implemented";
+    Lexer lexer(query);
+    auto tokens = lexer.tokenize();
+    if (tokens.empty()) {
+        result.message = "Empty query";
+        return result;
+    }
+    // Check for unterminated string
+    for (const auto& t : tokens) {
+        if (t.type == TokenType::END && t.value == "unterminated string") {
+            result.message = "Parse error: unterminated string";
+            return result;
+        }
+    }
+    
+    size_t pos = 0;
+    auto current = [&]() -> const Token& { if (pos >= tokens.size()) return tokens.empty() ? tokens.back() : tokens.back(); return tokens[pos]; };
+    auto advance = [&]() { if (pos < tokens.size()) pos++; };
+    auto eat = [&](TokenType type) -> bool { if (current().type == type) { advance(); return true; } return false; };
+    
+    if (current().type != TokenType::SELECT) {
+        result.message = "Unsupported statement";
+        return result;
+    }
+    advance(); // SELECT
+    
+    SelectNode node;
+    if (current().type == TokenType::STAR) {
+        node.columns.push_back("*");
+        advance();
+    } else {
+        bool first = true;
+        while (current().type == TokenType::IDENTIFIER || current().type == TokenType::COMMA) {
+            if (current().type == TokenType::COMMA) { advance(); continue; }
+            if (current().type == TokenType::IDENTIFIER) {
+                node.columns.push_back(current().value);
+                advance();
+                continue;
+            }
+            break;
+        }
+        if (node.columns.empty()) {
+            result.message = "Parse error: missing columns";
+            return result;
+        }
+    }
+    
+    if (!eat(TokenType::FROM)) {
+        result.message = "Parse error: expected FROM";
+        return result;
+    }
+    if (current().type != TokenType::IDENTIFIER) {
+        result.message = "Parse error: expected table name";
+        return result;
+    }
+    node.table = current().value;
+    advance();
+    
+    if (current().type == TokenType::WHERE) {
+        advance();
+        if (current().type != TokenType::IDENTIFIER) {
+            result.message = "Parse error: invalid WHERE";
+            return result;
+        }
+        node.whereColumn = current().value;
+        advance();
+        if (current().type == TokenType::EQ) {
+            node.whereOp = "=";
+            advance();
+        } else {
+            result.message = "Parse error: unsupported operator";
+            return result;
+        }
+        if (current().type == TokenType::STRING) {
+            node.whereValue = current().value;
+            advance();
+        } else if (current().type == TokenType::NUMBER) {
+            node.whereValue = current().value;
+            advance();
+        } else {
+            result.message = "Parse error: invalid WHERE value";
+            return result;
+        }
+    }
+    
+    if (current().type == TokenType::ORDER) {
+        advance();
+        if (!eat(TokenType::BY)) {
+            result.message = "Parse error: expected BY";
+            return result;
+        }
+        if (current().type != TokenType::IDENTIFIER) {
+            result.message = "Parse error: invalid ORDER BY";
+            return result;
+        }
+        node.orderByColumn = current().value;
+        advance();
+        if (current().type == TokenType::ASC) { node.orderByDir = "ASC"; advance(); }
+        else if (current().type == TokenType::DESC) { node.orderByDir = "DESC"; advance(); }
+        else { node.orderByDir = "ASC"; }
+    }
+    
+    if (current().type == TokenType::LIMIT) {
+        advance();
+        if (current().type != TokenType::NUMBER) {
+            result.message = "Parse error: invalid LIMIT";
+            return result;
+        }
+        try {
+            long l = std::stol(current().value);
+            if (l < 0) { result.message = "Parse error: invalid LIMIT"; return result; }
+            node.limit = (int)l;
+        } catch (...) {
+            result.message = "Parse error: invalid LIMIT";
+            return result;
+        }
+        advance();
+    }
+    
+    if (current().type != TokenType::END && current().type != TokenType::SEMICOLON) {
+        result.message = "Parse error: unexpected trailing tokens";
+        return result;
+    }
+    
+    if (!storage_) {
+        result.message = "No storage";
+        return result;
+    }
+    
+    if (node.table == "users") {
+        auto users = storage_->getAllUsers(false);
+        for (const auto& u : users) {
+            if (!node.whereColumn.empty()) {
+                if (node.whereColumn == "email" && node.whereValue != u.email) continue;
+                else if (node.whereColumn == "id" && node.whereValue != std::to_string(u.id)) continue;
+                else continue;
+            }
+            std::map<std::string, std::string> row;
+            if (node.columns.size() == 1 && node.columns[0] == "*") {
+                row["id"] = std::to_string(u.id);
+                row["name"] = u.name;
+                row["email"] = u.email;
+                row["created_at"] = std::to_string(u.created_at);
+            } else {
+                for (const auto& c : node.columns) {
+                    if (c == "id") row[c] = std::to_string(u.id);
+                    else if (c == "name") row[c] = u.name;
+                    else if (c == "email") row[c] = u.email;
+                    else if (c == "created_at") row[c] = std::to_string(u.created_at);
+                }
+            }
+            result.rows.push_back(row);
+        }
+        if (node.limit >= 0 && (int)result.rows.size() > node.limit) {
+            result.rows.resize(node.limit);
+        }
+        result.success = true;
+        result.message = "OK";
+        return result;
+    } else if (node.table == "messages") {
+        auto messages = storage_->getAllMessages(false);
+        for (const auto& m : messages) {
+            std::map<std::string, std::string> row;
+            if (node.columns.size() == 1 && node.columns[0] == "*") {
+                row["id"] = std::to_string(m.id);
+                row["sender_id"] = std::to_string(m.sender_id);
+                row["subject"] = m.subject;
+                row["body"] = m.body;
+                row["created_at"] = std::to_string(m.created_at);
+            } else {
+                for (const auto& c : node.columns) {
+                    if (c == "id") row[c] = std::to_string(m.id);
+                    else if (c == "sender_id") row[c] = std::to_string(m.sender_id);
+                    else if (c == "subject") row[c] = m.subject;
+                    else if (c == "body") row[c] = m.body;
+                    else if (c == "created_at") row[c] = std::to_string(m.created_at);
+                }
+            }
+            result.rows.push_back(row);
+        }
+        if (node.limit >= 0 && (int)result.rows.size() > node.limit) {
+            result.rows.resize(node.limit);
+        }
+        result.success = true;
+        result.message = "OK";
+        return result;
+    } else if (node.table == "recipients") {
+        std::vector<Recipient> recips;
+        storage_->getAllRecipients(false); // call to ensure
+        // get all
+        auto all = storage_->getAllRecipients(false);
+        for (const auto& r : all) {
+            std::map<std::string, std::string> row;
+            if (node.columns.size() == 1 && node.columns[0] == "*") {
+                row["message_id"] = std::to_string(r.message_id);
+                row["user_id"] = std::to_string(r.user_id);
+                row["type"] = r.type;
+            } else {
+                for (const auto& c : node.columns) {
+                    if (c == "message_id") row[c] = std::to_string(r.message_id);
+                    else if (c == "user_id") row[c] = std::to_string(r.user_id);
+                    else if (c == "type") row[c] = r.type;
+                }
+            }
+            result.rows.push_back(row);
+        }
+        if (node.limit >= 0 && (int)result.rows.size() > node.limit) {
+            result.rows.resize(node.limit);
+        }
+        result.success = true;
+        result.message = "OK";
+        return result;
+    }
+    
+    result.message = "Unknown table";
     return result;
 }
 

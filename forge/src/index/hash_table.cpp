@@ -1,8 +1,10 @@
 #include "index/hash_table.h"
+#include <stdexcept>
 
 namespace forge {
 
 HashTable::HashTable(size_t bucketCount) : bucketCount_(bucketCount) {
+    if (bucketCount_ == 0) throw std::invalid_argument("Bucket count cannot be zero");
     buckets_.resize(bucketCount_, nullptr);
 }
 
@@ -10,9 +12,24 @@ HashTable::~HashTable() {
     clear();
 }
 
+HashTable::HashTable(HashTable&& other) noexcept 
+    : buckets_(std::move(other.buckets_)), bucketCount_(other.bucketCount_) {
+    other.bucketCount_ = 0;
+}
+
+HashTable& HashTable::operator=(HashTable&& other) noexcept {
+    if (this != &other) {
+        clear();
+        buckets_ = std::move(other.buckets_);
+        bucketCount_ = other.bucketCount_;
+        other.bucketCount_ = 0;
+    }
+    return *this;
+}
+
 uint32_t HashTable::fnv1aHash(const std::string& data) {
-    const uint32_t offsetBasis = 2166136261u; // FNV offset basis
-    const uint32_t prime = 16777619u;         // FNV prime
+    const uint32_t offsetBasis = 2166136261u;
+    const uint32_t prime = 16777619u;
     uint32_t hash = offsetBasis;
     for (unsigned char c : data) {
         hash ^= c;
@@ -33,8 +50,17 @@ uint32_t HashTable::fnv1aHash(const char* data, size_t len) {
 }
 
 void HashTable::insert(const std::string& key, uint32_t value) {
+    if (bucketCount_ == 0) throw std::invalid_argument("Bucket count cannot be zero");
     uint32_t hash = fnv1aHash(key);
     size_t index = hash % bucketCount_;
+    // Avoid duplicate key-value pairs
+    HashNode* current = buckets_[index];
+    while (current) {
+        if (current->key == key && current->value == value) {
+            return;
+        }
+        current = current->next;
+    }
     HashNode* newNode = new HashNode(key, value);
     newNode->next = buckets_[index];
     buckets_[index] = newNode;
@@ -42,6 +68,7 @@ void HashTable::insert(const std::string& key, uint32_t value) {
 
 bool HashTable::find(const std::string& key, std::vector<uint32_t>& values) {
     values.clear();
+    if (bucketCount_ == 0) return false;
     uint32_t hash = fnv1aHash(key);
     size_t index = hash % bucketCount_;
     HashNode* current = buckets_[index];
@@ -55,6 +82,7 @@ bool HashTable::find(const std::string& key, std::vector<uint32_t>& values) {
 }
 
 bool HashTable::remove(const std::string& key, uint32_t value) {
+    if (bucketCount_ == 0) return false;
     uint32_t hash = fnv1aHash(key);
     size_t index = hash % bucketCount_;
     HashNode* current = buckets_[index];
@@ -88,7 +116,7 @@ void HashTable::clear() {
 }
 
 void HashTable::rebuild() {
-    // Placeholder - rebuild logic would be handled by indexes
+    // No-op; rebuild is handled by IndexManager
 }
 
 } // namespace forge

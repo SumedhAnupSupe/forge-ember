@@ -5,6 +5,9 @@
 #include <iomanip>
 #include <cstring>
 #include <vector>
+#include <stdexcept>
+#include <unistd.h>
+#include <sys/random.h>
 
 #ifdef HAVE_ARGON2
 extern "C" {
@@ -22,13 +25,15 @@ AuthManager::AuthManager() {
 }
 
 std::string AuthManager::generateToken() {
-    std::random_device rd;
-    // Use cryptographically secure random device
-    std::uniform_int_distribution<int> distribution(0, 255);
+    unsigned char buf[32];
+    ssize_t ret = getrandom(buf, sizeof(buf), 0);
+    if (ret != (ssize_t)sizeof(buf)) {
+        throw std::runtime_error("Secure random generation failed");
+    }
     
     std::stringstream ss;
-    for (int i = 0; i < 32; ++i) {
-        ss << std::hex << std::setfill('0') << std::setw(2) << distribution(rd);
+    for (size_t i = 0; i < sizeof(buf); ++i) {
+        ss << std::hex << std::setfill('0') << std::setw(2) << (int)buf[i];
     }
     return ss.str();
 }
@@ -42,30 +47,34 @@ std::string AuthManager::hashPassword(const std::string& password) {
     const uint32_t parallelism = 1;
     const uint32_t hashlen = 32;
     
-    std::random_device rd;
-    std::vector<unsigned char> salt(16);
-    for (int i = 0; i < 16; ++i) salt[i] = (unsigned char)rd();
-    
-    std::vector<unsigned char> hash(hashlen);
-    int result = argon2id_hash_raw(t_cost, m_cost, parallelism,
-                                   password.c_str(), password.length(),
-                                   salt.data(), salt.size(),
-                                   hash.data(), hashlen);
-    if (result != ARGON2_OK) {
-        // Fail closed - do not use insecure fallback
-        throw std::runtime_error("Argon2id hashing failed");
+    unsigned char salt[16];
+    ssize_t ret = getrandom(salt, sizeof(salt), 0);
+    if (ret != (ssize_t)sizeof(salt)) {
+        throw std::runtime_error("Secure random generation failed");
     }
     
-    std::stringstream ss;
-    ss << "$argon2id$v=19$m=" << m_cost << ",t=" << t_cost << ",p=" << parallelism << "$";
-    for (auto b : salt) ss << std::hex << std::setfill('0') << std::setw(2) << (int)b;
-    ss << "$";
-    for (auto b : hash) ss << std::hex << std::setfill('0') << std::setw(2) << (int)b;
-    return ss.str();
+    char* encoded = nullptr;
+    size_t encoded_len = 0;
+    // Calculate encoded length
+    encoded_len = argon2_encodedlen(t_cost, m_cost, parallelism, 16, hashlen, Argon2_id);
+    encoded = (char*)malloc(encoded_len);
+    if (!encoded) throw std::runtime_error("Memory allocation failed");
+    
+    int result = argon2id_hash_encoded(t_cost, m_cost, parallelism,
+                                       password.c_str(), password.length(),
+                                       salt, sizeof(salt),
+                                       hashlen,
+                                       encoded, encoded_len);
+    if (result != ARGON2_OK) {
+        free(encoded);
+        throw std::runtime_error("Argon2id hashing failed");
+    }
+    std::string res = encoded;
+    free(encoded);
+    return res;
 #  endif
 #endif
 #endif
-    // No insecure fallback allowed per requirements
     throw std::runtime_error("Argon2id not available");
 }
 
@@ -75,17 +84,13 @@ bool AuthManager::verifyPassword(const std::string& password, const std::string&
 #ifdef HAVE_ARGON2
 #ifdef __has_include
 #  if __has_include(<argon2.h>)
-    // Try to use argon2 verification if available
-    // For encoded hashes, argon2id_verify can be used
     try {
         int res = argon2id_verify(hash.c_str(), password.c_str(), password.length());
         if (res == ARGON2_OK) return true;
         if (res == ARGON2_VERIFY_MISMATCH) return false;
     } catch (...) {
-        // Fall through
+        return false;
     }
-    // If verification API not usable as-is, check format is proper argon2id
-    // but must not accept blindly without verification
     return false;
 #  endif
 #endif

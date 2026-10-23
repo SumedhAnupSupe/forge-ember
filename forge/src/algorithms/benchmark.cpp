@@ -20,6 +20,10 @@ Benchmark::Result Benchmark::benchmarkSort(const std::string& name,
         sortFunc(warmupInput);
     }
     
+    // Compute expected
+    std::vector<int> expected = baseInput;
+    std::sort(expected.begin(), expected.end());
+    
     // 100 measured runs
     double totalTime = 0.0;
     for (int run = 0; run < 100; ++run) {
@@ -28,14 +32,8 @@ Benchmark::Result Benchmark::benchmarkSort(const std::string& name,
         sortFunc(testInput);
         auto end = std::chrono::steady_clock::now();
         
-        // Check correctness (optional but good practice)
-        if (run == 0) {
-            for (size_t i = 1; i < testInput.size(); ++i) {
-                if (testInput[i - 1] > testInput[i]) {
-                    result.correct = false;
-                    break;
-                }
-            }
+        if (testInput != expected) {
+            result.correct = false;
         }
         
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
@@ -47,10 +45,9 @@ Benchmark::Result Benchmark::benchmarkSort(const std::string& name,
 }
 
 void Benchmark::runAllBenchmarks() {
-    // Create test data
     std::vector<int> testData(1000);
     for (int i = 0; i < 1000; ++i) {
-        testData[i] = 1000 - i; // reverse sorted
+        testData[i] = 1000 - i;
     }
     
     std::cout << "=== Sorting Benchmarks ===" << std::endl;

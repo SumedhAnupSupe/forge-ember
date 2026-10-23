@@ -4,6 +4,10 @@ project(Forge VERSION 1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_options(-Wall -Wextra)
+endif()
+
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
 find_package(Threads REQUIRED)
@@ -11,28 +15,40 @@ find_package(Threads REQUIRED)
 find_library(ARGON2_LIBRARY argon2)
 find_path(ARGON2_INCLUDE_DIR argon2.h)
 
-file(GLOB_RECURSE SOURCES "src/*.cpp")
-file(GLOB_RECURSE HEADERS "include/*.h" "include/*.hpp")
+# Production sources
+set(FORGE_CORE_SOURCES
+    src/models/records.cpp
+    src/utils/codec.cpp
+    src/storage/storage.cpp
+    src/index/hash_table.cpp
+    src/index/indexes.cpp
+    src/services/user_service.cpp
+    src/services/message_service.cpp
+    src/auth/auth.cpp
+    src/algorithms/searching.cpp
+    src/algorithms/sorting.cpp
+    src/algorithms/benchmark.cpp
+    src/query/query.cpp
+)
 
-add_executable(forge ${SOURCES})
-target_link_libraries(forge Threads::Threads)
+add_library(forge_core ${FORGE_CORE_SOURCES})
+target_link_libraries(forge_core PUBLIC Threads::Threads)
 
 if(ARGON2_LIBRARY AND ARGON2_INCLUDE_DIR)
-    target_include_directories(forge PRIVATE ${ARGON2_INCLUDE_DIR})
-    target_link_libraries(forge ${ARGON2_LIBRARY})
-    add_definitions(-DHAVE_ARGON2)
+    target_include_directories(forge_core PUBLIC ${ARGON2_INCLUDE_DIR})
+    target_link_libraries(forge_core PUBLIC ${ARGON2_LIBRARY})
+    target_compile_definitions(forge_core PUBLIC HAVE_ARGON2)
 elseif(EXISTS "/usr/lib/x86_64-linux-gnu/libargon2.so.1")
     find_path(ARGON2_INCLUDE_DIR_CANDIDATE argon2.h PATHS /usr/include /usr/local/include)
     if(ARGON2_INCLUDE_DIR_CANDIDATE)
-        target_include_directories(forge PRIVATE ${ARGON2_INCLUDE_DIR_CANDIDATE})
-        target_link_libraries(forge /usr/lib/x86_64-linux-gnu/libargon2.so.1)
-        add_definitions(-DHAVE_ARGON2)
-    else()
-        # Headers not available - do not enable Argon2 usage; code will fail closed
+        target_include_directories(forge_core PUBLIC ${ARGON2_INCLUDE_DIR_CANDIDATE})
+        target_link_libraries(forge_core PUBLIC /usr/lib/x86_64-linux-gnu/libargon2.so.1)
+        target_compile_definitions(forge_core PUBLIC HAVE_ARGON2)
     endif()
 endif()
 
-set(SOURCES ${SOURCES} PARENT_SCOPE)
+add_executable(forge src/main.cpp)
+target_link_libraries(forge PRIVATE forge_core)
 
 enable_testing()
 add_subdirectory(tests)

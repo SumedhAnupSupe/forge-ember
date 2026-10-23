@@ -13,8 +13,7 @@ int main() {
     std::cout << "FORGE Database Engine" << std::endl;
     std::cout << "=====================" << std::endl;
     
-    // Demo usage
-    auto storage = std::make_shared<Storage>("forge.db");
+    auto storage = std::make_shared<Storage>("forge/data");
     if (!storage->open()) {
         std::cerr << "Failed to open storage" << std::endl;
         return 1;
@@ -27,7 +26,6 @@ int main() {
     auto messageService = std::make_shared<MessageService>(storage, indexManager);
     auto authManager = std::make_shared<AuthManager>();
     
-    // Run benchmarks
     algorithms::Benchmark::runAllBenchmarks();
     
     storage->close();

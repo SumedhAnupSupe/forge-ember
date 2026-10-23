@@ -6,12 +6,13 @@
 #include <vector>
 #include <fstream>
 #include <memory>
+#include <filesystem>
 
 namespace forge {
 
 class Storage {
 public:
-    Storage(const std::string& filename);
+    Storage(const std::string& dataDir = "data");
     ~Storage();
     
     bool open();
@@ -22,20 +23,20 @@ public:
     bool readUser(uint32_t id, User& user);
     bool updateUser(const User& user);
     bool deleteUser(uint32_t id);
-    std::vector<User> getAllUsers();
+    std::vector<User> getAllUsers(bool includeDeleted = false);
     
     // Message operations
     bool createMessage(const Message& message);
     bool readMessage(uint32_t id, Message& message);
     bool updateMessage(const Message& message);
-    bool deleteMessage(uint32_t id); // soft delete
+    bool deleteMessage(uint32_t id);
     std::vector<Message> getAllMessages(bool includeDeleted = false);
     
     // Recipient operations
     bool createRecipient(const Recipient& recipient);
-    bool readRecipientsByMessage(uint32_t messageId, std::vector<Recipient>& recipients);
+    bool readRecipientsByMessage(uint32_t messageId, std::vector<Recipient>& recipients, bool includeDeleted = false);
     bool deleteRecipientsByMessage(uint32_t messageId);
-    std::vector<Recipient> getAllRecipients();
+    std::vector<Recipient> getAllRecipients(bool includeDeleted = false);
     
     // ID management
     uint32_t getNextUserId();
@@ -44,17 +45,18 @@ public:
     void setNextMessageId(uint32_t id);
     
 private:
-    std::string filename_;
-    std::fstream file_;
+    std::string dataDir_;
+    std::fstream usersFile_;
+    std::fstream messagesFile_;
+    std::fstream recipientsFile_;
     bool isOpen_;
     
     uint32_t nextUserId_;
     uint32_t nextMessageId_;
     
-    // Helper methods
-    bool fileExists();
-    void initializeFile();
-    size_t getFileSize();
+    bool openFiles();
+    void closeFiles();
+    bool scanForMaxIds();
 };
 
 } // namespace forge

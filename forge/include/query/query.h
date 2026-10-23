@@ -7,6 +7,9 @@
 #include <map>
 
 namespace forge {
+
+class Storage;
+
 namespace query {
 
 enum class TokenType {
@@ -17,12 +20,14 @@ enum class TokenType {
     IDENTIFIER, STRING, NUMBER,
     COMMA, SEMICOLON, LPAREN, RPAREN,
     STAR,
+    ASC, DESC,
     END
 };
 
 struct Token {
     TokenType type;
     std::string value;
+    size_t position = 0;
 };
 
 class Lexer {
@@ -41,51 +46,16 @@ private:
     Token readString();
 };
 
-struct ASTNode {
-    virtual ~ASTNode() = default;
-};
-
-struct SelectNode : public ASTNode {
+struct SelectNode {
     std::vector<std::string> columns;
     std::string table;
-    std::string whereClause;
-    std::string orderBy;
+    std::string whereColumn;
+    std::string whereOp; // =
+    std::string whereValue;
+    std::string orderByColumn;
+    std::string orderByDir; // ASC/DESC
     int limit;
     SelectNode() : limit(-1) {}
-};
-
-struct InsertNode : public ASTNode {
-    std::string table;
-    std::vector<std::string> columns;
-    std::vector<std::string> values;
-};
-
-struct UpdateNode : public ASTNode {
-    std::string table;
-    std::map<std::string, std::string> setClauses;
-    std::string whereClause;
-};
-
-struct DeleteNode : public ASTNode {
-    std::string table;
-    std::string whereClause;
-};
-
-class Parser {
-public:
-    Parser(const std::vector<Token>& tokens);
-    std::unique_ptr<ASTNode> parse();
-    
-private:
-    std::vector<Token> tokens_;
-    size_t pos_;
-    Token currentToken();
-    void advance();
-    Token eat(TokenType type);
-    std::unique_ptr<SelectNode> parseSelect();
-    std::unique_ptr<InsertNode> parseInsert();
-    std::unique_ptr<UpdateNode> parseUpdate();
-    std::unique_ptr<DeleteNode> parseDelete();
 };
 
 struct QueryResult {
@@ -96,7 +66,10 @@ struct QueryResult {
 
 class QueryExecutor {
 public:
+    QueryExecutor(std::shared_ptr<forge::Storage> storage = nullptr);
     QueryResult execute(const std::string& query);
+private:
+    std::shared_ptr<forge::Storage> storage_;
 };
 
 } // namespace query

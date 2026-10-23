@@ -2,37 +2,31 @@
 #include "utils/codec.h"
 #include <iostream>
 #include <sys/stat.h>
+#include <cstring>
 
 namespace forge {
 
-Storage::Storage(const std::string& filename) 
-    : filename_(filename), isOpen_(false), nextUserId_(1), nextMessageId_(1) {
+Storage::Storage(const std::string& dataDir) 
+    : dataDir_(dataDir), isOpen_(false), nextUserId_(1), nextMessageId_(1) {
 }
 
 Storage::~Storage() {
     close();
 }
 
-bool Storage::fileExists() {
-    struct stat buffer;
-    return (stat(filename_.c_str(), &buffer) == 0);
-}
-
-void Storage::initializeFile() {
-    if (!fileExists()) {
-        file_.open(filename_, std::ios::binary | std::ios::out | std::ios::trunc);
-        if (file_.is_open()) {
-            file_.close();
-        }
-    }
-}
-
 bool Storage::open() {
     if (isOpen_) return true;
-    initializeFile();
-    file_.open(filename_, std::ios::binary | std::ios::in | std::ios::out);
-    if (!file_.is_open()) {
-        std::cerr << "Failed to open file: " << filename_ << std::endl;
+    try {
+        std::filesystem::create_directories(dataDir_);
+    } catch (...) {
+        return false;
+    }
+    if (!openFiles()) {
+        closeFiles();
+        return false;
+    }
+    if (!scanForMaxIds()) {
+        closeFiles();
         return false;
     }
     isOpen_ = true;
@@ -40,18 +34,102 @@ bool Storage::open() {
 }
 
 void Storage::close() {
-    if (isOpen_ && file_.is_open()) {
-        file_.close();
-        isOpen_ = false;
-    }
+    closeFiles();
+    isOpen_ = false;
 }
 
-size_t Storage::getFileSize() {
-    if (!isOpen_) return 0;
-    file_.seekg(0, std::ios::end);
-    size_t size = file_.tellg();
-    file_.seekg(0, std::ios::beg);
-    return size;
+bool Storage::openFiles() {
+    std::string usersPath = dataDir_ + "/users.dat";
+    std::string messagesPath = dataDir_ + "/messages.dat";
+    std::string recipientsPath = dataDir_ + "/recipients.dat";
+    
+    usersFile_.open(usersPath, std::ios::binary | std::ios::in | std::ios::out);
+    if (!usersFile_.is_open()) {
+        usersFile_.open(usersPath, std::ios::binary | std::ios::out | std::ios::trunc);
+        if (!usersFile_.is_open()) return false;
+        usersFile_.close();
+        usersFile_.open(usersPath, std::ios::binary | std::ios::in | std::ios::out);
+        if (!usersFile_.is_open()) return false;
+    }
+    
+    messagesFile_.open(messagesPath, std::ios::binary | std::ios::in | std::ios::out);
+    if (!messagesFile_.is_open()) {
+        messagesFile_.open(messagesPath, std::ios::binary | std::ios::out | std::ios::trunc);
+        if (!messagesFile_.is_open()) return false;
+        messagesFile_.close();
+        messagesFile_.open(messagesPath, std::ios::binary | std::ios::in | std::ios::out);
+        if (!messagesFile_.is_open()) return false;
+    }
+    
+    recipientsFile_.open(recipientsPath, std::ios::binary | std::ios::in | std::ios::out);
+    if (!recipientsFile_.is_open()) {
+        recipientsFile_.open(recipientsPath, std::ios::binary | std::ios::out | std::ios::trunc);
+        if (!recipientsFile_.is_open()) return false;
+        recipientsFile_.close();
+        recipientsFile_.open(recipientsPath, std::ios::binary | std::ios::in | std::ios::out);
+        if (!recipientsFile_.is_open()) return false;
+    }
+    return true;
+}
+
+void Storage::closeFiles() {
+    if (usersFile_.is_open()) usersFile_.close();
+    if (messagesFile_.is_open()) messagesFile_.close();
+    if (recipientsFile_.is_open()) recipientsFile_.close();
+}
+
+bool Storage::scanForMaxIds() {
+    nextUserId_ = 1;
+    nextMessageId_ = 1;
+    // Scan users
+    usersFile_.seekg(0, std::ios::end);
+    std::streampos fsize = usersFile_.tellg();
+    usersFile_.seekg(0, std::ios::beg);
+    if (fsize % (std::streampos)User::ENCODED_RECORD_SIZE != 0) {
+        // Corrupted/truncated - report error
+        return false;
+    }
+    for (size_t offset = 0; offset < (size_t)fsize; offset += User::ENCODED_RECORD_SIZE) {
+        std::vector<uint8_t> buffer(User::ENCODED_RECORD_SIZE);
+        usersFile_.seekg(offset);
+        usersFile_.read(reinterpret_cast<char*>(buffer.data()), User::ENCODED_RECORD_SIZE);
+        if (usersFile_.gcount() != (std::streamsize)User::ENCODED_RECORD_SIZE) return false;
+        User user;
+        if (!BinaryCodec::deserializeUser(buffer, 0, user)) return false;
+        if (user.id >= nextUserId_) nextUserId_ = user.id + 1;
+    }
+    // Scan messages
+    messagesFile_.seekg(0, std::ios::end);
+    fsize = messagesFile_.tellg();
+    messagesFile_.seekg(0, std::ios::beg);
+    if (fsize % (std::streampos)Message::ENCODED_RECORD_SIZE != 0) {
+        return false;
+    }
+    for (size_t offset = 0; offset < (size_t)fsize; offset += Message::ENCODED_RECORD_SIZE) {
+        std::vector<uint8_t> buffer(Message::ENCODED_RECORD_SIZE);
+        messagesFile_.seekg(offset);
+        messagesFile_.read(reinterpret_cast<char*>(buffer.data()), Message::ENCODED_RECORD_SIZE);
+        if (messagesFile_.gcount() != (std::streamsize)Message::ENCODED_RECORD_SIZE) return false;
+        Message msg;
+        if (!BinaryCodec::deserializeMessage(buffer, 0, msg)) return false;
+        if (msg.id >= nextMessageId_) nextMessageId_ = msg.id + 1;
+    }
+    // Recipients - validate but no ID counter needed
+    recipientsFile_.seekg(0, std::ios::end);
+    fsize = recipientsFile_.tellg();
+    recipientsFile_.seekg(0, std::ios::beg);
+    if (fsize % (std::streampos)Recipient::ENCODED_RECORD_SIZE != 0) {
+        return false;
+    }
+    for (size_t offset = 0; offset < (size_t)fsize; offset += Recipient::ENCODED_RECORD_SIZE) {
+        std::vector<uint8_t> buffer(Recipient::ENCODED_RECORD_SIZE);
+        recipientsFile_.seekg(offset);
+        recipientsFile_.read(reinterpret_cast<char*>(buffer.data()), Recipient::ENCODED_RECORD_SIZE);
+        if (recipientsFile_.gcount() != (std::streamsize)Recipient::ENCODED_RECORD_SIZE) return false;
+        Recipient rec;
+        if (!BinaryCodec::deserializeRecipient(buffer, 0, rec)) return false;
+    }
+    return true;
 }
 
 uint32_t Storage::getNextUserId() {
@@ -74,29 +152,28 @@ void Storage::setNextMessageId(uint32_t id) {
 bool Storage::createUser(const User& user) {
     if (!isOpen_) return false;
     std::vector<uint8_t> data = BinaryCodec::serializeUser(user);
-    file_.seekp(0, std::ios::end);
-    file_.write(reinterpret_cast<const char*>(data.data()), data.size());
-    file_.flush();
-    return file_.good();
+    usersFile_.seekp(0, std::ios::end);
+    usersFile_.write(reinterpret_cast<const char*>(data.data()), data.size());
+    usersFile_.flush();
+    return usersFile_.good();
 }
 
 bool Storage::readUser(uint32_t id, User& user) {
     if (!isOpen_) return false;
-    size_t fileSize = getFileSize();
-    size_t recordSize = User::RECORD_SIZE;
-    // Assume users are stored starting at beginning in a simple layout
-    // This is a simplified approach - in a real implementation might need indexing
-    for (size_t offset = 0; offset + recordSize <= fileSize; offset += recordSize) {
-        file_.seekg(offset);
-        std::vector<uint8_t> buffer(recordSize);
-        file_.read(reinterpret_cast<char*>(buffer.data()), recordSize);
-        if (file_.gcount() == (std::streamsize)recordSize) {
-            User tempUser;
-            if (BinaryCodec::deserializeUser(buffer, 0, tempUser)) {
-                if (tempUser.id == id) {
-                    user = tempUser;
-                    return true;
-                }
+    usersFile_.seekg(0, std::ios::end);
+    std::streampos fsize = usersFile_.tellg();
+    usersFile_.seekg(0, std::ios::beg);
+    if (fsize % (std::streampos)User::ENCODED_RECORD_SIZE != 0) return false;
+    for (size_t offset = 0; offset < (size_t)fsize; offset += User::ENCODED_RECORD_SIZE) {
+        std::vector<uint8_t> buffer(User::ENCODED_RECORD_SIZE);
+        usersFile_.seekg(offset);
+        usersFile_.read(reinterpret_cast<char*>(buffer.data()), User::ENCODED_RECORD_SIZE);
+        if (usersFile_.gcount() != (std::streamsize)User::ENCODED_RECORD_SIZE) return false;
+        User tempUser;
+        if (BinaryCodec::deserializeUser(buffer, 0, tempUser)) {
+            if (tempUser.id == id && tempUser.is_deleted == 0) {
+                user = tempUser;
+                return true;
             }
         }
     }
@@ -105,22 +182,23 @@ bool Storage::readUser(uint32_t id, User& user) {
 
 bool Storage::updateUser(const User& user) {
     if (!isOpen_) return false;
-    size_t fileSize = getFileSize();
-    size_t recordSize = User::RECORD_SIZE;
-    for (size_t offset = 0; offset + recordSize <= fileSize; offset += recordSize) {
-        file_.seekg(offset);
-        std::vector<uint8_t> buffer(recordSize);
-        file_.read(reinterpret_cast<char*>(buffer.data()), recordSize);
-        if (file_.gcount() == (std::streamsize)recordSize) {
-            User tempUser;
-            if (BinaryCodec::deserializeUser(buffer, 0, tempUser)) {
-                if (tempUser.id == user.id) {
-                    std::vector<uint8_t> data = BinaryCodec::serializeUser(user);
-                    file_.seekp(offset);
-                    file_.write(reinterpret_cast<const char*>(data.data()), data.size());
-                    file_.flush();
-                    return file_.good();
-                }
+    usersFile_.seekg(0, std::ios::end);
+    std::streampos fsize = usersFile_.tellg();
+    usersFile_.seekg(0, std::ios::beg);
+    if (fsize % (std::streampos)User::ENCODED_RECORD_SIZE != 0) return false;
+    for (size_t offset = 0; offset < (size_t)fsize; offset += User::ENCODED_RECORD_SIZE) {
+        std::vector<uint8_t> buffer(User::ENCODED_RECORD_SIZE);
+        usersFile_.seekg(offset);
+        usersFile_.read(reinterpret_cast<char*>(buffer.data()), User::ENCODED_RECORD_SIZE);
+        if (usersFile_.gcount() != (std::streamsize)User::ENCODED_RECORD_SIZE) return false;
+        User tempUser;
+        if (BinaryCodec::deserializeUser(buffer, 0, tempUser)) {
+            if (tempUser.id == user.id) {
+                std::vector<uint8_t> data = BinaryCodec::serializeUser(user);
+                usersFile_.seekp(offset);
+                usersFile_.write(reinterpret_cast<const char*>(data.data()), data.size());
+                usersFile_.flush();
+                return usersFile_.good();
             }
         }
     }
@@ -128,23 +206,50 @@ bool Storage::updateUser(const User& user) {
 }
 
 bool Storage::deleteUser(uint32_t id) {
-    // For now, just mark - but need to follow soft delete pattern if specified
-    // Simple implementation: could overwrite or just leave (depends on spec)
-    return true;
+    User user;
+    if (!readUser(id, user)) {
+        // Try to find even if deleted? For normal delete, look up by scanning all
+    }
+    // Scan all to find
+    usersFile_.seekg(0, std::ios::end);
+    std::streampos fsize = usersFile_.tellg();
+    usersFile_.seekg(0, std::ios::beg);
+    if (fsize % (std::streampos)User::ENCODED_RECORD_SIZE != 0) return false;
+    for (size_t offset = 0; offset < (size_t)fsize; offset += User::ENCODED_RECORD_SIZE) {
+        std::vector<uint8_t> buffer(User::ENCODED_RECORD_SIZE);
+        usersFile_.seekg(offset);
+        usersFile_.read(reinterpret_cast<char*>(buffer.data()), User::ENCODED_RECORD_SIZE);
+        if (usersFile_.gcount() != (std::streamsize)User::ENCODED_RECORD_SIZE) return false;
+        User tempUser;
+        if (BinaryCodec::deserializeUser(buffer, 0, tempUser)) {
+            if (tempUser.id == id && tempUser.is_deleted == 0) {
+                tempUser.is_deleted = 1;
+                std::vector<uint8_t> data = BinaryCodec::serializeUser(tempUser);
+                usersFile_.seekp(offset);
+                usersFile_.write(reinterpret_cast<const char*>(data.data()), data.size());
+                usersFile_.flush();
+                return usersFile_.good();
+            }
+        }
+    }
+    return false;
 }
 
-std::vector<User> Storage::getAllUsers() {
+std::vector<User> Storage::getAllUsers(bool includeDeleted) {
     std::vector<User> users;
     if (!isOpen_) return users;
-    size_t fileSize = getFileSize();
-    size_t recordSize = User::RECORD_SIZE;
-    for (size_t offset = 0; offset + recordSize <= fileSize; offset += recordSize) {
-        file_.seekg(offset);
-        std::vector<uint8_t> buffer(recordSize);
-        file_.read(reinterpret_cast<char*>(buffer.data()), recordSize);
-        if (file_.gcount() == (std::streamsize)recordSize) {
-            User user;
-            if (BinaryCodec::deserializeUser(buffer, 0, user)) {
+    usersFile_.seekg(0, std::ios::end);
+    std::streampos fsize = usersFile_.tellg();
+    usersFile_.seekg(0, std::ios::beg);
+    if (fsize % (std::streampos)User::ENCODED_RECORD_SIZE != 0) return users;
+    for (size_t offset = 0; offset < (size_t)fsize; offset += User::ENCODED_RECORD_SIZE) {
+        std::vector<uint8_t> buffer(User::ENCODED_RECORD_SIZE);
+        usersFile_.seekg(offset);
+        usersFile_.read(reinterpret_cast<char*>(buffer.data()), User::ENCODED_RECORD_SIZE);
+        if (usersFile_.gcount() != (std::streamsize)User::ENCODED_RECORD_SIZE) break;
+        User user;
+        if (BinaryCodec::deserializeUser(buffer, 0, user)) {
+            if (includeDeleted || user.is_deleted == 0) {
                 users.push_back(user);
             }
         }
@@ -156,27 +261,28 @@ std::vector<User> Storage::getAllUsers() {
 bool Storage::createMessage(const Message& message) {
     if (!isOpen_) return false;
     std::vector<uint8_t> data = BinaryCodec::serializeMessage(message);
-    file_.seekp(0, std::ios::end);
-    file_.write(reinterpret_cast<const char*>(data.data()), data.size());
-    file_.flush();
-    return file_.good();
+    messagesFile_.seekp(0, std::ios::end);
+    messagesFile_.write(reinterpret_cast<const char*>(data.data()), data.size());
+    messagesFile_.flush();
+    return messagesFile_.good();
 }
 
 bool Storage::readMessage(uint32_t id, Message& message) {
     if (!isOpen_) return false;
-    size_t fileSize = getFileSize();
-    size_t recordSize = Message::RECORD_SIZE;
-    for (size_t offset = 0; offset + recordSize <= fileSize; offset += recordSize) {
-        file_.seekg(offset);
-        std::vector<uint8_t> buffer(recordSize);
-        file_.read(reinterpret_cast<char*>(buffer.data()), recordSize);
-        if (file_.gcount() == (std::streamsize)recordSize) {
-            Message tempMsg;
-            if (BinaryCodec::deserializeMessage(buffer, 0, tempMsg)) {
-                if (tempMsg.id == id) {
-                    message = tempMsg;
-                    return true;
-                }
+    messagesFile_.seekg(0, std::ios::end);
+    std::streampos fsize = messagesFile_.tellg();
+    messagesFile_.seekg(0, std::ios::beg);
+    if (fsize % (std::streampos)Message::ENCODED_RECORD_SIZE != 0) return false;
+    for (size_t offset = 0; offset < (size_t)fsize; offset += Message::ENCODED_RECORD_SIZE) {
+        std::vector<uint8_t> buffer(Message::ENCODED_RECORD_SIZE);
+        messagesFile_.seekg(offset);
+        messagesFile_.read(reinterpret_cast<char*>(buffer.data()), Message::ENCODED_RECORD_SIZE);
+        if (messagesFile_.gcount() != (std::streamsize)Message::ENCODED_RECORD_SIZE) return false;
+        Message tempMsg;
+        if (BinaryCodec::deserializeMessage(buffer, 0, tempMsg)) {
+            if (tempMsg.id == id && tempMsg.is_deleted == 0) {
+                message = tempMsg;
+                return true;
             }
         }
     }
@@ -185,22 +291,23 @@ bool Storage::readMessage(uint32_t id, Message& message) {
 
 bool Storage::updateMessage(const Message& message) {
     if (!isOpen_) return false;
-    size_t fileSize = getFileSize();
-    size_t recordSize = Message::RECORD_SIZE;
-    for (size_t offset = 0; offset + recordSize <= fileSize; offset += recordSize) {
-        file_.seekg(offset);
-        std::vector<uint8_t> buffer(recordSize);
-        file_.read(reinterpret_cast<char*>(buffer.data()), recordSize);
-        if (file_.gcount() == (std::streamsize)recordSize) {
-            Message tempMsg;
-            if (BinaryCodec::deserializeMessage(buffer, 0, tempMsg)) {
-                if (tempMsg.id == message.id) {
-                    std::vector<uint8_t> data = BinaryCodec::serializeMessage(message);
-                    file_.seekp(offset);
-                    file_.write(reinterpret_cast<const char*>(data.data()), data.size());
-                    file_.flush();
-                    return file_.good();
-                }
+    messagesFile_.seekg(0, std::ios::end);
+    std::streampos fsize = messagesFile_.tellg();
+    messagesFile_.seekg(0, std::ios::beg);
+    if (fsize % (std::streampos)Message::ENCODED_RECORD_SIZE != 0) return false;
+    for (size_t offset = 0; offset < (size_t)fsize; offset += Message::ENCODED_RECORD_SIZE) {
+        std::vector<uint8_t> buffer(Message::ENCODED_RECORD_SIZE);
+        messagesFile_.seekg(offset);
+        messagesFile_.read(reinterpret_cast<char*>(buffer.data()), Message::ENCODED_RECORD_SIZE);
+        if (messagesFile_.gcount() != (std::streamsize)Message::ENCODED_RECORD_SIZE) return false;
+        Message tempMsg;
+        if (BinaryCodec::deserializeMessage(buffer, 0, tempMsg)) {
+            if (tempMsg.id == message.id) {
+                std::vector<uint8_t> data = BinaryCodec::serializeMessage(message);
+                messagesFile_.seekp(offset);
+                messagesFile_.write(reinterpret_cast<const char*>(data.data()), data.size());
+                messagesFile_.flush();
+                return messagesFile_.good();
             }
         }
     }
@@ -208,10 +315,26 @@ bool Storage::updateMessage(const Message& message) {
 }
 
 bool Storage::deleteMessage(uint32_t id) {
-    Message msg;
-    if (readMessage(id, msg)) {
-        msg.is_deleted = 1;
-        return updateMessage(msg);
+    messagesFile_.seekg(0, std::ios::end);
+    std::streampos fsize = messagesFile_.tellg();
+    messagesFile_.seekg(0, std::ios::beg);
+    if (fsize % (std::streampos)Message::ENCODED_RECORD_SIZE != 0) return false;
+    for (size_t offset = 0; offset < (size_t)fsize; offset += Message::ENCODED_RECORD_SIZE) {
+        std::vector<uint8_t> buffer(Message::ENCODED_RECORD_SIZE);
+        messagesFile_.seekg(offset);
+        messagesFile_.read(reinterpret_cast<char*>(buffer.data()), Message::ENCODED_RECORD_SIZE);
+        if (messagesFile_.gcount() != (std::streamsize)Message::ENCODED_RECORD_SIZE) return false;
+        Message tempMsg;
+        if (BinaryCodec::deserializeMessage(buffer, 0, tempMsg)) {
+            if (tempMsg.id == id && tempMsg.is_deleted == 0) {
+                tempMsg.is_deleted = 1;
+                std::vector<uint8_t> data = BinaryCodec::serializeMessage(tempMsg);
+                messagesFile_.seekp(offset);
+                messagesFile_.write(reinterpret_cast<const char*>(data.data()), data.size());
+                messagesFile_.flush();
+                return messagesFile_.good();
+            }
+        }
     }
     return false;
 }
@@ -219,18 +342,19 @@ bool Storage::deleteMessage(uint32_t id) {
 std::vector<Message> Storage::getAllMessages(bool includeDeleted) {
     std::vector<Message> messages;
     if (!isOpen_) return messages;
-    size_t fileSize = getFileSize();
-    size_t recordSize = Message::RECORD_SIZE;
-    for (size_t offset = 0; offset + recordSize <= fileSize; offset += recordSize) {
-        file_.seekg(offset);
-        std::vector<uint8_t> buffer(recordSize);
-        file_.read(reinterpret_cast<char*>(buffer.data()), recordSize);
-        if (file_.gcount() == (std::streamsize)recordSize) {
-            Message msg;
-            if (BinaryCodec::deserializeMessage(buffer, 0, msg)) {
-                if (includeDeleted || msg.is_deleted == 0) {
-                    messages.push_back(msg);
-                }
+    messagesFile_.seekg(0, std::ios::end);
+    std::streampos fsize = messagesFile_.tellg();
+    messagesFile_.seekg(0, std::ios::beg);
+    if (fsize % (std::streampos)Message::ENCODED_RECORD_SIZE != 0) return messages;
+    for (size_t offset = 0; offset < (size_t)fsize; offset += Message::ENCODED_RECORD_SIZE) {
+        std::vector<uint8_t> buffer(Message::ENCODED_RECORD_SIZE);
+        messagesFile_.seekg(offset);
+        messagesFile_.read(reinterpret_cast<char*>(buffer.data()), Message::ENCODED_RECORD_SIZE);
+        if (messagesFile_.gcount() != (std::streamsize)Message::ENCODED_RECORD_SIZE) break;
+        Message msg;
+        if (BinaryCodec::deserializeMessage(buffer, 0, msg)) {
+            if (includeDeleted || msg.is_deleted == 0) {
+                messages.push_back(msg);
             }
         }
     }
@@ -241,27 +365,28 @@ std::vector<Message> Storage::getAllMessages(bool includeDeleted) {
 bool Storage::createRecipient(const Recipient& recipient) {
     if (!isOpen_) return false;
     std::vector<uint8_t> data = BinaryCodec::serializeRecipient(recipient);
-    file_.seekp(0, std::ios::end);
-    file_.write(reinterpret_cast<const char*>(data.data()), data.size());
-    file_.flush();
-    return file_.good();
+    recipientsFile_.seekp(0, std::ios::end);
+    recipientsFile_.write(reinterpret_cast<const char*>(data.data()), data.size());
+    recipientsFile_.flush();
+    return recipientsFile_.good();
 }
 
-bool Storage::readRecipientsByMessage(uint32_t messageId, std::vector<Recipient>& recipients) {
+bool Storage::readRecipientsByMessage(uint32_t messageId, std::vector<Recipient>& recipients, bool includeDeleted) {
     if (!isOpen_) return false;
     recipients.clear();
-    size_t fileSize = getFileSize();
-    size_t recordSize = Recipient::RECORD_SIZE;
-    for (size_t offset = 0; offset + recordSize <= fileSize; offset += recordSize) {
-        file_.seekg(offset);
-        std::vector<uint8_t> buffer(recordSize);
-        file_.read(reinterpret_cast<char*>(buffer.data()), recordSize);
-        if (file_.gcount() == (std::streamsize)recordSize) {
-            Recipient rec;
-            if (BinaryCodec::deserializeRecipient(buffer, 0, rec)) {
-                if (rec.message_id == messageId) {
-                    recipients.push_back(rec);
-                }
+    recipientsFile_.seekg(0, std::ios::end);
+    std::streampos fsize = recipientsFile_.tellg();
+    recipientsFile_.seekg(0, std::ios::beg);
+    if (fsize % (std::streampos)Recipient::ENCODED_RECORD_SIZE != 0) return false;
+    for (size_t offset = 0; offset < (size_t)fsize; offset += Recipient::ENCODED_RECORD_SIZE) {
+        std::vector<uint8_t> buffer(Recipient::ENCODED_RECORD_SIZE);
+        recipientsFile_.seekg(offset);
+        recipientsFile_.read(reinterpret_cast<char*>(buffer.data()), Recipient::ENCODED_RECORD_SIZE);
+        if (recipientsFile_.gcount() != (std::streamsize)Recipient::ENCODED_RECORD_SIZE) break;
+        Recipient rec;
+        if (BinaryCodec::deserializeRecipient(buffer, 0, rec)) {
+            if (rec.message_id == messageId && (includeDeleted || rec.is_deleted == 0)) {
+                recipients.push_back(rec);
             }
         }
     }
@@ -269,22 +394,47 @@ bool Storage::readRecipientsByMessage(uint32_t messageId, std::vector<Recipient>
 }
 
 bool Storage::deleteRecipientsByMessage(uint32_t messageId) {
-    // For simplicity, we'll just note - in a real system might need to handle differently
-    return true;
+    if (!isOpen_) return false;
+    recipientsFile_.seekg(0, std::ios::end);
+    std::streampos fsize = recipientsFile_.tellg();
+    recipientsFile_.seekg(0, std::ios::beg);
+    if (fsize % (std::streampos)Recipient::ENCODED_RECORD_SIZE != 0) return false;
+    bool ok = true;
+    for (size_t offset = 0; offset < (size_t)fsize; offset += Recipient::ENCODED_RECORD_SIZE) {
+        std::vector<uint8_t> buffer(Recipient::ENCODED_RECORD_SIZE);
+        recipientsFile_.seekg(offset);
+        recipientsFile_.read(reinterpret_cast<char*>(buffer.data()), Recipient::ENCODED_RECORD_SIZE);
+        if (recipientsFile_.gcount() != (std::streamsize)Recipient::ENCODED_RECORD_SIZE) break;
+        Recipient rec;
+        if (BinaryCodec::deserializeRecipient(buffer, 0, rec)) {
+            if (rec.message_id == messageId && rec.is_deleted == 0) {
+                rec.is_deleted = 1;
+                std::vector<uint8_t> data = BinaryCodec::serializeRecipient(rec);
+                recipientsFile_.seekp(offset);
+                recipientsFile_.write(reinterpret_cast<const char*>(data.data()), data.size());
+                recipientsFile_.flush();
+                if (!recipientsFile_.good()) ok = false;
+            }
+        }
+    }
+    return ok;
 }
 
-std::vector<Recipient> Storage::getAllRecipients() {
+std::vector<Recipient> Storage::getAllRecipients(bool includeDeleted) {
     std::vector<Recipient> recipients;
     if (!isOpen_) return recipients;
-    size_t fileSize = getFileSize();
-    size_t recordSize = Recipient::RECORD_SIZE;
-    for (size_t offset = 0; offset + recordSize <= fileSize; offset += recordSize) {
-        file_.seekg(offset);
-        std::vector<uint8_t> buffer(recordSize);
-        file_.read(reinterpret_cast<char*>(buffer.data()), recordSize);
-        if (file_.gcount() == (std::streamsize)recordSize) {
-            Recipient rec;
-            if (BinaryCodec::deserializeRecipient(buffer, 0, rec)) {
+    recipientsFile_.seekg(0, std::ios::end);
+    std::streampos fsize = recipientsFile_.tellg();
+    recipientsFile_.seekg(0, std::ios::beg);
+    if (fsize % (std::streampos)Recipient::ENCODED_RECORD_SIZE != 0) return recipients;
+    for (size_t offset = 0; offset < (size_t)fsize; offset += Recipient::ENCODED_RECORD_SIZE) {
+        std::vector<uint8_t> buffer(Recipient::ENCODED_RECORD_SIZE);
+        recipientsFile_.seekg(offset);
+        recipientsFile_.read(reinterpret_cast<char*>(buffer.data()), Recipient::ENCODED_RECORD_SIZE);
+        if (recipientsFile_.gcount() != (std::streamsize)Recipient::ENCODED_RECORD_SIZE) break;
+        Recipient rec;
+        if (BinaryCodec::deserializeRecipient(buffer, 0, rec)) {
+            if (includeDeleted || rec.is_deleted == 0) {
                 recipients.push_back(rec);
             }
         }

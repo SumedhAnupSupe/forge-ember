@@ -140,17 +140,17 @@ forge/fast:
 .PHONY : forge/fast
 
 #=============================================================================
-# Target rules for targets named tests
+# Target rules for targets named forge_tests
 
 # Build rule for target.
-tests: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests
-.PHONY : tests
+forge_tests: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 forge_tests
+.PHONY : forge_tests
 
 # fast build rule for target.
-tests/fast:
-	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/build
-.PHONY : tests/fast
+forge_tests/fast:
+	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/build
+.PHONY : forge_tests/fast
 
 src/algorithms/benchmark.o: src/algorithms/benchmark.cpp.o
 .PHONY : src/algorithms/benchmark.o
@@ -247,6 +247,30 @@ src/auth/auth.s: src/auth/auth.cpp.s
 src/auth/auth.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/forge.dir/build.make CMakeFiles/forge.dir/src/auth/auth.cpp.s
 .PHONY : src/auth/auth.cpp.s
+
+src/auth/password.o: src/auth/password.cpp.o
+.PHONY : src/auth/password.o
+
+# target to build an object file
+src/auth/password.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/forge.dir/build.make CMakeFiles/forge.dir/src/auth/password.cpp.o
+.PHONY : src/auth/password.cpp.o
+
+src/auth/password.i: src/auth/password.cpp.i
+.PHONY : src/auth/password.i
+
+# target to preprocess a source file
+src/auth/password.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/forge.dir/build.make CMakeFiles/forge.dir/src/auth/password.cpp.i
+.PHONY : src/auth/password.cpp.i
+
+src/auth/password.s: src/auth/password.cpp.s
+.PHONY : src/auth/password.s
+
+# target to generate assembly for a file
+src/auth/password.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/forge.dir/build.make CMakeFiles/forge.dir/src/auth/password.cpp.s
+.PHONY : src/auth/password.cpp.s
 
 src/index/hash_table.o: src/index/hash_table.cpp.o
 .PHONY : src/index/hash_table.o
@@ -440,6 +464,30 @@ src/storage/storage.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/forge.dir/build.make CMakeFiles/forge.dir/src/storage/storage.cpp.s
 .PHONY : src/storage/storage.cpp.s
 
+src/tables/recipients_table.o: src/tables/recipients_table.cpp.o
+.PHONY : src/tables/recipients_table.o
+
+# target to build an object file
+src/tables/recipients_table.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/forge.dir/build.make CMakeFiles/forge.dir/src/tables/recipients_table.cpp.o
+.PHONY : src/tables/recipients_table.cpp.o
+
+src/tables/recipients_table.i: src/tables/recipients_table.cpp.i
+.PHONY : src/tables/recipients_table.i
+
+# target to preprocess a source file
+src/tables/recipients_table.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/forge.dir/build.make CMakeFiles/forge.dir/src/tables/recipients_table.cpp.i
+.PHONY : src/tables/recipients_table.cpp.i
+
+src/tables/recipients_table.s: src/tables/recipients_table.cpp.s
+.PHONY : src/tables/recipients_table.s
+
+# target to generate assembly for a file
+src/tables/recipients_table.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/forge.dir/build.make CMakeFiles/forge.dir/src/tables/recipients_table.cpp.s
+.PHONY : src/tables/recipients_table.cpp.s
+
 src/utils/codec.o: src/utils/codec.cpp.o
 .PHONY : src/utils/codec.o
 
@@ -474,7 +522,7 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... test"
 	@echo "... forge"
-	@echo "... tests"
+	@echo "... forge_tests"
 	@echo "... src/algorithms/benchmark.o"
 	@echo "... src/algorithms/benchmark.i"
 	@echo "... src/algorithms/benchmark.s"
@@ -487,6 +535,9 @@ help:
 	@echo "... src/auth/auth.o"
 	@echo "... src/auth/auth.i"
 	@echo "... src/auth/auth.s"
+	@echo "... src/auth/password.o"
+	@echo "... src/auth/password.i"
+	@echo "... src/auth/password.s"
 	@echo "... src/index/hash_table.o"
 	@echo "... src/index/hash_table.i"
 	@echo "... src/index/hash_table.s"
@@ -511,6 +562,9 @@ help:
 	@echo "... src/storage/storage.o"
 	@echo "... src/storage/storage.i"
 	@echo "... src/storage/storage.s"
+	@echo "... src/tables/recipients_table.o"
+	@echo "... src/tables/recipients_table.i"
+	@echo "... src/tables/recipients_table.s"
 	@echo "... src/utils/codec.o"
 	@echo "... src/utils/codec.i"
 	@echo "... src/utils/codec.s"

@@ -127,25 +127,25 @@ depend:
 .PHONY : depend
 
 # Convenience name for target.
-tests/CMakeFiles/tests.dir/rule:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/tests.dir/rule
-.PHONY : tests/CMakeFiles/tests.dir/rule
+tests/CMakeFiles/forge_tests.dir/rule:
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests/CMakeFiles/forge_tests.dir/rule
+.PHONY : tests/CMakeFiles/forge_tests.dir/rule
 
 # Convenience name for target.
-tests: tests/CMakeFiles/tests.dir/rule
-.PHONY : tests
+forge_tests: tests/CMakeFiles/forge_tests.dir/rule
+.PHONY : forge_tests
 
 # fast build rule for target.
-tests/fast:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/build
-.PHONY : tests/fast
+forge_tests/fast:
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/build
+.PHONY : forge_tests/fast
 
 __/src/algorithms/benchmark.o: __/src/algorithms/benchmark.cpp.o
 .PHONY : __/src/algorithms/benchmark.o
 
 # target to build an object file
 __/src/algorithms/benchmark.cpp.o:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/algorithms/benchmark.cpp.o
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/algorithms/benchmark.cpp.o
 .PHONY : __/src/algorithms/benchmark.cpp.o
 
 __/src/algorithms/benchmark.i: __/src/algorithms/benchmark.cpp.i
@@ -153,7 +153,7 @@ __/src/algorithms/benchmark.i: __/src/algorithms/benchmark.cpp.i
 
 # target to preprocess a source file
 __/src/algorithms/benchmark.cpp.i:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/algorithms/benchmark.cpp.i
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/algorithms/benchmark.cpp.i
 .PHONY : __/src/algorithms/benchmark.cpp.i
 
 __/src/algorithms/benchmark.s: __/src/algorithms/benchmark.cpp.s
@@ -161,7 +161,7 @@ __/src/algorithms/benchmark.s: __/src/algorithms/benchmark.cpp.s
 
 # target to generate assembly for a file
 __/src/algorithms/benchmark.cpp.s:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/algorithms/benchmark.cpp.s
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/algorithms/benchmark.cpp.s
 .PHONY : __/src/algorithms/benchmark.cpp.s
 
 __/src/algorithms/searching.o: __/src/algorithms/searching.cpp.o
@@ -169,7 +169,7 @@ __/src/algorithms/searching.o: __/src/algorithms/searching.cpp.o
 
 # target to build an object file
 __/src/algorithms/searching.cpp.o:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/algorithms/searching.cpp.o
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/algorithms/searching.cpp.o
 .PHONY : __/src/algorithms/searching.cpp.o
 
 __/src/algorithms/searching.i: __/src/algorithms/searching.cpp.i
@@ -177,7 +177,7 @@ __/src/algorithms/searching.i: __/src/algorithms/searching.cpp.i
 
 # target to preprocess a source file
 __/src/algorithms/searching.cpp.i:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/algorithms/searching.cpp.i
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/algorithms/searching.cpp.i
 .PHONY : __/src/algorithms/searching.cpp.i
 
 __/src/algorithms/searching.s: __/src/algorithms/searching.cpp.s
@@ -185,7 +185,7 @@ __/src/algorithms/searching.s: __/src/algorithms/searching.cpp.s
 
 # target to generate assembly for a file
 __/src/algorithms/searching.cpp.s:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/algorithms/searching.cpp.s
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/algorithms/searching.cpp.s
 .PHONY : __/src/algorithms/searching.cpp.s
 
 __/src/algorithms/sorting.o: __/src/algorithms/sorting.cpp.o
@@ -193,7 +193,7 @@ __/src/algorithms/sorting.o: __/src/algorithms/sorting.cpp.o
 
 # target to build an object file
 __/src/algorithms/sorting.cpp.o:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/algorithms/sorting.cpp.o
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/algorithms/sorting.cpp.o
 .PHONY : __/src/algorithms/sorting.cpp.o
 
 __/src/algorithms/sorting.i: __/src/algorithms/sorting.cpp.i
@@ -201,7 +201,7 @@ __/src/algorithms/sorting.i: __/src/algorithms/sorting.cpp.i
 
 # target to preprocess a source file
 __/src/algorithms/sorting.cpp.i:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/algorithms/sorting.cpp.i
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/algorithms/sorting.cpp.i
 .PHONY : __/src/algorithms/sorting.cpp.i
 
 __/src/algorithms/sorting.s: __/src/algorithms/sorting.cpp.s
@@ -209,7 +209,7 @@ __/src/algorithms/sorting.s: __/src/algorithms/sorting.cpp.s
 
 # target to generate assembly for a file
 __/src/algorithms/sorting.cpp.s:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/algorithms/sorting.cpp.s
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/algorithms/sorting.cpp.s
 .PHONY : __/src/algorithms/sorting.cpp.s
 
 __/src/auth/auth.o: __/src/auth/auth.cpp.o
@@ -217,7 +217,7 @@ __/src/auth/auth.o: __/src/auth/auth.cpp.o
 
 # target to build an object file
 __/src/auth/auth.cpp.o:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/auth/auth.cpp.o
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/auth/auth.cpp.o
 .PHONY : __/src/auth/auth.cpp.o
 
 __/src/auth/auth.i: __/src/auth/auth.cpp.i
@@ -225,7 +225,7 @@ __/src/auth/auth.i: __/src/auth/auth.cpp.i
 
 # target to preprocess a source file
 __/src/auth/auth.cpp.i:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/auth/auth.cpp.i
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/auth/auth.cpp.i
 .PHONY : __/src/auth/auth.cpp.i
 
 __/src/auth/auth.s: __/src/auth/auth.cpp.s
@@ -233,15 +233,39 @@ __/src/auth/auth.s: __/src/auth/auth.cpp.s
 
 # target to generate assembly for a file
 __/src/auth/auth.cpp.s:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/auth/auth.cpp.s
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/auth/auth.cpp.s
 .PHONY : __/src/auth/auth.cpp.s
+
+__/src/auth/password.o: __/src/auth/password.cpp.o
+.PHONY : __/src/auth/password.o
+
+# target to build an object file
+__/src/auth/password.cpp.o:
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/auth/password.cpp.o
+.PHONY : __/src/auth/password.cpp.o
+
+__/src/auth/password.i: __/src/auth/password.cpp.i
+.PHONY : __/src/auth/password.i
+
+# target to preprocess a source file
+__/src/auth/password.cpp.i:
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/auth/password.cpp.i
+.PHONY : __/src/auth/password.cpp.i
+
+__/src/auth/password.s: __/src/auth/password.cpp.s
+.PHONY : __/src/auth/password.s
+
+# target to generate assembly for a file
+__/src/auth/password.cpp.s:
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/auth/password.cpp.s
+.PHONY : __/src/auth/password.cpp.s
 
 __/src/index/hash_table.o: __/src/index/hash_table.cpp.o
 .PHONY : __/src/index/hash_table.o
 
 # target to build an object file
 __/src/index/hash_table.cpp.o:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/index/hash_table.cpp.o
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/index/hash_table.cpp.o
 .PHONY : __/src/index/hash_table.cpp.o
 
 __/src/index/hash_table.i: __/src/index/hash_table.cpp.i
@@ -249,7 +273,7 @@ __/src/index/hash_table.i: __/src/index/hash_table.cpp.i
 
 # target to preprocess a source file
 __/src/index/hash_table.cpp.i:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/index/hash_table.cpp.i
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/index/hash_table.cpp.i
 .PHONY : __/src/index/hash_table.cpp.i
 
 __/src/index/hash_table.s: __/src/index/hash_table.cpp.s
@@ -257,7 +281,7 @@ __/src/index/hash_table.s: __/src/index/hash_table.cpp.s
 
 # target to generate assembly for a file
 __/src/index/hash_table.cpp.s:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/index/hash_table.cpp.s
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/index/hash_table.cpp.s
 .PHONY : __/src/index/hash_table.cpp.s
 
 __/src/index/indexes.o: __/src/index/indexes.cpp.o
@@ -265,7 +289,7 @@ __/src/index/indexes.o: __/src/index/indexes.cpp.o
 
 # target to build an object file
 __/src/index/indexes.cpp.o:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/index/indexes.cpp.o
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/index/indexes.cpp.o
 .PHONY : __/src/index/indexes.cpp.o
 
 __/src/index/indexes.i: __/src/index/indexes.cpp.i
@@ -273,7 +297,7 @@ __/src/index/indexes.i: __/src/index/indexes.cpp.i
 
 # target to preprocess a source file
 __/src/index/indexes.cpp.i:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/index/indexes.cpp.i
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/index/indexes.cpp.i
 .PHONY : __/src/index/indexes.cpp.i
 
 __/src/index/indexes.s: __/src/index/indexes.cpp.s
@@ -281,7 +305,7 @@ __/src/index/indexes.s: __/src/index/indexes.cpp.s
 
 # target to generate assembly for a file
 __/src/index/indexes.cpp.s:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/index/indexes.cpp.s
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/index/indexes.cpp.s
 .PHONY : __/src/index/indexes.cpp.s
 
 __/src/models/records.o: __/src/models/records.cpp.o
@@ -289,7 +313,7 @@ __/src/models/records.o: __/src/models/records.cpp.o
 
 # target to build an object file
 __/src/models/records.cpp.o:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/models/records.cpp.o
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/models/records.cpp.o
 .PHONY : __/src/models/records.cpp.o
 
 __/src/models/records.i: __/src/models/records.cpp.i
@@ -297,7 +321,7 @@ __/src/models/records.i: __/src/models/records.cpp.i
 
 # target to preprocess a source file
 __/src/models/records.cpp.i:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/models/records.cpp.i
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/models/records.cpp.i
 .PHONY : __/src/models/records.cpp.i
 
 __/src/models/records.s: __/src/models/records.cpp.s
@@ -305,7 +329,7 @@ __/src/models/records.s: __/src/models/records.cpp.s
 
 # target to generate assembly for a file
 __/src/models/records.cpp.s:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/models/records.cpp.s
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/models/records.cpp.s
 .PHONY : __/src/models/records.cpp.s
 
 __/src/query/query.o: __/src/query/query.cpp.o
@@ -313,7 +337,7 @@ __/src/query/query.o: __/src/query/query.cpp.o
 
 # target to build an object file
 __/src/query/query.cpp.o:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/query/query.cpp.o
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/query/query.cpp.o
 .PHONY : __/src/query/query.cpp.o
 
 __/src/query/query.i: __/src/query/query.cpp.i
@@ -321,7 +345,7 @@ __/src/query/query.i: __/src/query/query.cpp.i
 
 # target to preprocess a source file
 __/src/query/query.cpp.i:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/query/query.cpp.i
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/query/query.cpp.i
 .PHONY : __/src/query/query.cpp.i
 
 __/src/query/query.s: __/src/query/query.cpp.s
@@ -329,7 +353,7 @@ __/src/query/query.s: __/src/query/query.cpp.s
 
 # target to generate assembly for a file
 __/src/query/query.cpp.s:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/query/query.cpp.s
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/query/query.cpp.s
 .PHONY : __/src/query/query.cpp.s
 
 __/src/services/message_service.o: __/src/services/message_service.cpp.o
@@ -337,7 +361,7 @@ __/src/services/message_service.o: __/src/services/message_service.cpp.o
 
 # target to build an object file
 __/src/services/message_service.cpp.o:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/services/message_service.cpp.o
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/services/message_service.cpp.o
 .PHONY : __/src/services/message_service.cpp.o
 
 __/src/services/message_service.i: __/src/services/message_service.cpp.i
@@ -345,7 +369,7 @@ __/src/services/message_service.i: __/src/services/message_service.cpp.i
 
 # target to preprocess a source file
 __/src/services/message_service.cpp.i:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/services/message_service.cpp.i
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/services/message_service.cpp.i
 .PHONY : __/src/services/message_service.cpp.i
 
 __/src/services/message_service.s: __/src/services/message_service.cpp.s
@@ -353,7 +377,7 @@ __/src/services/message_service.s: __/src/services/message_service.cpp.s
 
 # target to generate assembly for a file
 __/src/services/message_service.cpp.s:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/services/message_service.cpp.s
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/services/message_service.cpp.s
 .PHONY : __/src/services/message_service.cpp.s
 
 __/src/services/user_service.o: __/src/services/user_service.cpp.o
@@ -361,7 +385,7 @@ __/src/services/user_service.o: __/src/services/user_service.cpp.o
 
 # target to build an object file
 __/src/services/user_service.cpp.o:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/services/user_service.cpp.o
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/services/user_service.cpp.o
 .PHONY : __/src/services/user_service.cpp.o
 
 __/src/services/user_service.i: __/src/services/user_service.cpp.i
@@ -369,7 +393,7 @@ __/src/services/user_service.i: __/src/services/user_service.cpp.i
 
 # target to preprocess a source file
 __/src/services/user_service.cpp.i:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/services/user_service.cpp.i
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/services/user_service.cpp.i
 .PHONY : __/src/services/user_service.cpp.i
 
 __/src/services/user_service.s: __/src/services/user_service.cpp.s
@@ -377,7 +401,7 @@ __/src/services/user_service.s: __/src/services/user_service.cpp.s
 
 # target to generate assembly for a file
 __/src/services/user_service.cpp.s:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/services/user_service.cpp.s
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/services/user_service.cpp.s
 .PHONY : __/src/services/user_service.cpp.s
 
 __/src/storage/storage.o: __/src/storage/storage.cpp.o
@@ -385,7 +409,7 @@ __/src/storage/storage.o: __/src/storage/storage.cpp.o
 
 # target to build an object file
 __/src/storage/storage.cpp.o:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/storage/storage.cpp.o
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/storage/storage.cpp.o
 .PHONY : __/src/storage/storage.cpp.o
 
 __/src/storage/storage.i: __/src/storage/storage.cpp.i
@@ -393,7 +417,7 @@ __/src/storage/storage.i: __/src/storage/storage.cpp.i
 
 # target to preprocess a source file
 __/src/storage/storage.cpp.i:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/storage/storage.cpp.i
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/storage/storage.cpp.i
 .PHONY : __/src/storage/storage.cpp.i
 
 __/src/storage/storage.s: __/src/storage/storage.cpp.s
@@ -401,15 +425,39 @@ __/src/storage/storage.s: __/src/storage/storage.cpp.s
 
 # target to generate assembly for a file
 __/src/storage/storage.cpp.s:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/storage/storage.cpp.s
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/storage/storage.cpp.s
 .PHONY : __/src/storage/storage.cpp.s
+
+__/src/tables/recipients_table.o: __/src/tables/recipients_table.cpp.o
+.PHONY : __/src/tables/recipients_table.o
+
+# target to build an object file
+__/src/tables/recipients_table.cpp.o:
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/tables/recipients_table.cpp.o
+.PHONY : __/src/tables/recipients_table.cpp.o
+
+__/src/tables/recipients_table.i: __/src/tables/recipients_table.cpp.i
+.PHONY : __/src/tables/recipients_table.i
+
+# target to preprocess a source file
+__/src/tables/recipients_table.cpp.i:
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/tables/recipients_table.cpp.i
+.PHONY : __/src/tables/recipients_table.cpp.i
+
+__/src/tables/recipients_table.s: __/src/tables/recipients_table.cpp.s
+.PHONY : __/src/tables/recipients_table.s
+
+# target to generate assembly for a file
+__/src/tables/recipients_table.cpp.s:
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/tables/recipients_table.cpp.s
+.PHONY : __/src/tables/recipients_table.cpp.s
 
 __/src/utils/codec.o: __/src/utils/codec.cpp.o
 .PHONY : __/src/utils/codec.o
 
 # target to build an object file
 __/src/utils/codec.cpp.o:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/utils/codec.cpp.o
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/utils/codec.cpp.o
 .PHONY : __/src/utils/codec.cpp.o
 
 __/src/utils/codec.i: __/src/utils/codec.cpp.i
@@ -417,7 +465,7 @@ __/src/utils/codec.i: __/src/utils/codec.cpp.i
 
 # target to preprocess a source file
 __/src/utils/codec.cpp.i:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/utils/codec.cpp.i
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/utils/codec.cpp.i
 .PHONY : __/src/utils/codec.cpp.i
 
 __/src/utils/codec.s: __/src/utils/codec.cpp.s
@@ -425,7 +473,7 @@ __/src/utils/codec.s: __/src/utils/codec.cpp.s
 
 # target to generate assembly for a file
 __/src/utils/codec.cpp.s:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/__/src/utils/codec.cpp.s
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/__/src/utils/codec.cpp.s
 .PHONY : __/src/utils/codec.cpp.s
 
 test_main.o: test_main.cpp.o
@@ -433,7 +481,7 @@ test_main.o: test_main.cpp.o
 
 # target to build an object file
 test_main.cpp.o:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/test_main.cpp.o
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/test_main.cpp.o
 .PHONY : test_main.cpp.o
 
 test_main.i: test_main.cpp.i
@@ -441,7 +489,7 @@ test_main.i: test_main.cpp.i
 
 # target to preprocess a source file
 test_main.cpp.i:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/test_main.cpp.i
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/test_main.cpp.i
 .PHONY : test_main.cpp.i
 
 test_main.s: test_main.cpp.s
@@ -449,7 +497,7 @@ test_main.s: test_main.cpp.s
 
 # target to generate assembly for a file
 test_main.cpp.s:
-	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/tests.dir/build.make tests/CMakeFiles/tests.dir/test_main.cpp.s
+	cd /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/forge_tests.dir/build.make tests/CMakeFiles/forge_tests.dir/test_main.cpp.s
 .PHONY : test_main.cpp.s
 
 # Help Target
@@ -461,7 +509,7 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... test"
-	@echo "... tests"
+	@echo "... forge_tests"
 	@echo "... __/src/algorithms/benchmark.o"
 	@echo "... __/src/algorithms/benchmark.i"
 	@echo "... __/src/algorithms/benchmark.s"
@@ -474,6 +522,9 @@ help:
 	@echo "... __/src/auth/auth.o"
 	@echo "... __/src/auth/auth.i"
 	@echo "... __/src/auth/auth.s"
+	@echo "... __/src/auth/password.o"
+	@echo "... __/src/auth/password.i"
+	@echo "... __/src/auth/password.s"
 	@echo "... __/src/index/hash_table.o"
 	@echo "... __/src/index/hash_table.i"
 	@echo "... __/src/index/hash_table.s"
@@ -495,6 +546,9 @@ help:
 	@echo "... __/src/storage/storage.o"
 	@echo "... __/src/storage/storage.i"
 	@echo "... __/src/storage/storage.s"
+	@echo "... __/src/tables/recipients_table.o"
+	@echo "... __/src/tables/recipients_table.i"
+	@echo "... __/src/tables/recipients_table.s"
 	@echo "... __/src/utils/codec.o"
 	@echo "... __/src/utils/codec.i"
 	@echo "... __/src/utils/codec.s"

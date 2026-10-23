@@ -125,10 +125,24 @@ CMakeFiles/forge.dir/src/auth/auth.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/forge.dir/src/auth/auth.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/auth/auth.cpp -o CMakeFiles/forge.dir/src/auth/auth.cpp.s
 
+CMakeFiles/forge.dir/src/auth/password.cpp.o: CMakeFiles/forge.dir/flags.make
+CMakeFiles/forge.dir/src/auth/password.cpp.o: /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/auth/password.cpp
+CMakeFiles/forge.dir/src/auth/password.cpp.o: CMakeFiles/forge.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/forge.dir/src/auth/password.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/forge.dir/src/auth/password.cpp.o -MF CMakeFiles/forge.dir/src/auth/password.cpp.o.d -o CMakeFiles/forge.dir/src/auth/password.cpp.o -c /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/auth/password.cpp
+
+CMakeFiles/forge.dir/src/auth/password.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/forge.dir/src/auth/password.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/auth/password.cpp > CMakeFiles/forge.dir/src/auth/password.cpp.i
+
+CMakeFiles/forge.dir/src/auth/password.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/forge.dir/src/auth/password.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/auth/password.cpp -o CMakeFiles/forge.dir/src/auth/password.cpp.s
+
 CMakeFiles/forge.dir/src/index/hash_table.cpp.o: CMakeFiles/forge.dir/flags.make
 CMakeFiles/forge.dir/src/index/hash_table.cpp.o: /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/index/hash_table.cpp
 CMakeFiles/forge.dir/src/index/hash_table.cpp.o: CMakeFiles/forge.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/forge.dir/src/index/hash_table.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/forge.dir/src/index/hash_table.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/forge.dir/src/index/hash_table.cpp.o -MF CMakeFiles/forge.dir/src/index/hash_table.cpp.o.d -o CMakeFiles/forge.dir/src/index/hash_table.cpp.o -c /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/index/hash_table.cpp
 
 CMakeFiles/forge.dir/src/index/hash_table.cpp.i: cmake_force
@@ -142,7 +156,7 @@ CMakeFiles/forge.dir/src/index/hash_table.cpp.s: cmake_force
 CMakeFiles/forge.dir/src/index/indexes.cpp.o: CMakeFiles/forge.dir/flags.make
 CMakeFiles/forge.dir/src/index/indexes.cpp.o: /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/index/indexes.cpp
 CMakeFiles/forge.dir/src/index/indexes.cpp.o: CMakeFiles/forge.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/forge.dir/src/index/indexes.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/forge.dir/src/index/indexes.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/forge.dir/src/index/indexes.cpp.o -MF CMakeFiles/forge.dir/src/index/indexes.cpp.o.d -o CMakeFiles/forge.dir/src/index/indexes.cpp.o -c /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/index/indexes.cpp
 
 CMakeFiles/forge.dir/src/index/indexes.cpp.i: cmake_force
@@ -156,7 +170,7 @@ CMakeFiles/forge.dir/src/index/indexes.cpp.s: cmake_force
 CMakeFiles/forge.dir/src/main.cpp.o: CMakeFiles/forge.dir/flags.make
 CMakeFiles/forge.dir/src/main.cpp.o: /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/main.cpp
 CMakeFiles/forge.dir/src/main.cpp.o: CMakeFiles/forge.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/forge.dir/src/main.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/forge.dir/src/main.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/forge.dir/src/main.cpp.o -MF CMakeFiles/forge.dir/src/main.cpp.o.d -o CMakeFiles/forge.dir/src/main.cpp.o -c /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/main.cpp
 
 CMakeFiles/forge.dir/src/main.cpp.i: cmake_force
@@ -170,7 +184,7 @@ CMakeFiles/forge.dir/src/main.cpp.s: cmake_force
 CMakeFiles/forge.dir/src/models/records.cpp.o: CMakeFiles/forge.dir/flags.make
 CMakeFiles/forge.dir/src/models/records.cpp.o: /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/models/records.cpp
 CMakeFiles/forge.dir/src/models/records.cpp.o: CMakeFiles/forge.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/forge.dir/src/models/records.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/forge.dir/src/models/records.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/forge.dir/src/models/records.cpp.o -MF CMakeFiles/forge.dir/src/models/records.cpp.o.d -o CMakeFiles/forge.dir/src/models/records.cpp.o -c /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/models/records.cpp
 
 CMakeFiles/forge.dir/src/models/records.cpp.i: cmake_force
@@ -184,7 +198,7 @@ CMakeFiles/forge.dir/src/models/records.cpp.s: cmake_force
 CMakeFiles/forge.dir/src/query/query.cpp.o: CMakeFiles/forge.dir/flags.make
 CMakeFiles/forge.dir/src/query/query.cpp.o: /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/query/query.cpp
 CMakeFiles/forge.dir/src/query/query.cpp.o: CMakeFiles/forge.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/forge.dir/src/query/query.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/forge.dir/src/query/query.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/forge.dir/src/query/query.cpp.o -MF CMakeFiles/forge.dir/src/query/query.cpp.o.d -o CMakeFiles/forge.dir/src/query/query.cpp.o -c /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/query/query.cpp
 
 CMakeFiles/forge.dir/src/query/query.cpp.i: cmake_force
@@ -198,7 +212,7 @@ CMakeFiles/forge.dir/src/query/query.cpp.s: cmake_force
 CMakeFiles/forge.dir/src/services/message_service.cpp.o: CMakeFiles/forge.dir/flags.make
 CMakeFiles/forge.dir/src/services/message_service.cpp.o: /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/services/message_service.cpp
 CMakeFiles/forge.dir/src/services/message_service.cpp.o: CMakeFiles/forge.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/forge.dir/src/services/message_service.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/forge.dir/src/services/message_service.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/forge.dir/src/services/message_service.cpp.o -MF CMakeFiles/forge.dir/src/services/message_service.cpp.o.d -o CMakeFiles/forge.dir/src/services/message_service.cpp.o -c /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/services/message_service.cpp
 
 CMakeFiles/forge.dir/src/services/message_service.cpp.i: cmake_force
@@ -212,7 +226,7 @@ CMakeFiles/forge.dir/src/services/message_service.cpp.s: cmake_force
 CMakeFiles/forge.dir/src/services/user_service.cpp.o: CMakeFiles/forge.dir/flags.make
 CMakeFiles/forge.dir/src/services/user_service.cpp.o: /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/services/user_service.cpp
 CMakeFiles/forge.dir/src/services/user_service.cpp.o: CMakeFiles/forge.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/forge.dir/src/services/user_service.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/forge.dir/src/services/user_service.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/forge.dir/src/services/user_service.cpp.o -MF CMakeFiles/forge.dir/src/services/user_service.cpp.o.d -o CMakeFiles/forge.dir/src/services/user_service.cpp.o -c /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/services/user_service.cpp
 
 CMakeFiles/forge.dir/src/services/user_service.cpp.i: cmake_force
@@ -226,7 +240,7 @@ CMakeFiles/forge.dir/src/services/user_service.cpp.s: cmake_force
 CMakeFiles/forge.dir/src/storage/storage.cpp.o: CMakeFiles/forge.dir/flags.make
 CMakeFiles/forge.dir/src/storage/storage.cpp.o: /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/storage/storage.cpp
 CMakeFiles/forge.dir/src/storage/storage.cpp.o: CMakeFiles/forge.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/forge.dir/src/storage/storage.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/forge.dir/src/storage/storage.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/forge.dir/src/storage/storage.cpp.o -MF CMakeFiles/forge.dir/src/storage/storage.cpp.o.d -o CMakeFiles/forge.dir/src/storage/storage.cpp.o -c /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/storage/storage.cpp
 
 CMakeFiles/forge.dir/src/storage/storage.cpp.i: cmake_force
@@ -237,10 +251,24 @@ CMakeFiles/forge.dir/src/storage/storage.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/forge.dir/src/storage/storage.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/storage/storage.cpp -o CMakeFiles/forge.dir/src/storage/storage.cpp.s
 
+CMakeFiles/forge.dir/src/tables/recipients_table.cpp.o: CMakeFiles/forge.dir/flags.make
+CMakeFiles/forge.dir/src/tables/recipients_table.cpp.o: /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/tables/recipients_table.cpp
+CMakeFiles/forge.dir/src/tables/recipients_table.cpp.o: CMakeFiles/forge.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/forge.dir/src/tables/recipients_table.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/forge.dir/src/tables/recipients_table.cpp.o -MF CMakeFiles/forge.dir/src/tables/recipients_table.cpp.o.d -o CMakeFiles/forge.dir/src/tables/recipients_table.cpp.o -c /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/tables/recipients_table.cpp
+
+CMakeFiles/forge.dir/src/tables/recipients_table.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/forge.dir/src/tables/recipients_table.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/tables/recipients_table.cpp > CMakeFiles/forge.dir/src/tables/recipients_table.cpp.i
+
+CMakeFiles/forge.dir/src/tables/recipients_table.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/forge.dir/src/tables/recipients_table.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/tables/recipients_table.cpp -o CMakeFiles/forge.dir/src/tables/recipients_table.cpp.s
+
 CMakeFiles/forge.dir/src/utils/codec.cpp.o: CMakeFiles/forge.dir/flags.make
 CMakeFiles/forge.dir/src/utils/codec.cpp.o: /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/utils/codec.cpp
 CMakeFiles/forge.dir/src/utils/codec.cpp.o: CMakeFiles/forge.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/forge.dir/src/utils/codec.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/forge.dir/src/utils/codec.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/forge.dir/src/utils/codec.cpp.o -MF CMakeFiles/forge.dir/src/utils/codec.cpp.o.d -o CMakeFiles/forge.dir/src/utils/codec.cpp.o -c /home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/src/utils/codec.cpp
 
 CMakeFiles/forge.dir/src/utils/codec.cpp.i: cmake_force
@@ -257,6 +285,7 @@ forge_OBJECTS = \
 "CMakeFiles/forge.dir/src/algorithms/searching.cpp.o" \
 "CMakeFiles/forge.dir/src/algorithms/sorting.cpp.o" \
 "CMakeFiles/forge.dir/src/auth/auth.cpp.o" \
+"CMakeFiles/forge.dir/src/auth/password.cpp.o" \
 "CMakeFiles/forge.dir/src/index/hash_table.cpp.o" \
 "CMakeFiles/forge.dir/src/index/indexes.cpp.o" \
 "CMakeFiles/forge.dir/src/main.cpp.o" \
@@ -265,6 +294,7 @@ forge_OBJECTS = \
 "CMakeFiles/forge.dir/src/services/message_service.cpp.o" \
 "CMakeFiles/forge.dir/src/services/user_service.cpp.o" \
 "CMakeFiles/forge.dir/src/storage/storage.cpp.o" \
+"CMakeFiles/forge.dir/src/tables/recipients_table.cpp.o" \
 "CMakeFiles/forge.dir/src/utils/codec.cpp.o"
 
 # External object files for target forge
@@ -274,6 +304,7 @@ forge: CMakeFiles/forge.dir/src/algorithms/benchmark.cpp.o
 forge: CMakeFiles/forge.dir/src/algorithms/searching.cpp.o
 forge: CMakeFiles/forge.dir/src/algorithms/sorting.cpp.o
 forge: CMakeFiles/forge.dir/src/auth/auth.cpp.o
+forge: CMakeFiles/forge.dir/src/auth/password.cpp.o
 forge: CMakeFiles/forge.dir/src/index/hash_table.cpp.o
 forge: CMakeFiles/forge.dir/src/index/indexes.cpp.o
 forge: CMakeFiles/forge.dir/src/main.cpp.o
@@ -282,11 +313,12 @@ forge: CMakeFiles/forge.dir/src/query/query.cpp.o
 forge: CMakeFiles/forge.dir/src/services/message_service.cpp.o
 forge: CMakeFiles/forge.dir/src/services/user_service.cpp.o
 forge: CMakeFiles/forge.dir/src/storage/storage.cpp.o
+forge: CMakeFiles/forge.dir/src/tables/recipients_table.cpp.o
 forge: CMakeFiles/forge.dir/src/utils/codec.cpp.o
 forge: CMakeFiles/forge.dir/build.make
 forge: /usr/lib/x86_64-linux-gnu/libargon2.so.1
 forge: CMakeFiles/forge.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Linking CXX executable forge"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/sumedhsupe/Documents/BIG_PROJECTS/forge-ember/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Linking CXX executable forge"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/forge.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

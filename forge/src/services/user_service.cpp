@@ -91,8 +91,10 @@ bool UserService::getUserByEmail(const std::string& email, User& user) {
 
 bool UserService::updateUser(const User& user) {
     std::lock_guard<std::mutex> lock(createMutex_);
-    if (!storage_ || user.id == 0 || std::strlen(user.name) > 63 ||
-        std::strlen(user.email) > 127 || std::strlen(user.password_hash) > 255) return false;
+    if (!storage_ || user.id == 0 ||
+        strnlen(user.name, sizeof(user.name)) >= sizeof(user.name) ||
+        strnlen(user.email, sizeof(user.email)) >= sizeof(user.email) ||
+        strnlen(user.password_hash, sizeof(user.password_hash)) >= sizeof(user.password_hash)) return false;
 
     User oldUser{};
     if (!storage_->readUser(user.id, oldUser)) return false;

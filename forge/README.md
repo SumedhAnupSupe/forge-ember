@@ -70,7 +70,7 @@ Rules:
 - Joins, multiple statements, arbitrary operators unsupported
 - Unknown tables/columns/trailing tokens/invalid limits are rejected
 - Empty result is success
-- Generic unrestricted SQL access is not provided; the query endpoint accepts only the restricted `SELECT` grammar and applies per-user row visibility
+- Unrestricted SQL access is disabled; the authenticated query endpoint supports only the restricted `SELECT` grammar and applies per-user row visibility
 
 ## REST endpoints
 
@@ -122,6 +122,6 @@ Tests use temporary directories where appropriate; corruption tests must not run
 ## Known limitations
 
 - Best-effort rollback only (no write-ahead log/crash-safe transactions)
-- Generic SQL via public API disabled for ordinary users
+- Unrestricted SQL is disabled; authenticated users can run only the documented, restricted read-only `SELECT` subset
 - Per-user message deletion design depends on schema; current schema uses soft deletion at record level
 - CLI keeps tokens in memory only (not written to disk)

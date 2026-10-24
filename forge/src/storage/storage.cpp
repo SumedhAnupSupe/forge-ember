@@ -7,7 +7,7 @@
 namespace forge {
 
 Storage::Storage(const std::string& dataDir) 
-    : dataDir_(dataDir), isOpen_(false), nextUserId_(1), nextMessageId_(1) {
+    : dataDir_(dataDir), isOpen_(false), nextUserId_(1), nextMessageId_(1), userIdExhausted_(false), messageIdExhausted_(false) {
 }
 
 Storage::~Storage() {
@@ -83,6 +83,8 @@ void Storage::closeFiles() {
 bool Storage::scanForMaxIds() {
     nextUserId_ = 1;
     nextMessageId_ = 1;
+    userIdExhausted_ = false;
+    messageIdExhausted_ = false;
     // Scan users
     usersFile_.seekg(0, std::ios::end);
     std::streampos fsize = usersFile_.tellg();
@@ -98,7 +100,8 @@ bool Storage::scanForMaxIds() {
         if (usersFile_.gcount() != (std::streamsize)User::ENCODED_RECORD_SIZE) return false;
         User user;
         if (!BinaryCodec::deserializeUser(buffer, 0, user)) return false;
-        if (user.id >= nextUserId_) nextUserId_ = user.id + 1;
+        if (user.id == UINT32_MAX) { userIdExhausted_ = true; nextUserId_ = 0; }
+        else if (!userIdExhausted_ && user.id >= nextUserId_) nextUserId_ = user.id + 1;
     }
     // Scan messages
     messagesFile_.seekg(0, std::ios::end);
@@ -114,7 +117,8 @@ bool Storage::scanForMaxIds() {
         if (messagesFile_.gcount() != (std::streamsize)Message::ENCODED_RECORD_SIZE) return false;
         Message msg;
         if (!BinaryCodec::deserializeMessage(buffer, 0, msg)) return false;
-        if (msg.id >= nextMessageId_) nextMessageId_ = msg.id + 1;
+        if (msg.id == UINT32_MAX) { messageIdExhausted_ = true; nextMessageId_ = 0; }
+        else if (!messageIdExhausted_ && msg.id >= nextMessageId_) nextMessageId_ = msg.id + 1;
     }
     // Recipients - validate but no ID counter needed
     recipientsFile_.seekg(0, std::ios::end);
@@ -136,22 +140,30 @@ bool Storage::scanForMaxIds() {
 
 uint32_t Storage::getNextUserId() {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    return nextUserId_++;
+    if (userIdExhausted_ || nextUserId_ == 0) return 0;
+    const uint32_t id = nextUserId_;
+    if (nextUserId_ == UINT32_MAX) { userIdExhausted_ = true; nextUserId_ = 0; }
+    else ++nextUserId_;
+    return id;
 }
 
 uint32_t Storage::getNextMessageId() {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    return nextMessageId_++;
+    if (messageIdExhausted_ || nextMessageId_ == 0) return 0;
+    const uint32_t id = nextMessageId_;
+    if (nextMessageId_ == UINT32_MAX) { messageIdExhausted_ = true; nextMessageId_ = 0; }
+    else ++nextMessageId_;
+    return id;
 }
 
 void Storage::setNextUserId(uint32_t id) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    if (id > nextUserId_) nextUserId_ = id;
+    if (!userIdExhausted_ && id != 0 && id > nextUserId_) nextUserId_ = id;
 }
 
 void Storage::setNextMessageId(uint32_t id) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    if (id > nextMessageId_) nextMessageId_ = id;
+    if (!messageIdExhausted_ && id != 0 && id > nextMessageId_) nextMessageId_ = id;
 }
 
 // User operations

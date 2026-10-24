@@ -15,7 +15,7 @@ EMBER backend communicates with FORGE via the REST API. The CLI and EMBER use th
 - C++17 compiler
 - CMake >= 3.10
 - Threads
-- libargon2 and argon2 headers (required). If missing, build will not have Argon2id support; authentication requires Argon2id.
+- libargon2 and `argon2.h` (required; CMake configuration fails if either is unavailable).
 
 ## Build
 
@@ -46,10 +46,12 @@ CLI connects over HTTP only; it does not read/write `.dat` files directly.
 - `help`, `status`, `login`, `logout`, `whoami`
 - `SHOW TABLES;`
 - `DESCRIBE users;` / `DESCRIBE messages;` / `DESCRIBE recipients;`
-- Supported `SELECT` queries (semicolon optional in practice; parser is strict about trailing tokens)
+- `SELECT` queries are temporarily disabled in the CLI until a safe, authorized read-only query API is implemented.
 - `exit`, `quit`
 
-## Supported SQL subset (read-only)
+## Query API status
+
+The internal query engine supports a restricted read-only SQL subset, but the HTTP query endpoint deliberately returns `403 Forbidden` until row-level authorization is implemented. The CLI therefore does not send SQL queries to that endpoint. Do not treat the internal query engine as a public API.
 
 ```sql
 SELECT * FROM users;
@@ -81,7 +83,7 @@ Rules:
 - `GET /api/v1/messages/{id}` (only if sender or authorized recipient)
 - `POST /api/v1/messages`
 - `DELETE /api/v1/messages/{id}` (sender only)
-- `POST /api/v1/query` (disabled for ordinary users → `403 Forbidden`)
+- `POST /api/v1/query` (disabled until safe row-level authorization is implemented → `403 Forbidden`)
 
 Status codes: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `500`. Errors do not leak stack traces/secrets.
 

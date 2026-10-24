@@ -56,6 +56,8 @@ private:
     
     uint32_t nextUserId_;
     uint32_t nextMessageId_;
+    bool userIdExhausted_;
+    bool messageIdExhausted_;
     
     bool openFiles();
     void closeFiles();

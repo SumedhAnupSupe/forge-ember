@@ -153,6 +153,7 @@ std::vector<Token> Lexer::tokenize() {
                 tokens.push_back({TokenType::NEQ, "!=", pos_});
                 advance();
             } else {
+                tokens.push_back({TokenType::END, "invalid character", pos_ - 1});
                 return tokens;
             }
         } else if (c == '<') {
@@ -172,6 +173,7 @@ std::vector<Token> Lexer::tokenize() {
                 tokens.push_back({TokenType::GT, ">", pos_});
             }
         } else {
+            tokens.push_back({TokenType::END, "invalid character", pos_});
             return tokens;
         }
     }
@@ -195,10 +197,14 @@ QueryResult QueryExecutor::execute(const std::string& query, uint32_t authentica
         result.message = "Empty query";
         return result;
     }
-    // Check for unterminated string
+    // The lexer uses END tokens with explicit diagnostics for malformed input.
     for (const auto& t : tokens) {
         if (t.type == TokenType::END && t.value == "unterminated string") {
             result.message = "Parse error: unterminated string";
+            return result;
+        }
+        if (t.type == TokenType::END && t.value == "invalid character") {
+            result.message = "Parse error: invalid character";
             return result;
         }
     }

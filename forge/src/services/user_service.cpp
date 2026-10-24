@@ -95,6 +95,10 @@ bool UserService::updateUser(const User& user) {
         strnlen(user.name, sizeof(user.name)) >= sizeof(user.name) ||
         strnlen(user.email, sizeof(user.email)) >= sizeof(user.email) ||
         strnlen(user.password_hash, sizeof(user.password_hash)) >= sizeof(user.password_hash)) return false;
+    const std::string requestedName(user.name);
+    const std::string requestedEmail(user.email);
+    if (requestedName.empty() || requestedEmail.empty() ||
+        requestedEmail.find('@') == std::string::npos || requestedEmail.size() > 127) return false;
 
     User oldUser{};
     if (!storage_->readUser(user.id, oldUser)) return false;

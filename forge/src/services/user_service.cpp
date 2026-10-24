@@ -37,6 +37,7 @@ bool UserService::isEmailUnique(const std::string& email) {
 
 bool UserService::createUser(const std::string& name, const std::string& email,
                            const std::string& passwordHash, User& outUser) {
+    std::lock_guard<std::mutex> lock(createMutex_);
     if (!storage_) return false;
     if (name.length() > 63 || email.length() > 127 || passwordHash.length() > 255) return false;
     if (!isEmailUnique(email)) {

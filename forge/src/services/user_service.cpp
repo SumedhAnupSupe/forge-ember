@@ -90,14 +90,26 @@ bool UserService::getUserByEmail(const std::string& email, User& user) {
 }
 
 bool UserService::updateUser(const User& user) {
-    if (!storage_) return false;
-    if (storage_->updateUser(user)) {
-        if (indexManager_) {
-            indexManager_->onUserCreated(user); // refresh
-        }
-        return true;
+    std::lock_guard<std::mutex> lock(createMutex_);
+    if (!storage_ || user.id == 0 || std::strlen(user.name) > 63 ||
+        std::strlen(user.email) > 127 || std::strlen(user.password_hash) > 255) return false;
+
+    User oldUser{};
+    if (!storage_->readUser(user.id, oldUser)) return false;
+
+    const std::string normalizedEmail = normalizeEmail(user.email);
+    for (const auto& existing : storage_->getAllUsers(false)) {
+        if (existing.id == user.id) continue;
+        if (normalizeEmail(existing.email) == normalizedEmail) return false;
     }
-    return false;
+
+    User normalizedUser = user;
+    std::strncpy(normalizedUser.email, normalizedEmail.c_str(), sizeof(normalizedUser.email) - 1);
+    normalizedUser.email[sizeof(normalizedUser.email) - 1] = '\\0';
+
+    if (!storage_->updateUser(normalizedUser)) return false;
+    if (indexManager_) indexManager_->onUserUpdated(oldUser, normalizedUser);
+    return true;
 }
 
 bool UserService::deleteUser(uint32_t id) {

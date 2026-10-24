@@ -159,6 +159,77 @@ bool ForgeServer::startInBackground() {
         res.set_content(response.dump(), "application/json");
     });
     
+    svr_->Get(R"(/api/v1/users/(\\d+))", [&](const httplib::Request& req, httplib::Response& res) {
+        const std::string auth = req.get_header_value("Authorization");
+        uint32_t requesterId = 0;
+        if (auth.find("Bearer ") != 0 || auth.size() <= 7 ||
+            !authManager_->validateSession(auth.substr(7), requesterId)) {
+            res.status = 401; json err; err["error"] = "Unauthorized";
+            res.set_content(err.dump(), "application/json"); return;
+        }
+        try {
+            const uint32_t id = static_cast<uint32_t>(std::stoul(req.matches[1]));
+            User u;
+            if (!userService_->getUserById(id, u) || u.is_deleted) {
+                res.status = 404; json err; err["error"] = "User not found";
+                res.set_content(err.dump(), "application/json"); return;
+            }
+            json result; result["id"] = u.id; result["name"] = u.name;
+            result["email"] = u.email; result["created_at"] = u.created_at;
+            res.set_content(result.dump(), "application/json");
+        } catch (...) {
+            res.status = 400; json err; err["error"] = "Invalid user id";
+            res.set_content(err.dump(), "application/json");
+        }
+    });
+
+    svr_->Get(R"(/api/v1/messages/(\\d+)/recipients)", [&](const httplib::Request& req, httplib::Response& res) {
+        const std::string auth = req.get_header_value("Authorization");
+        uint32_t requesterId = 0;
+        if (auth.find("Bearer ") != 0 || auth.size() <= 7 ||
+            !authManager_->validateSession(auth.substr(7), requesterId)) {
+            res.status = 401; json err; err["error"] = "Unauthorized";
+            res.set_content(err.dump(), "application/json"); return;
+        }
+        try {
+            const uint32_t messageId = static_cast<uint32_t>(std::stoul(req.matches[1]));
+            Message message;
+            if (!messageService_->getMessageById(messageId, message, false)) {
+                res.status = 404; json err; err["error"] = "Message not found";
+                res.set_content(err.dump(), "application/json"); return;
+            }
+            std::vector<Recipient> recipients;
+            if (!storage_->readRecipientsByMessage(messageId, recipients, false)) {
+                res.status = 404; json err; err["error"] = "Recipients not found";
+                res.set_content(err.dump(), "application/json"); return;
+            }
+            bool authorized = message.sender_id == requesterId;
+            for (const auto& recipient : recipients) {
+                if (recipient.user_id == requesterId && recipient.is_deleted == 0) authorized = true;
+            }
+            if (!authorized) {
+                res.status = 404; json err; err["error"] = "Message not found";
+                res.set_content(err.dump(), "application/json"); return;
+            }
+            json result = json::array();
+            for (const auto& recipient : recipients) {
+                if (recipient.is_deleted != 0) continue;
+                // BCC identities are visible only to the sender and that BCC recipient.
+                if (std::string(recipient.type) == "BCC" && message.sender_id != requesterId &&
+                    recipient.user_id != requesterId) continue;
+                User user;
+                if (!userService_->getUserById(recipient.user_id, user) || user.is_deleted) continue;
+                json item; item["id"] = user.id; item["name"] = user.name;
+                item["email"] = user.email; item["type"] = recipient.type;
+                result.push_back(std::move(item));
+            }
+            res.set_content(result.dump(), "application/json");
+        } catch (...) {
+            res.status = 400; json err; err["error"] = "Invalid message id";
+            res.set_content(err.dump(), "application/json");
+        }
+    });
+
     svr_->Get("/api/v1/users/lookup", [&](const httplib::Request& req, httplib::Response& res) {
         const std::string auth = req.get_header_value("Authorization");
         uint32_t requesterId = 0;

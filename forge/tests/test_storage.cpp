@@ -1,4 +1,5 @@
 #include <iostream>
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <cstring>
@@ -50,8 +51,15 @@ int test_storage() {
         if (!s.open()) { std::cout << "  Reopen failed" << std::endl; failures++; }
         else {
             auto users = s.getAllUsers(false);
-            if (!users.empty()) std::cout << "  Restart persistence OK" << std::endl;
-            else { std::cout << "  Restart persistence FAILED" << std::endl; failures++; }
+            if (!users.empty()) {
+                std::cout << "  Restart persistence OK" << std::endl;
+                const uint32_t nextId = s.getNextUserId();
+                const uint32_t maxStoredId = std::max_element(users.begin(), users.end(),
+                    [](const User& a, const User& b) { return a.id < b.id; })->id;
+                if (nextId > maxStoredId)
+                    std::cout << "  User ID counter restored after restart OK" << std::endl;
+                else { std::cout << "  User ID counter restoration FAILED" << std::endl; failures++; }
+            } else { std::cout << "  Restart persistence FAILED" << std::endl; failures++; }
             s.close();
         }
     }

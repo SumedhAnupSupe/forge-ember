@@ -137,17 +137,15 @@ kill "$PID"
 wait "$PID" 2>/dev/null || true
 PID=""
 "$SERVER" --host 127.0.0.1 --port "$PORT" --data-dir "$DATA_DIR/data" >"$LOG" 2>&1 &
-PID=""
+PID="$!"
+ready=0
 for _ in $(seq 1 40); do
-  if curl -fsS "http://127.0.0.1:$PORT/health" >"$RESPONSE"; then
-    PID="$(pgrep -f "^$SERVER --host 127.0.0.1 --port $PORT --data-dir $DATA_DIR/data$" | head -n1 || true)"
-    break
-  fi
+  if curl -fsS "http://127.0.0.1:$PORT/health" >"$RESPONSE"; then ready=1; break; fi
   sleep 0.25
 done
-# If process lookup is unavailable, keep the restarted server PID via a direct launch below.
-if [[ -z "$PID" ]]; then
-  echo "Could not track restarted FORGE server process"
+if [[ "$ready" != "1" ]]; then
+  echo "FORGE server failed to restart"
+  cat "$LOG"
   exit 1
 fi
 code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/auth/login" -H 'Content-Type: application/json' -d '{"email":"alice-smoke@example.test","password":"SmokePass123!"}')

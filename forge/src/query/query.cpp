@@ -371,11 +371,12 @@ QueryResult QueryExecutor::execute(const std::string& query, uint32_t authentica
         for (const auto& u : users) {
             if (authenticatedUserId != 0 && u.id != authenticatedUserId) continue;
             if (!node.whereColumn.empty()) {
-                if (node.whereColumn == "email" && node.whereValue != u.email) continue;
-                else if (node.whereColumn == "id" && node.whereValue != std::to_string(u.id)) continue;
-                else if (node.whereColumn == "name" && node.whereValue != u.name) continue;
-                else if (node.whereColumn == "created_at" && node.whereValue != std::to_string(u.created_at)) continue;
-                else continue;
+                bool matches = false;
+                if (node.whereColumn == "email") matches = node.whereValue == u.email;
+                else if (node.whereColumn == "id") matches = node.whereValue == std::to_string(u.id);
+                else if (node.whereColumn == "name") matches = node.whereValue == u.name;
+                else if (node.whereColumn == "created_at") matches = node.whereValue == std::to_string(u.created_at);
+                if (!matches) continue;
             }
             std::map<std::string, std::string> row;
             if (node.columns.size() == 1 && node.columns[0] == "*") {
@@ -467,12 +468,13 @@ QueryResult QueryExecutor::execute(const std::string& query, uint32_t authentica
                 if (!isRecipient) continue;
             }
             if (!node.whereColumn.empty()) {
-                if (node.whereColumn == "id" && node.whereValue != std::to_string(m.id)) continue;
-                else if (node.whereColumn == "sender_id" && node.whereValue != std::to_string(m.sender_id)) continue;
-                else if (node.whereColumn == "subject" && node.whereValue != m.subject) continue;
-                else if (node.whereColumn == "body" && node.whereValue != m.body) continue;
-                else if (node.whereColumn == "created_at" && node.whereValue != std::to_string(m.created_at)) continue;
-                else continue;
+                bool matches = false;
+                if (node.whereColumn == "id") matches = node.whereValue == std::to_string(m.id);
+                else if (node.whereColumn == "sender_id") matches = node.whereValue == std::to_string(m.sender_id);
+                else if (node.whereColumn == "subject") matches = node.whereValue == m.subject;
+                else if (node.whereColumn == "body") matches = node.whereValue == m.body;
+                else if (node.whereColumn == "created_at") matches = node.whereValue == std::to_string(m.created_at);
+                if (!matches) continue;
             }
             std::map<std::string, std::string> row;
             if (node.columns.size() == 1 && node.columns[0] == "*") {
@@ -563,10 +565,11 @@ QueryResult QueryExecutor::execute(const std::string& query, uint32_t authentica
                 if (!storage_->readMessage(r.message_id, parentMessage) || parentMessage.sender_id != authenticatedUserId) continue;
             }
             if (!node.whereColumn.empty()) {
-                if (node.whereColumn == "message_id" && node.whereValue != std::to_string(r.message_id)) continue;
-                else if (node.whereColumn == "user_id" && node.whereValue != std::to_string(r.user_id)) continue;
-                else if (node.whereColumn == "type" && node.whereValue != std::string(r.type)) continue;
-                else continue;
+                bool matches = false;
+                if (node.whereColumn == "message_id") matches = node.whereValue == std::to_string(r.message_id);
+                else if (node.whereColumn == "user_id") matches = node.whereValue == std::to_string(r.user_id);
+                else if (node.whereColumn == "type") matches = node.whereValue == std::string(r.type);
+                if (!matches) continue;
             }
             std::map<std::string, std::string> row;
             if (node.columns.size() == 1 && node.columns[0] == "*") {

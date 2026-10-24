@@ -6,6 +6,7 @@
 #include <vector>
 #include <fstream>
 #include <memory>
+#include <mutex>
 #include <filesystem>
 
 namespace forge {
@@ -50,6 +51,8 @@ private:
     std::fstream messagesFile_;
     std::fstream recipientsFile_;
     bool isOpen_;
+    // The stream-backed storage is shared by HTTP worker threads.
+    mutable std::recursive_mutex mutex_;
     
     uint32_t nextUserId_;
     uint32_t nextMessageId_;

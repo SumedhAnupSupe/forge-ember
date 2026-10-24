@@ -1,5 +1,6 @@
 #include <iostream>
 #include <filesystem>
+#include <fstream>
 #include <cstring>
 #include "storage/storage.h"
 
@@ -55,5 +56,28 @@ int test_storage() {
         }
     }
     std::filesystem::remove_all(tmpdir);
+
+    const auto corruptDir = std::filesystem::temp_directory_path() /
+        ("forge_corrupt_storage_test_" + std::to_string(time(nullptr)));
+    std::filesystem::create_directories(corruptDir);
+    const auto corruptUsers = corruptDir / "users.dat";
+    {
+        std::ofstream file(corruptUsers, std::ios::binary);
+        file.put('X');
+    }
+    {
+        Storage corruptStorage(corruptDir.string());
+        if (!corruptStorage.open()) {
+            const auto size = std::filesystem::file_size(corruptUsers);
+            if (size == 1)
+                std::cout << "  Corrupt file rejected without truncation OK" << std::endl;
+            else { std::cout << "  Corrupt file was modified FAILED" << std::endl; failures++; }
+        } else {
+            std::cout << "  Corrupt file unexpectedly opened FAILED" << std::endl;
+            failures++;
+            corruptStorage.close();
+        }
+    }
+    std::filesystem::remove_all(corruptDir);
     return failures;
 }

@@ -148,7 +148,7 @@ export default function App() {
         mailService.getSent(),
       ]);
 
-      setCounts({ inbox: inboxMsgs.length, starred: 0, sent: sentMsgs.length, trash: 0 });
+      setCounts({ inbox: 0, starred: 0, sent: sentMsgs.length, trash: 0 });
     } catch (e) {
       console.error(e);
       setMessages([]);

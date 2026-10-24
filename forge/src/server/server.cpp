@@ -139,13 +139,24 @@ bool ForgeServer::startInBackground() {
     });
     
     svr_->Post("/api/v1/auth/logout", [&](const httplib::Request& req, httplib::Response& res) {
-        std::string auth = req.get_header_value("Authorization");
-        if (auth.find("Bearer ") == 0 && auth.length() > 7) {
-            std::string token = auth.substr(7);
-            authManager_->logout(token);
+        const std::string auth = req.get_header_value("Authorization");
+        if (auth.find("Bearer ") != 0 || auth.size() <= 7) {
+            res.status = 401;
+            json err; err["error"] = "Unauthorized";
+            res.set_content(err.dump(), "application/json");
+            return;
         }
-        json r; r["status"] = "ok";
-        res.set_content(r.dump(), "application/json");
+        const std::string token = auth.substr(7);
+        uint32_t userId = 0;
+        if (!authManager_->validateSession(token, userId)) {
+            res.status = 401;
+            json err; err["error"] = "Unauthorized";
+            res.set_content(err.dump(), "application/json");
+            return;
+        }
+        authManager_->logout(token);
+        json response; response["status"] = "ok";
+        res.set_content(response.dump(), "application/json");
     });
     
     svr_->Get("/api/v1/users/me", [&](const httplib::Request& req, httplib::Response& res) {

@@ -46,12 +46,12 @@ CLI connects over HTTP only; it does not read/write `.dat` files directly.
 - `help`, `status`, `login`, `logout`, `whoami`
 - `SHOW TABLES;`
 - `DESCRIBE users;` / `DESCRIBE messages;` / `DESCRIBE recipients;`
-- `SELECT` queries are temporarily disabled in the CLI until a safe, authorized read-only query API is implemented.
+- `SELECT` supports the restricted, read-only SQL subset below and is sent to the server over the authenticated REST API.
 - `exit`, `quit`
 
 ## Query API status
 
-The internal query engine supports a restricted read-only SQL subset, but the HTTP query endpoint deliberately returns `403 Forbidden` until row-level authorization is implemented. The CLI therefore does not send SQL queries to that endpoint. Do not treat the internal query engine as a public API.
+The authenticated HTTP query endpoint executes a restricted, read-only SQL subset. Row visibility is scoped by the authenticated user: `users` returns only the caller's record; `messages` returns messages sent by or addressed to the caller; `recipients` returns the caller's recipient rows and recipient rows for messages sent by the caller. The CLI sends queries to this endpoint and never accesses `.dat` files directly.
 
 ```sql
 SELECT * FROM users;
@@ -70,7 +70,7 @@ Rules:
 - Joins, multiple statements, arbitrary operators unsupported
 - Unknown tables/columns/trailing tokens/invalid limits are rejected
 - Empty result is success
-- Generic SQL access through public API is disabled for ordinary users (returns `403 Forbidden`)
+- Generic unrestricted SQL access is not provided; the query endpoint accepts only the restricted `SELECT` grammar and applies per-user row visibility
 
 ## REST endpoints
 
@@ -79,11 +79,11 @@ Rules:
 - `POST /api/v1/auth/login`
 - `POST /api/v1/auth/logout`
 - `GET /api/v1/users/me`
-- `GET /api/v1/messages` (messages accessible to authenticated user)
+- `GET /api/v1/messages` (messages sent by or addressed to the authenticated user)
 - `GET /api/v1/messages/{id}` (only if sender or authorized recipient)
 - `POST /api/v1/messages`
 - `DELETE /api/v1/messages/{id}` (sender only)
-- `POST /api/v1/query` (disabled until safe row-level authorization is implemented → `403 Forbidden`)
+- `POST /api/v1/query` (authenticated restricted read-only query; JSON body `{ "query": "SELECT id FROM users" }`)
 
 Status codes: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `500`. Errors do not leak stack traces/secrets.
 

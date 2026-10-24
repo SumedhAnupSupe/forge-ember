@@ -46,6 +46,7 @@ bool UserService::createUser(const std::string& name, const std::string& email,
     User user;
     memset(&user, 0, sizeof(user));
     user.id = storage_->getNextUserId();
+    if (user.id == 0) return false; // ID space exhausted; never persist/reuse zero.
     strncpy(user.name, name.c_str(), 63);
     user.name[63] = '\0';
     strncpy(user.email, normalizeEmail(email).c_str(), 127);

@@ -88,26 +88,70 @@ async def me(token: str = Depends(bearer_token)) -> UserOut:
         raise api_error(502, "INVALID_FORGE_RESPONSE", "The database returned an invalid user record.")
     return user_from_payload(payload)
 
-@app.get("/api/v1/messages", response_model=list[MessageOut])
-@app.get("/api/v1/mailboxes/inbox", response_model=list[MessageOut], include_in_schema=False)
-async def inbox(token: str = Depends(bearer_token)) -> list[MessageOut]:
+async def enriched_message(item: dict[str, Any], token: str, current_user_id: int) -> dict[str, Any]:
+    try:
+        sender_id = int(item["sender_id"])
+        message_id = int(item["id"])
+        sender = await forge.require_success("GET", f"/api/v1/users/{sender_id}", token=token)
+        recipients = await forge.require_success("GET", f"/api/v1/messages/{message_id}/recipients", token=token)
+        if not isinstance(sender, dict) or not isinstance(recipients, list):
+            raise ValueError("invalid enrichment response")
+        return {
+            "id": message_id, "sender_id": sender_id,
+            "sender": {"id": int(sender["id"]), "name": str(sender["name"]), "email": str(sender["email"])},
+            "recipients": recipients,
+            "subject": str(item["subject"]), "body": str(item["body"]),
+            "created_at": int(item["created_at"]),
+            # FORGE currently has no per-user mailbox-state API. Do not persist fake state.
+            "is_read": sender_id == current_user_id,
+            "is_starred": False, "is_deleted": False,
+        }
+    except HTTPException:
+        raise
+    except (KeyError, TypeError, ValueError) as exc:
+        raise api_error(502, "INVALID_FORGE_RESPONSE", "The database returned an incomplete message record.") from exc
+
+@app.get("/api/v1/users/lookup")
+async def user_lookup(email: str, token: str = Depends(bearer_token)) -> dict[str, Any]:
+    payload = await forge.require_success("GET", "/api/v1/users/lookup", token=token, params={"email": email})
+    if not isinstance(payload, dict):
+        raise api_error(502, "INVALID_FORGE_RESPONSE", "The database returned an invalid user record.")
+    return payload
+
+async def get_all_messages(token: str) -> tuple[int, list[dict[str, Any]]]:
+    user_payload = await forge.require_success("GET", "/api/v1/users/me", token=token)
+    if not isinstance(user_payload, dict) or "id" not in user_payload:
+        raise api_error(502, "INVALID_FORGE_RESPONSE", "The database returned an invalid user record.")
+    current_user_id = int(user_payload["id"])
     payload = await forge.require_success("GET", "/api/v1/messages", token=token)
     if not isinstance(payload, list):
         raise api_error(502, "INVALID_FORGE_RESPONSE", "The database returned an invalid message list.")
-    try:
-        return [MessageOut.model_validate(item) for item in payload]
-    except Exception as exc:
-        raise api_error(502, "INVALID_FORGE_RESPONSE", "The database returned an incomplete message record.") from exc
+    enriched = await __import__("asyncio").gather(
+        *(enriched_message(item, token, current_user_id) for item in payload if isinstance(item, dict))
+    )
+    return current_user_id, enriched
+
+@app.get("/api/v1/messages")
+async def inbox(token: str = Depends(bearer_token)) -> list[dict[str, Any]]:
+    _, messages = await get_all_messages(token)
+    return messages
+
+@app.get("/api/v1/mailboxes/inbox")
+async def inbox_only(token: str = Depends(bearer_token)) -> list[dict[str, Any]]:
+    user_id, messages = await get_all_messages(token)
+    return [m for m in messages if any(int(r.get("id", 0)) == user_id for r in m["recipients"])]
+
+@app.get("/api/v1/mailboxes/sent")
+async def sent_only(token: str = Depends(bearer_token)) -> list[dict[str, Any]]:
+    user_id, messages = await get_all_messages(token)
+    return [m for m in messages if m["sender_id"] == user_id]
 
 @app.get("/api/v1/messages/{message_id}", response_model=MessageOut)
-async def message_detail(message_id: int, token: str = Depends(bearer_token)) -> MessageOut:
+async def message_detail(message_id: int, token: str = Depends(bearer_token)) -> dict[str, Any]:
     payload = await forge.require_success("GET", f"/api/v1/messages/{message_id}", token=token)
     if not isinstance(payload, dict):
         raise api_error(502, "INVALID_FORGE_RESPONSE", "The database returned an invalid message record.")
-    try:
-        return MessageOut.model_validate(payload)
-    except Exception as exc:
-        raise api_error(502, "INVALID_FORGE_RESPONSE", "The database returned an incomplete message record.") from exc
+    return await enriched_message(payload, token, int((await forge.require_success("GET", "/api/v1/users/me", token=token))["id"]))
 
 @app.post("/api/v1/messages", response_model=MessageCreated, status_code=201)
 async def send_message(data: SendMessageRequest, token: str = Depends(bearer_token)) -> MessageCreated:

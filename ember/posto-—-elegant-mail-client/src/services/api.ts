@@ -65,7 +65,7 @@ class MailService {
         id: m.id,
         sender: { id: m.sender_id, name: isOwn ? this.currentUser!.name : `User #${m.sender_id}`, email: isOwn ? this.currentUser!.email : '' },
         recipients, subject: m.subject, body: m.body, created_at: Number(m.created_at),
-        is_read: false, is_starred: false, is_deleted: false
+        is_read: true, is_starred: false, is_deleted: false
       };
     });
   }

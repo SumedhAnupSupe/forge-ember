@@ -1,0 +1,29 @@
+name: POSTO frontend CI
+
+on:
+  push:
+    branches: [main, "feat/ember-fastapi-backend"]
+    paths:
+      - "ember/posto-—-elegant-mail-client/**"
+      - ".github/workflows/posto-ci.yml"
+  pull_request:
+    paths:
+      - "ember/posto-—-elegant-mail-client/**"
+      - ".github/workflows/posto-ci.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ember/posto-—-elegant-mail-client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: ember/posto-—-elegant-mail-client/package.json
+      - run: npm install
+      - run: npm run lint
+      - run: npm run build

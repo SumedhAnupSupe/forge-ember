@@ -42,8 +42,8 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(mailService.getCurrentUser());
   const [authTab, setAuthTab] = useState<'login' | 'signup'>('login');
   const [authName, setAuthName] = useState<string>('Alex Morgan');
-  const [authEmail, setAuthEmail] = useState<string>('alex@posto.mail');
-  const [authPassword, setAuthPassword] = useState<string>('secret123');
+  const [authEmail, setAuthEmail] = useState<string>('');
+  const [authPassword, setAuthPassword] = useState<string>('');
   const [authError, setAuthError] = useState<string | null>(null);
 
   // Screen Controls: Option to close/open sidebar and inbox list
@@ -113,13 +113,9 @@ export default function App() {
       else if (activeFolder === 'starred') list = await mailService.getStarred();
       else if (activeFolder === 'trash') list = await mailService.getTrash();
 
-      // Category Filter
-      if (activeCategory === 'unread') {
-        list = list.filter(m => !m.is_read);
-      } else if (activeCategory === 'starred') {
-        list = list.filter(m => m.is_starred);
-      } else if (activeCategory === 'attachments') {
-        list = list.filter(m => !!m.attachment);
+      // Per-user read/star and attachment metadata are not available in the current FORGE API.
+      if (activeCategory !== 'all') {
+        showToast('This filter needs mailbox metadata that FORGE does not expose yet.');
       }
 
       // Search Filter
@@ -147,21 +143,16 @@ export default function App() {
       }
 
       // Counts
-      const [inboxMsgs, starredMsgs, sentMsgs, trashMsgs] = await Promise.all([
+      const [inboxMsgs, sentMsgs] = await Promise.all([
         mailService.getInbox(),
-        mailService.getStarred(),
         mailService.getSent(),
-        mailService.getTrash(),
       ]);
 
-      setCounts({
-        inbox: inboxMsgs.filter(m => !m.is_read).length,
-        starred: starredMsgs.length,
-        sent: sentMsgs.length,
-        trash: trashMsgs.length,
-      });
+      setCounts({ inbox: inboxMsgs.length, starred: 0, sent: sentMsgs.length, trash: 0 });
     } catch (e) {
       console.error(e);
+      setMessages([]);
+      setSelectedMail(null);
       showToast(e instanceof Error ? e.message : 'Could not load mailbox');
     } finally {
       setIsLoading(false);

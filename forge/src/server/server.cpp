@@ -1,5 +1,6 @@
 #include "forge/server/server.h"
 #include <iostream>
+#include <unordered_set>
 #include <httplib.h>
 #include <json.hpp>
 #include "query/query.h"
@@ -66,9 +67,10 @@ bool ForgeServer::startInBackground() {
             std::string name = j["name"].get<std::string>();
             std::string email = j["email"].get<std::string>();
             std::string password = j["password"].get<std::string>();
-            if (name.empty() || email.empty() || password.empty()) {
+            if (name.empty() || name.size() > 63 || email.empty() || email.size() > 127 ||
+                email.find('@') == std::string::npos || password.size() < 8 || password.size() > 1024) {
                 res.status = 400;
-                json err; err["error"] = "Missing required fields";
+                json err; err["error"] = "Invalid name, email, or password length";
                 res.set_content(err.dump(), "application/json");
                 return;
             }
@@ -283,14 +285,6 @@ bool ForgeServer::startInBackground() {
                 res.set_content(err.dump(), "application/json");
                 return;
             }
-            std::string subject = j.value("subject", "");
-            std::string body = j.value("body", "");
-            if (!j["subject"].is_string() || !j["body"].is_string()) {
-                res.status = 400;
-                json err; err["error"] = "Invalid request";
-                res.set_content(err.dump(), "application/json");
-                return;
-            }
             if (!j.contains("subject") || !j["subject"].is_string() ||
                 !j.contains("body") || !j["body"].is_string() ||
                 !j.contains("recipients") || !j["recipients"].is_array()) {
@@ -299,7 +293,17 @@ bool ForgeServer::startInBackground() {
                 res.set_content(err.dump(), "application/json");
                 return;
             }
+            const std::string subject = j["subject"].get<std::string>();
+            const std::string body = j["body"].get<std::string>();
+            if (subject.size() > 127 || body.size() > 511 ||
+                j["recipients"].empty() || j["recipients"].size() > 100) {
+                res.status = 400;
+                json err; err["error"] = "Subject, body, or recipient count exceeds allowed limits";
+                res.set_content(err.dump(), "application/json");
+                return;
+            }
             std::vector<std::pair<uint32_t, RecipientType>> recips;
+            std::unordered_set<uint32_t> recipientIds;
             for (const auto& r : j["recipients"]) {
                 if (!r.is_object() || !r.contains("user_id") ||
                     (!r["user_id"].is_number_unsigned() && !r["user_id"].is_number_integer())) {
@@ -312,6 +316,12 @@ bool ForgeServer::startInBackground() {
                 if (rawId <= 0 || static_cast<unsigned long long>(rawId) > UINT32_MAX) {
                     res.status = 400;
                     json err; err["error"] = "Invalid recipient user_id";
+                    res.set_content(err.dump(), "application/json");
+                    return;
+                }
+                if (!recipientIds.insert(static_cast<uint32_t>(rawId)).second) {
+                    res.status = 400;
+                    json err; err["error"] = "Duplicate recipient user_id";
                     res.set_content(err.dump(), "application/json");
                     return;
                 }

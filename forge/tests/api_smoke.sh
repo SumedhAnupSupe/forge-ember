@@ -49,6 +49,10 @@ if [[ "$ready" != "1" ]]; then
   exit 1
 fi
 
+# Logout must reject missing credentials.
+code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/auth/logout")
+assert_code 401 "$code"
+
 # Register three isolated users.
 code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/users" -H 'Content-Type: application/json' -d '{"name":"Alice Smoke","email":"alice-smoke@example.test","password":"SmokePass123!"}')
 assert_code 201 "$code"

@@ -398,9 +398,6 @@ export default function App() {
               </button>
             </form>
 
-            {/* Quick 1-click test profiles */}
-            <div className="mt-6 pt-5 border-t border-[#E8DFC9] w-full">
-            </div>
 
           </div>
 

@@ -15,6 +15,7 @@ Storage::~Storage() {
 }
 
 bool Storage::open() {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (isOpen_) return true;
     try {
         std::filesystem::create_directories(dataDir_);
@@ -34,6 +35,7 @@ bool Storage::open() {
 }
 
 void Storage::close() {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     closeFiles();
     isOpen_ = false;
 }
@@ -133,23 +135,28 @@ bool Storage::scanForMaxIds() {
 }
 
 uint32_t Storage::getNextUserId() {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     return nextUserId_++;
 }
 
 uint32_t Storage::getNextMessageId() {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     return nextMessageId_++;
 }
 
 void Storage::setNextUserId(uint32_t id) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (id > nextUserId_) nextUserId_ = id;
 }
 
 void Storage::setNextMessageId(uint32_t id) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (id > nextMessageId_) nextMessageId_ = id;
 }
 
 // User operations
 bool Storage::createUser(const User& user) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!isOpen_) return false;
     std::vector<uint8_t> data = BinaryCodec::serializeUser(user);
     usersFile_.seekp(0, std::ios::end);
@@ -159,6 +166,7 @@ bool Storage::createUser(const User& user) {
 }
 
 bool Storage::readUser(uint32_t id, User& user) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!isOpen_) return false;
     usersFile_.seekg(0, std::ios::end);
     std::streampos fsize = usersFile_.tellg();
@@ -181,6 +189,7 @@ bool Storage::readUser(uint32_t id, User& user) {
 }
 
 bool Storage::updateUser(const User& user) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!isOpen_) return false;
     usersFile_.seekg(0, std::ios::end);
     std::streampos fsize = usersFile_.tellg();
@@ -206,6 +215,7 @@ bool Storage::updateUser(const User& user) {
 }
 
 bool Storage::deleteUser(uint32_t id) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     User user;
     if (!readUser(id, user)) {
         // Try to find even if deleted? For normal delete, look up by scanning all
@@ -236,6 +246,7 @@ bool Storage::deleteUser(uint32_t id) {
 }
 
 std::vector<User> Storage::getAllUsers(bool includeDeleted) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     std::vector<User> users;
     if (!isOpen_) return users;
     usersFile_.seekg(0, std::ios::end);
@@ -259,6 +270,7 @@ std::vector<User> Storage::getAllUsers(bool includeDeleted) {
 
 // Message operations
 bool Storage::createMessage(const Message& message) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!isOpen_) return false;
     std::vector<uint8_t> data = BinaryCodec::serializeMessage(message);
     messagesFile_.seekp(0, std::ios::end);
@@ -268,6 +280,7 @@ bool Storage::createMessage(const Message& message) {
 }
 
 bool Storage::readMessage(uint32_t id, Message& message) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!isOpen_) return false;
     messagesFile_.seekg(0, std::ios::end);
     std::streampos fsize = messagesFile_.tellg();
@@ -290,6 +303,7 @@ bool Storage::readMessage(uint32_t id, Message& message) {
 }
 
 bool Storage::updateMessage(const Message& message) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!isOpen_) return false;
     messagesFile_.seekg(0, std::ios::end);
     std::streampos fsize = messagesFile_.tellg();
@@ -315,6 +329,7 @@ bool Storage::updateMessage(const Message& message) {
 }
 
 bool Storage::deleteMessage(uint32_t id) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     messagesFile_.seekg(0, std::ios::end);
     std::streampos fsize = messagesFile_.tellg();
     messagesFile_.seekg(0, std::ios::beg);
@@ -340,6 +355,7 @@ bool Storage::deleteMessage(uint32_t id) {
 }
 
 std::vector<Message> Storage::getAllMessages(bool includeDeleted) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     std::vector<Message> messages;
     if (!isOpen_) return messages;
     messagesFile_.seekg(0, std::ios::end);
@@ -363,6 +379,7 @@ std::vector<Message> Storage::getAllMessages(bool includeDeleted) {
 
 // Recipient operations
 bool Storage::createRecipient(const Recipient& recipient) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!isOpen_) return false;
     std::vector<uint8_t> data = BinaryCodec::serializeRecipient(recipient);
     recipientsFile_.seekp(0, std::ios::end);
@@ -372,6 +389,7 @@ bool Storage::createRecipient(const Recipient& recipient) {
 }
 
 bool Storage::readRecipientsByMessage(uint32_t messageId, std::vector<Recipient>& recipients, bool includeDeleted) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!isOpen_) return false;
     recipients.clear();
     recipientsFile_.seekg(0, std::ios::end);
@@ -394,6 +412,7 @@ bool Storage::readRecipientsByMessage(uint32_t messageId, std::vector<Recipient>
 }
 
 bool Storage::deleteRecipientsByMessage(uint32_t messageId) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!isOpen_) return false;
     recipientsFile_.seekg(0, std::ios::end);
     std::streampos fsize = recipientsFile_.tellg();
@@ -421,6 +440,7 @@ bool Storage::deleteRecipientsByMessage(uint32_t messageId) {
 }
 
 std::vector<Recipient> Storage::getAllRecipients(bool includeDeleted) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     std::vector<Recipient> recipients;
     if (!isOpen_) return recipients;
     recipientsFile_.seekg(0, std::ios::end);

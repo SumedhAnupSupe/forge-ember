@@ -224,7 +224,46 @@ void ForgeCLI::run() {
             continue;
         }
         if (upper.find("SELECT") == 0) {
-            std::cout << "SQL queries are temporarily disabled: the server query endpoint is not implemented safely yet." << std::endl;
+            if (token_.empty()) { std::cout << "Unauthorized: please login first." << std::endl; continue; }
+            try {
+                httplib::Client cli(host_.c_str(), port_);
+                cli.set_connection_timeout(3);
+                cli.set_read_timeout(10);
+                httplib::Headers headers = {{"Authorization", "Bearer " + token_}};
+                json request = {{"query", cmd}};
+                auto res = cli.Post("/api/v1/query", headers, request.dump(), "application/json");
+                if (!res) {
+                    std::cout << "Connection error while executing query." << std::endl;
+                    continue;
+                }
+                if (res->status == 401) {
+                    token_.clear();
+                    std::cout << "Session expired or invalid. Please login again." << std::endl;
+                    continue;
+                }
+                json response = json::parse(res->body);
+                if (res->status != 200) {
+                    std::cout << "Query error: " << response.value("error", "Request failed") << std::endl;
+                    continue;
+                }
+                if (!response.contains("rows") || !response["rows"].is_array()) {
+                    std::cout << "Invalid response from server." << std::endl;
+                    continue;
+                }
+                std::vector<std::map<std::string, std::string>> rows;
+                for (const auto& item : response["rows"]) {
+                    if (!item.is_object()) continue;
+                    std::map<std::string, std::string> row;
+                    for (auto it = item.begin(); it != item.end(); ++it) {
+                        row[it.key()] = it.value().is_string() ? it.value().get<std::string>() : it.value().dump();
+                    }
+                    rows.push_back(std::move(row));
+                }
+                if (rows.empty()) std::cout << "Empty set (0 rows)" << std::endl;
+                else printTable(rows);
+            } catch (const std::exception&) {
+                std::cout << "Invalid response from server." << std::endl;
+            }
             continue;
         }
         std::cout << "Unknown command. Type 'help'." << std::endl;

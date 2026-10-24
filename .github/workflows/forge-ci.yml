@@ -30,3 +30,6 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build/forge --output-on-failure
+
+      - name: API integration smoke test
+        run: bash forge/tests/api_smoke.sh

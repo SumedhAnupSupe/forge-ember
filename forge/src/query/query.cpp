@@ -183,6 +183,10 @@ QueryExecutor::QueryExecutor(std::shared_ptr<forge::Storage> storage) : storage_
 }
 
 QueryResult QueryExecutor::execute(const std::string& query) {
+    return execute(query, 0);
+}
+
+QueryResult QueryExecutor::execute(const std::string& query, uint32_t authenticatedUserId) {
     QueryResult result;
     result.success = false;
     Lexer lexer(query);
@@ -239,7 +243,7 @@ QueryResult QueryExecutor::execute(const std::string& query) {
         return result;
     }
     node.table = current().value;
-    // Normalize table name to lowercase for comparison? Keep as is but check allowlist
+    std::transform(node.table.begin(), node.table.end(), node.table.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
     advance();
     
     if (current().type == TokenType::WHERE) {
@@ -249,6 +253,7 @@ QueryResult QueryExecutor::execute(const std::string& query) {
             return result;
         }
         node.whereColumn = current().value;
+        std::transform(node.whereColumn.begin(), node.whereColumn.end(), node.whereColumn.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
         advance();
         if (current().type == TokenType::EQ) {
             node.whereOp = "=";
@@ -280,6 +285,7 @@ QueryResult QueryExecutor::execute(const std::string& query) {
             return result;
         }
         node.orderByColumn = current().value;
+        std::transform(node.orderByColumn.begin(), node.orderByColumn.end(), node.orderByColumn.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
         advance();
         if (current().type == TokenType::ASC) { node.orderByDir = "ASC"; advance(); }
         else if (current().type == TokenType::DESC) { node.orderByDir = "DESC"; advance(); }
@@ -359,6 +365,7 @@ QueryResult QueryExecutor::execute(const std::string& query) {
         auto users = storage_->getAllUsers(false);
         for (const auto& u : users) {
             if (!node.whereColumn.empty()) {
+                if (authenticatedUserId != 0 && u.id != authenticatedUserId) continue;
                 if (node.whereColumn == "email" && node.whereValue != u.email) continue;
                 else if (node.whereColumn == "id" && node.whereValue != std::to_string(u.id)) continue;
                 else if (node.whereColumn == "name" && node.whereValue != u.name) continue;
@@ -447,6 +454,13 @@ QueryResult QueryExecutor::execute(const std::string& query) {
         }
         auto messages = storage_->getAllMessages(false);
         for (const auto& m : messages) {
+            if (authenticatedUserId != 0 && m.sender_id != authenticatedUserId) {
+                std::vector<Recipient> visibleRecipients;
+                if (!storage_->readRecipientsByMessage(m.id, visibleRecipients, false)) continue;
+                const bool isRecipient = std::any_of(visibleRecipients.begin(), visibleRecipients.end(),
+                    [&](const Recipient& recipient) { return recipient.user_id == authenticatedUserId && recipient.is_deleted == 0; });
+                if (!isRecipient) continue;
+            }
             if (!node.whereColumn.empty()) {
                 if (node.whereColumn == "id" && node.whereValue != std::to_string(m.id)) continue;
                 else if (node.whereColumn == "sender_id" && node.whereValue != std::to_string(m.sender_id)) continue;
@@ -539,6 +553,10 @@ QueryResult QueryExecutor::execute(const std::string& query) {
         }
         auto all = storage_->getAllRecipients(false);
         for (const auto& r : all) {
+            if (authenticatedUserId != 0 && r.user_id != authenticatedUserId) {
+                Message parentMessage;
+                if (!storage_->readMessage(r.message_id, parentMessage) || parentMessage.sender_id != authenticatedUserId) continue;
+            }
             if (!node.whereColumn.empty()) {
                 if (node.whereColumn == "message_id" && node.whereValue != std::to_string(r.message_id)) continue;
                 else if (node.whereColumn == "user_id" && node.whereValue != std::to_string(r.user_id)) continue;

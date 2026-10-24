@@ -480,6 +480,36 @@ bool ForgeServer::startInBackground() {
         res.set_content(response.dump(), "application/json");
     });
 
+    // Exact-email lookup for composing mail. This returns only a single minimal public profile.
+    // It requires authentication and never exposes password hashes or a full user directory.
+    svr_->Get("/api/v1/users/lookup", [&](const httplib::Request& req, httplib::Response& res) {
+        const std::string auth = req.get_header_value("Authorization");
+        uint32_t uid = 0;
+        if (auth.find("Bearer ") != 0 || auth.size() <= 7 ||
+            !authManager_->validateSession(auth.substr(7), uid)) {
+            res.status = 401;
+            json err; err["error"] = "Unauthorized";
+            res.set_content(err.dump(), "application/json");
+            return;
+        }
+        const std::string email = req.get_param_value("email");
+        if (email.empty() || email.size() > 127 || email.find('@') == std::string::npos) {
+            res.status = 400;
+            json err; err["error"] = "A valid exact email query is required";
+            res.set_content(err.dump(), "application/json");
+            return;
+        }
+        User user;
+        if (!userService_->getUserByEmail(email, user)) {
+            res.status = 404;
+            json err; err["error"] = "Recipient not found";
+            res.set_content(err.dump(), "application/json");
+            return;
+        }
+        json result; result["id"] = user.id; result["name"] = user.name; result["email"] = user.email;
+        res.set_content(result.dump(), "application/json");
+    });
+
     svr_->Post("/api/v1/query", [&](const httplib::Request& req, httplib::Response& res) {
         std::string auth = req.get_header_value("Authorization");
         if (auth.find("Bearer ") != 0 || auth.length() <= 7) {

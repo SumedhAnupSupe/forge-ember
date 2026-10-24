@@ -14,6 +14,10 @@ ForgeServer::ForgeServer(const std::string& host, int port, const std::string& d
 }
 
 bool ForgeServer::start() {
+    return startInBackground();
+}
+
+bool ForgeServer::startInBackground() {
     storage_ = std::make_shared<Storage>(dataDir_);
     if (!storage_->open()) {
         std::cerr << "Failed to open storage at " << dataDir_ << std::endl;
@@ -28,20 +32,38 @@ bool ForgeServer::start() {
     std::cout << "FORGE Server starting on " << host_ << ":" << port_ << std::endl;
     std::cout << "Data directory: " << dataDir_ << std::endl;
     
-    auto svr = std::make_shared<httplib::Server>();
+    svr_ = std::make_shared<httplib::Server>();
     
-    svr->Get("/health", [&](const httplib::Request&, httplib::Response& res) {
+    svr_->Get("/health", [&](const httplib::Request&, httplib::Response& res) {
         json j;
         j["status"] = "ok";
         res.set_content(j.dump(), "application/json");
     });
     
-    svr->Post("/api/v1/users", [&](const httplib::Request& req, httplib::Response& res) {
+    svr_->Post("/api/v1/users", [&](const httplib::Request& req, httplib::Response& res) {
         try {
             auto j = json::parse(req.body);
-            std::string name = j.value("name", "");
-            std::string email = j.value("email", "");
-            std::string password = j.value("password", "");
+            if (!j.is_object()) {
+                res.status = 400;
+                json err; err["error"] = "Invalid request";
+                res.set_content(err.dump(), "application/json");
+                return;
+            }
+            if (!j.contains("name") || !j.contains("email") || !j.contains("password")) {
+                res.status = 400;
+                json err; err["error"] = "Missing required fields";
+                res.set_content(err.dump(), "application/json");
+                return;
+            }
+            if (!j["name"].is_string() || !j["email"].is_string() || !j["password"].is_string()) {
+                res.status = 400;
+                json err; err["error"] = "Invalid request";
+                res.set_content(err.dump(), "application/json");
+                return;
+            }
+            std::string name = j["name"].get<std::string>();
+            std::string email = j["email"].get<std::string>();
+            std::string password = j["password"].get<std::string>();
             if (name.empty() || email.empty() || password.empty()) {
                 res.status = 400;
                 json err; err["error"] = "Missing required fields";
@@ -75,11 +97,17 @@ bool ForgeServer::start() {
         }
     });
     
-    svr->Post("/api/v1/auth/login", [&](const httplib::Request& req, httplib::Response& res) {
+    svr_->Post("/api/v1/auth/login", [&](const httplib::Request& req, httplib::Response& res) {
         try {
             auto j = json::parse(req.body);
-            std::string email = j.value("email", "");
-            std::string password = j.value("password", "");
+            if (!j.is_object() || !j.contains("email") || !j.contains("password") || !j["email"].is_string() || !j["password"].is_string()) {
+                res.status = 400;
+                json err; err["error"] = "Invalid request";
+                res.set_content(err.dump(), "application/json");
+                return;
+            }
+            std::string email = j["email"].get<std::string>();
+            std::string password = j["password"].get<std::string>();
             User u;
             if (userService_->getUserByEmail(email, u)) {
                 try {
@@ -106,9 +134,9 @@ bool ForgeServer::start() {
         }
     });
     
-    svr->Post("/api/v1/auth/logout", [&](const httplib::Request& req, httplib::Response& res) {
+    svr_->Post("/api/v1/auth/logout", [&](const httplib::Request& req, httplib::Response& res) {
         std::string auth = req.get_header_value("Authorization");
-        if (auth.find("Bearer ") == 0) {
+        if (auth.find("Bearer ") == 0 && auth.length() > 7) {
             std::string token = auth.substr(7);
             authManager_->logout(token);
         }
@@ -116,9 +144,9 @@ bool ForgeServer::start() {
         res.set_content(r.dump(), "application/json");
     });
     
-    svr->Get("/api/v1/users/me", [&](const httplib::Request& req, httplib::Response& res) {
+    svr_->Get("/api/v1/users/me", [&](const httplib::Request& req, httplib::Response& res) {
         std::string auth = req.get_header_value("Authorization");
-        if (auth.find("Bearer ") != 0) {
+        if (auth.find("Bearer ") != 0 || auth.length() <= 7) {
             res.status = 401;
             json err; err["error"] = "Unauthorized";
             res.set_content(err.dump(), "application/json");
@@ -143,9 +171,9 @@ bool ForgeServer::start() {
         }
     });
     
-    svr->Get("/api/v1/messages", [&](const httplib::Request& req, httplib::Response& res) {
+    svr_->Get("/api/v1/messages", [&](const httplib::Request& req, httplib::Response& res) {
         std::string auth = req.get_header_value("Authorization");
-        if (auth.find("Bearer ") != 0) {
+        if (auth.find("Bearer ") != 0 || auth.length() <= 7) {
             res.status = 401;
             json err; err["error"] = "Unauthorized";
             res.set_content(err.dump(), "application/json");
@@ -169,9 +197,9 @@ bool ForgeServer::start() {
         res.set_content(arr.dump(), "application/json");
     });
     
-    svr->Get("/api/v1/messages/(\\d+)", [&](const httplib::Request& req, httplib::Response& res) {
+    svr_->Get(R"(/api/v1/messages/(\d+))", [&](const httplib::Request& req, httplib::Response& res) {
         std::string auth = req.get_header_value("Authorization");
-        if (auth.find("Bearer ") != 0) {
+        if (auth.find("Bearer ") != 0 || auth.length() <= 7) {
             res.status = 401;
             json err; err["error"] = "Unauthorized";
             res.set_content(err.dump(), "application/json");
@@ -186,6 +214,12 @@ bool ForgeServer::start() {
             return;
         }
         try {
+            if (req.matches.size() < 2) {
+                res.status = 404;
+                json err; err["error"] = "Not found";
+                res.set_content(err.dump(), "application/json");
+                return;
+            }
             uint32_t mid = (uint32_t)std::stoul(req.matches[1]);
             Message m;
             if (!messageService_->getMessageById(mid, m, false)) {
@@ -194,9 +228,7 @@ bool ForgeServer::start() {
                 res.set_content(err.dump(), "application/json");
                 return;
             }
-            // check if user is sender or recipient
             if (m.sender_id != uid) {
-                // check recipients
                 std::vector<Recipient> recips;
                 if (!storage_->readRecipientsByMessage(mid, recips, false)) {
                     res.status = 404;
@@ -225,9 +257,9 @@ bool ForgeServer::start() {
         }
     });
     
-    svr->Post("/api/v1/messages", [&](const httplib::Request& req, httplib::Response& res) {
+    svr_->Post("/api/v1/messages", [&](const httplib::Request& req, httplib::Response& res) {
         std::string auth = req.get_header_value("Authorization");
-        if (auth.find("Bearer ") != 0) {
+        if (auth.find("Bearer ") != 0 || auth.length() <= 7) {
             res.status = 401;
             json err; err["error"] = "Unauthorized";
             res.set_content(err.dump(), "application/json");
@@ -243,13 +275,26 @@ bool ForgeServer::start() {
         }
         try {
             auto j = json::parse(req.body);
+            if (!j.is_object()) {
+                res.status = 400;
+                json err; err["error"] = "Invalid request";
+                res.set_content(err.dump(), "application/json");
+                return;
+            }
             std::string subject = j.value("subject", "");
             std::string body = j.value("body", "");
+            if (!j["subject"].is_string() || !j["body"].is_string()) {
+                res.status = 400;
+                json err; err["error"] = "Invalid request";
+                res.set_content(err.dump(), "application/json");
+                return;
+            }
             std::vector<std::pair<uint32_t, RecipientType>> recips;
             if (j.contains("recipients") && j["recipients"].is_array()) {
                 for (const auto& r : j["recipients"]) {
-                    if (!r.contains("user_id")) continue;
-                    uint32_t rid = r.value("user_id", 0);
+                    if (!r.is_object() || !r.contains("user_id")) continue;
+                    if (!r["user_id"].is_number_unsigned() && !r["user_id"].is_number_integer()) continue;
+                    uint32_t rid = r["user_id"].get<uint32_t>();
                     std::string t = r.value("type", "TO");
                     if (t == "CC") recips.push_back({rid, RecipientType::CC});
                     else if (t == "BCC") recips.push_back({rid, RecipientType::BCC});
@@ -273,9 +318,9 @@ bool ForgeServer::start() {
         }
     });
     
-    svr->Delete("/api/v1/messages/(\\d+)", [&](const httplib::Request& req, httplib::Response& res) {
+    svr_->Delete(R"(/api/v1/messages/(\d+))", [&](const httplib::Request& req, httplib::Response& res) {
         std::string auth = req.get_header_value("Authorization");
-        if (auth.find("Bearer ") != 0) {
+        if (auth.find("Bearer ") != 0 || auth.length() <= 7) {
             res.status = 401;
             json err; err["error"] = "Unauthorized";
             res.set_content(err.dump(), "application/json");
@@ -290,6 +335,12 @@ bool ForgeServer::start() {
             return;
         }
         try {
+            if (req.matches.size() < 2) {
+                res.status = 404;
+                json err; err["error"] = "Not found";
+                res.set_content(err.dump(), "application/json");
+                return;
+            }
             uint32_t mid = (uint32_t)std::stoul(req.matches[1]);
             Message m;
             if (!messageService_->getMessageById(mid, m, false)) {
@@ -319,9 +370,9 @@ bool ForgeServer::start() {
         }
     });
     
-    svr->Post("/api/v1/query", [&](const httplib::Request& req, httplib::Response& res) {
+    svr_->Post("/api/v1/query", [&](const httplib::Request& req, httplib::Response& res) {
         std::string auth = req.get_header_value("Authorization");
-        if (auth.find("Bearer ") != 0) {
+        if (auth.find("Bearer ") != 0 || auth.length() <= 7) {
             res.status = 401;
             json err; err["error"] = "Unauthorized";
             res.set_content(err.dump(), "application/json");
@@ -342,13 +393,30 @@ bool ForgeServer::start() {
     });
     
     running_ = true;
-    svr->listen(host_.c_str(), port_);
+    // Try to listen; if fails, return false
+    bool ok = svr_->listen(host_.c_str(), port_);
     running_ = false;
+    if (!ok) {
+        return false;
+    }
     return true;
 }
 
 void ForgeServer::stop() {
+    if (svr_) {
+        svr_->stop();
+    }
     running_ = false;
+    if (serverThread_.joinable()) {
+        serverThread_.join();
+    }
+    if (storage_) {
+        storage_->close();
+    }
+}
+
+bool ForgeServer::isRunning() const {
+    return running_;
 }
 
 } // namespace server

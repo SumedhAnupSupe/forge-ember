@@ -6,10 +6,33 @@
 #include <vector>
 #include <algorithm>
 #include <cctype>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <termios.h>
+#include <unistd.h>
+#endif
 
 using json = nlohmann::json;
 
 ForgeCLI::ForgeCLI(const std::string& host, int port) : host_(host), port_(port) {
+}
+
+static void setEcho(bool enable) {
+#ifdef _WIN32
+    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    DWORD mode;
+    GetConsoleMode(hStdin, &mode);
+    if (!enable) mode &= ~ENABLE_ECHO_INPUT;
+    else mode |= ENABLE_ECHO_INPUT;
+    SetConsoleMode(hStdin, mode);
+#else
+    struct termios tty;
+    if (tcgetattr(STDIN_FILENO, &tty) != 0) return;
+    if (!enable) tty.c_lflag &= ~ECHO;
+    else tty.c_lflag |= ECHO;
+    tcsetattr(STDIN_FILENO, TCSANOW, &tty);
+#endif
 }
 
 void printTable(const std::vector<std::map<std::string, std::string>>& rows) {
@@ -31,7 +54,6 @@ void printTable(const std::vector<std::map<std::string, std::string>>& rows) {
             }
         }
     }
-    // print header
     std::cout << "+";
     for (size_t i = 0; i < widths.size(); ++i) { for (size_t j = 0; j < widths[i]+2; ++j) std::cout << "-"; std::cout << "+"; }
     std::cout << std::endl;
@@ -94,39 +116,36 @@ void ForgeCLI::run() {
             continue;
         }
         if (cmd == "login") {
-            if (token_.empty()) {
-                std::string email, pass;
-                std::cout << "Email: "; std::getline(std::cin, email); email = trim(email);
-                std::cout << "Password: "; 
-#ifdef _WIN32
-                std::getline(std::cin, pass);
-#else
-                // Try to disable echo if possible - simple approach
-                std::getline(std::cin, pass);
-#endif
-                pass = trim(pass);
-                try {
-                    httplib::Client cli(host_.c_str(), port_);
-                    cli.set_connection_timeout(5);
-                    json j = {{"email", email}, {"password", pass}};
-                    auto res = cli.Post("/api/v1/auth/login", j.dump(), "application/json");
-                    if (res && res->status == 200) {
-                        try {
-                            auto rj = json::parse(res->body);
-                            token_ = rj.value("token", "");
-                            if (!token_.empty()) std::cout << "Login successful" << std::endl;
-                            else std::cout << "Login failed" << std::endl;
-                        } catch (...) {
-                            std::cout << "Login failed" << std::endl;
-                        }
-                    } else {
+            std::string email, pass;
+            std::cout << "Email: "; std::getline(std::cin, email); email = trim(email);
+            std::cout << "Password: ";
+            setEcho(false);
+            std::getline(std::cin, pass);
+            setEcho(true);
+            std::cout << std::endl;
+            // Do NOT trim password
+            try {
+                httplib::Client cli(host_.c_str(), port_);
+                cli.set_connection_timeout(5);
+                json j = {{"email", email}, {"password", pass}};
+                auto res = cli.Post("/api/v1/auth/login", j.dump(), "application/json");
+                if (res && res->status == 200) {
+                    try {
+                        auto rj = json::parse(res->body);
+                        token_ = rj.value("token", "");
+                        if (!token_.empty()) std::cout << "Login successful" << std::endl;
+                        else std::cout << "Login failed" << std::endl;
+                    } catch (...) {
                         std::cout << "Login failed" << std::endl;
                     }
-                } catch (...) {
+                } else if (res) {
+                    if (res->status == 401) std::cout << "Login failed" << std::endl;
+                    else std::cout << "Login failed" << std::endl;
+                } else {
                     std::cout << "Connection error" << std::endl;
                 }
-            } else {
-                std::cout << "Already logged in" << std::endl;
+            } catch (...) {
+                std::cout << "Connection error" << std::endl;
             }
             continue;
         }
@@ -155,10 +174,10 @@ void ForgeCLI::run() {
             }
             continue;
         }
-        // Case insensitive
         std::string upper = cmd;
         std::transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
         if (upper == "SHOW TABLES;" || upper == "SHOW TABLES") {
+            if (token_.empty()) { std::cout << "Unauthorized" << std::endl; continue; }
             std::cout << "+-----------+" << std::endl;
             std::cout << "| Tables    |" << std::endl;
             std::cout << "+-----------+" << std::endl;
@@ -169,8 +188,8 @@ void ForgeCLI::run() {
             continue;
         }
         if (upper.find("DESCRIBE ") == 0) {
+            if (token_.empty()) { std::cout << "Unauthorized" << std::endl; continue; }
             std::string rest = upper.substr(9);
-            // remove semicolon
             while (!rest.empty() && (rest.back() == ';' || isspace((unsigned char)rest.back()))) rest.pop_back();
             if (rest == "USERS") {
                 std::cout << "+------------+----------+------+" << std::endl;
@@ -234,8 +253,24 @@ void ForgeCLI::run() {
                     }
                 } else if (res) {
                     if (res->status == 401) { std::cout << "Session expired or invalid" << std::endl; token_ = ""; continue; }
-                    if (res->status == 403) { std::cout << "Error: " << res->body << std::endl; continue; }
-                    std::cout << "Error: " << res->body << std::endl;
+                    if (res->status == 403) { 
+                        // Try to parse error message
+                        try {
+                            auto rj = json::parse(res->body);
+                            if (rj.contains("error")) std::cout << "Error: " << rj["error"].get<std::string>() << std::endl;
+                            else std::cout << "Error: Forbidden" << std::endl;
+                        } catch (...) {
+                            std::cout << "Error: Forbidden" << std::endl;
+                        }
+                        continue; 
+                    }
+                    try {
+                        auto rj = json::parse(res->body);
+                        if (rj.contains("error")) std::cout << "Error: " << rj["error"].get<std::string>() << std::endl;
+                        else std::cout << "Error: " << res->body << std::endl;
+                    } catch (...) {
+                        std::cout << "Error: " << res->body << std::endl;
+                    }
                 } else {
                     std::cout << "Connection error" << std::endl;
                 }

@@ -44,8 +44,8 @@ CLI connects over HTTP only; it does not read/write `.dat` files directly.
 ## CLI commands
 
 - `help`, `status`, `login`, `logout`, `whoami`
-- `SHOW TABLES;`
-- `DESCRIBE users;` / `DESCRIBE messages;` / `DESCRIBE recipients;`
+- `SHOW TABLES;` (fetches schema metadata from the server)
+- `DESCRIBE users;` / `DESCRIBE messages;` / `DESCRIBE recipients;` (fetches field metadata from the server)
 - `SELECT` supports the restricted, read-only SQL subset below and is sent to the server over the authenticated REST API.
 - `exit`, `quit`
 
@@ -79,6 +79,8 @@ Rules:
 - `POST /api/v1/auth/login`
 - `POST /api/v1/auth/logout`
 - `GET /api/v1/users/me`
+- `GET /api/v1/schema/tables` (authenticated schema table listing)
+- `GET /api/v1/schema/{table}` (authenticated field metadata for `users`, `messages`, or `recipients`)
 - `GET /api/v1/messages` (messages sent by or addressed to the authenticated user)
 - `GET /api/v1/messages/{id}` (only if sender or authorized recipient)
 - `POST /api/v1/messages`
@@ -93,6 +95,7 @@ Status codes: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `500`. Errors do 
 - Secure random tokens (from `getrandom`), fail closed if unavailable
 - Session state synchronized with mutex; expired sessions rejected
 - Failed login does not reveal whether email exists
+- Registration validates field lengths and requires a password of at least 8 characters
 - Sender identity derived from session; client-supplied `sender_id` not trusted
 - Message access restricted to sender or authorized recipients
 - Password hashes/sessions/secrets never returned in API/CLI/logs
@@ -103,7 +106,9 @@ Status codes: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `500`. Errors do 
 - Record sizes (verified): User 461 bytes, Message 659 bytes, Recipient 13 bytes
 - Field-by-field binary serialization (no raw struct writes)
 - Storage errors distinguished from empty results where possible
+- Shared binary file access is serialized with a recursive mutex
 - Multi-record message writes use validation and best-effort rollback on failure (documented as best-effort, not full ACID)
+- ID counters fail closed on exhaustion instead of wrapping to zero
 - IDs allocated safely; indexes updated only after successful storage operations
 
 ## Tests

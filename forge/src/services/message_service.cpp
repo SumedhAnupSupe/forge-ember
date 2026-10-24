@@ -15,8 +15,16 @@ bool MessageService::createMessage(uint32_t senderId, const std::string& subject
                                   Message& outMessage) {
     if (!storage_) return false;
     if (subject.length() > 127 || body.length() > 511) return false;
-    if (recipients.empty()) return false;
-    
+    if (recipients.empty() || recipients.size() > 100) return false;
+
+    std::set<uint32_t> recipientIds;
+    for (const auto& recipient : recipients) {
+        if (recipient.first == 0 || !recipientIds.insert(recipient.first).second) return false;
+        if (recipient.second != RecipientType::TO &&
+            recipient.second != RecipientType::CC &&
+            recipient.second != RecipientType::BCC) return false;
+    }
+
     User sender;
     if (!storage_->readUser(senderId, sender) || sender.is_deleted) {
         return false;

@@ -1,0 +1,32 @@
+name: FORGE CI
+
+on:
+  push:
+    branches:
+      - main
+      - fix/forge-api-query-lifecycle
+  pull_request:
+    paths:
+      - "forge/**"
+      - ".github/workflows/forge-ci.yml"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ libargon2-dev
+
+      - name: Configure
+        run: cmake -S forge -B build/forge
+
+      - name: Build
+        run: cmake --build build/forge --clean-first -j2
+
+      - name: Test
+        run: ctest --test-dir build/forge --output-on-failure

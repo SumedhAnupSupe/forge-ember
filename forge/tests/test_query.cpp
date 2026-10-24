@@ -136,6 +136,14 @@ int test_query() {
         std::cout << "  LIMIT overflow rejected OK" << std::endl;
     else { std::cerr << "  LIMIT overflow rejection failed" << std::endl; failures++; }
 
+    if (!executor.execute("SELECT * FROM users @", 1).success)
+        std::cout << "  Invalid SQL character rejected OK" << std::endl;
+    else { std::cerr << "  Invalid SQL character rejection failed" << std::endl; failures++; }
+
+    if (!executor.execute("SELECT * FROM users WHERE email = 'unterminated", 1).success)
+        std::cout << "  Unterminated string rejected OK" << std::endl;
+    else { std::cerr << "  Unterminated string rejection failed" << std::endl; failures++; }
+
     storage->close();
     std::filesystem::remove_all(dir);
     return failures;

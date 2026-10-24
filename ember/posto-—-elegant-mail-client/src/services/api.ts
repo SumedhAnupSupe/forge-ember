@@ -131,7 +131,7 @@ class MailService {
     if (!this.currentUser || !localStorage.getItem(TOKEN_KEY)) {
       throw new Error("Sign in before sending mail.");
     }
-    const recipients = [];
+    const recipients: { user_id: number; type: "TO" | "CC" | "BCC" }[] = [];
     for (const recipient of payload.recipients) {
       const user = await request<UserResponse>(`/v1/users/lookup?email=${encodeURIComponent(recipient.email.trim().toLowerCase())}`);
       if (user.id === this.currentUser.id) throw new Error("You cannot send mail to your own account yet.");

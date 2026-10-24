@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstring>
 #include "storage/storage.h"
 #include "services/user_service.h"
 #include "services/message_service.h"
@@ -28,6 +29,25 @@ int test_services() {
             std::cout << "  Second user creation FAILED" << std::endl;
             failures++;
         } else {
+            User duplicateUpdate = u2;
+            std::strncpy(duplicateUpdate.email, "alice@example.com", sizeof(duplicateUpdate.email) - 1);
+            if (!us->updateUser(duplicateUpdate))
+                std::cout << "  Duplicate email rejected on update OK" << std::endl;
+            else { std::cout << "  Duplicate email update FAILED" << std::endl; failures++; }
+
+            User renamedEmail = u2;
+            std::strncpy(renamedEmail.email, "bob.renamed@example.com", sizeof(renamedEmail.email) - 1);
+            if (us->updateUser(renamedEmail)) {
+                User lookup{};
+                const bool oldEmailGone = !us->getUserByEmail("bob@example.com", lookup);
+                const bool newEmailWorks = us->getUserByEmail("BOB.RENAMED@example.com", lookup) &&
+                                           lookup.id == u2.id;
+                if (oldEmailGone && newEmailWorks)
+                    std::cout << "  Email update index consistency OK" << std::endl;
+                else { std::cout << "  Email update index consistency FAILED" << std::endl; failures++; }
+                u2 = renamedEmail;
+            } else { std::cout << "  Email update FAILED" << std::endl; failures++; }
+
             MessageService messages(storage, im);
             Message sent{};
             const std::vector<std::pair<uint32_t, RecipientType>> recipients = {

@@ -93,6 +93,24 @@ int test_query() {
         std::cout << "  Case-insensitive SELECT and own-user isolation OK" << std::endl;
     else { std::cerr << "  Own-user isolation failed" << std::endl; failures++; }
 
+    const auto matchingUser = executor.execute("SELECT id FROM users WHERE id = 1;", 1);
+    if (matchingUser.success && matchingUser.rows.size() == 1 &&
+        matchingUser.rows[0].at("id") == "1")
+        std::cout << "  Equality WHERE filter matches rows OK" << std::endl;
+    else { std::cerr << "  Equality WHERE filter failed" << std::endl; failures++; }
+
+    const auto matchingMessage = executor.execute("SELECT id FROM messages WHERE id = 10;", 2);
+    if (matchingMessage.success && matchingMessage.rows.size() == 1 &&
+        matchingMessage.rows[0].at("id") == "10")
+        std::cout << "  Message WHERE filter matches rows OK" << std::endl;
+    else { std::cerr << "  Message WHERE filter failed" << std::endl; failures++; }
+
+    const auto matchingRecipient = executor.execute("SELECT user_id FROM recipients WHERE user_id = 2;", 2);
+    if (matchingRecipient.success && matchingRecipient.rows.size() == 1 &&
+        matchingRecipient.rows[0].at("user_id") == "2")
+        std::cout << "  Recipient WHERE filter matches rows OK" << std::endl;
+    else { std::cerr << "  Recipient WHERE filter failed" << std::endl; failures++; }
+
     const auto otherUser = executor.execute("SELECT * FROM users WHERE id = 2;", 1);
     if (otherUser.success && otherUser.rows.empty())
         std::cout << "  Cross-user query returns no rows OK" << std::endl;

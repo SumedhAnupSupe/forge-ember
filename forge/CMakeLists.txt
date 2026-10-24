@@ -10,11 +10,9 @@ endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_SOURCE_DIR}/third_party)
+include_directories(${PROJECT_SOURCE_DIR}/include/external)
 
 find_package(Threads REQUIRED)
-
-find_library(ARGON2_LIBRARY argon2)
-find_path(ARGON2_INCLUDE_DIR argon2.h)
 
 # Production sources
 set(FORGE_CORE_SOURCES
@@ -35,17 +33,13 @@ set(FORGE_CORE_SOURCES
 add_library(forge_core ${FORGE_CORE_SOURCES})
 target_link_libraries(forge_core PUBLIC Threads::Threads)
 
-if(ARGON2_LIBRARY AND ARGON2_INCLUDE_DIR)
-    target_include_directories(forge_core PUBLIC ${ARGON2_INCLUDE_DIR})
+find_library(ARGON2_LIBRARY argon2)
+if(ARGON2_LIBRARY)
     target_link_libraries(forge_core PUBLIC ${ARGON2_LIBRARY})
     target_compile_definitions(forge_core PUBLIC HAVE_ARGON2)
 elseif(EXISTS "/usr/lib/x86_64-linux-gnu/libargon2.so.1")
-    find_path(ARGON2_INCLUDE_DIR_CANDIDATE argon2.h PATHS /usr/include /usr/local/include)
-    if(ARGON2_INCLUDE_DIR_CANDIDATE)
-        target_include_directories(forge_core PUBLIC ${ARGON2_INCLUDE_DIR_CANDIDATE})
-        target_link_libraries(forge_core PUBLIC /usr/lib/x86_64-linux-gnu/libargon2.so.1)
-        target_compile_definitions(forge_core PUBLIC HAVE_ARGON2)
-    endif()
+    target_link_libraries(forge_core PUBLIC /usr/lib/x86_64-linux-gnu/libargon2.so.1)
+    target_compile_definitions(forge_core PUBLIC HAVE_ARGON2)
 endif()
 
 # Server

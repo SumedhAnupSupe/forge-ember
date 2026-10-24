@@ -1,1 +1,0 @@
-/usr/bin/c++ "CMakeFiles/forge-cli.dir/src/cli/cli_main.cpp.o" "CMakeFiles/forge-cli.dir/src/cli/cli.cpp.o" -o forge-cli 

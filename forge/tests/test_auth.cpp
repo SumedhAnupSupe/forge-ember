@@ -7,6 +7,7 @@ int test_auth() {
     int failures = 0;
     std::cout << "Testing Auth..." << std::endl;
     AuthManager auth;
+#ifdef HAVE_ARGON2
     try {
         std::string hash = auth.hashPassword("password123");
         if (auth.verifyPassword("password123", hash)) std::cout << "  Password verification OK" << std::endl;
@@ -16,7 +17,17 @@ int test_auth() {
         else { std::cout << "  Different salts FAILED" << std::endl; failures++; }
     } catch (const std::exception& e) {
         std::cout << "  Auth blocked as expected: " << e.what() << std::endl;
+        failures++;
     }
+#else
+    try {
+        std::string hash = auth.hashPassword("password123");
+        std::cout << "  Should have failed without Argon2" << std::endl;
+        failures++;
+    } catch (...) {
+        std::cout << "  Argon2 required - correctly failed" << std::endl;
+    }
+#endif
     try {
         std::string token = auth.createSession(1);
         if (token.length() == 64) std::cout << "  Secure token format OK" << std::endl;

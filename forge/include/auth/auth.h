@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include <chrono>
+#include <mutex>
 
 namespace forge {
 
@@ -32,6 +33,7 @@ public:
     
 private:
     std::map<std::string, Session> sessions_;
+    std::mutex mutex_;
     std::string generateToken();
 };
 

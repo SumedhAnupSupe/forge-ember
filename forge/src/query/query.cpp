@@ -4,6 +4,7 @@
 #include <cctype>
 #include <iostream>
 #include <stdexcept>
+#include <climits>
 
 namespace forge {
 namespace query {
@@ -55,6 +56,9 @@ Token Lexer::readIdentifier() {
     else if (upper == "OR") token.type = TokenType::OR;
     else if (upper == "ASC") token.type = TokenType::ASC;
     else if (upper == "DESC") token.type = TokenType::DESC;
+    else if (upper == "SHOW") token.type = TokenType::SHOW;
+    else if (upper == "TABLES") token.type = TokenType::TABLES;
+    else if (upper == "DESCRIBE") token.type = TokenType::DESCRIBE;
     else token.type = TokenType::IDENTIFIER;
     
     token.value = result;
@@ -149,7 +153,6 @@ std::vector<Token> Lexer::tokenize() {
                 tokens.push_back({TokenType::NEQ, "!=", pos_});
                 advance();
             } else {
-                // Unsupported char
                 return tokens;
             }
         } else if (c == '<') {
@@ -169,7 +172,6 @@ std::vector<Token> Lexer::tokenize() {
                 tokens.push_back({TokenType::GT, ">", pos_});
             }
         } else {
-            // Unsupported character
             return tokens;
         }
     }
@@ -238,6 +240,7 @@ QueryResult QueryExecutor::execute(const std::string& query) {
         return result;
     }
     node.table = current().value;
+    // Normalize table name to lowercase for comparison? Keep as is but check allowlist
     advance();
     
     if (current().type == TokenType::WHERE) {
@@ -291,9 +294,16 @@ QueryResult QueryExecutor::execute(const std::string& query) {
             return result;
         }
         try {
-            long l = std::stol(current().value);
-            if (l < 0) { result.message = "Parse error: invalid LIMIT"; return result; }
-            node.limit = (int)l;
+            // Check for overflow
+            std::string numstr = current().value;
+            // Simple check
+            if (numstr.length() > 18) {
+                result.message = "Parse error: invalid LIMIT";
+                return result;
+            }
+            long long lval = std::stoll(numstr);
+            if (lval < 0) { result.message = "Parse error: invalid LIMIT"; return result; }
+            node.limit = (int)lval;
         } catch (...) {
             result.message = "Parse error: invalid LIMIT";
             return result;
@@ -311,12 +321,49 @@ QueryResult QueryExecutor::execute(const std::string& query) {
         return result;
     }
     
+    // Validate table
+    if (node.table != "users" && node.table != "messages" && node.table != "recipients") {
+        result.message = "Unknown table";
+        return result;
+    }
+    
+    // Validate columns
     if (node.table == "users") {
+        const std::vector<std::string> allowed = {"id", "name", "email", "created_at", "password_hash"};
+        if (node.columns.size() == 1 && node.columns[0] == "*") {
+            // allowed public columns only
+        } else {
+            for (const auto& c : node.columns) {
+                if (c == "password_hash") { result.message = "Unknown column"; return result; } // don't allow exposing hash
+                bool ok = false;
+                for (const auto& a : {"id", "name", "email", "created_at"}) {
+                    if (c == a) { ok = true; break; }
+                }
+                if (!ok) { result.message = "Unknown column"; return result; }
+            }
+        }
+        if (!node.whereColumn.empty()) {
+            if (node.whereColumn == "password_hash") { result.message = "Unknown column"; return result; }
+            bool ok = false;
+            for (const auto& a : {"id", "name", "email", "created_at"}) {
+                if (node.whereColumn == a) { ok = true; break; }
+            }
+            if (!ok) { result.message = "Unknown column"; return result; }
+        }
+        if (!node.orderByColumn.empty()) {
+            bool ok = false;
+            for (const auto& a : {"id", "name", "email", "created_at"}) {
+                if (node.orderByColumn == a) { ok = true; break; }
+            }
+            if (!ok) { result.message = "Unknown column"; return result; }
+        }
         auto users = storage_->getAllUsers(false);
         for (const auto& u : users) {
             if (!node.whereColumn.empty()) {
                 if (node.whereColumn == "email" && node.whereValue != u.email) continue;
                 else if (node.whereColumn == "id" && node.whereValue != std::to_string(u.id)) continue;
+                else if (node.whereColumn == "name" && node.whereValue != u.name) continue;
+                else if (node.whereColumn == "created_at" && node.whereValue != std::to_string(u.created_at)) continue;
                 else continue;
             }
             std::map<std::string, std::string> row;
@@ -335,6 +382,28 @@ QueryResult QueryExecutor::execute(const std::string& query) {
             }
             result.rows.push_back(row);
         }
+        if (!node.orderByColumn.empty()) {
+            bool desc = (node.orderByDir == "DESC");
+            std::stable_sort(result.rows.begin(), result.rows.end(),
+                [&](const auto& a, const auto& b) {
+                    std::string av = a.count(node.orderByColumn) ? a.at(node.orderByColumn) : "";
+                    std::string bv = b.count(node.orderByColumn) ? b.at(node.orderByColumn) : "";
+                    // try numeric
+                    try {
+                        // check if both numeric
+                        bool anum = !av.empty() && std::all_of(av.begin(), av.end(), ::isdigit);
+                        bool bnum = !bv.empty() && std::all_of(bv.begin(), bv.end(), ::isdigit);
+                        if (anum && bnum) {
+                            long long ai = std::stoll(av);
+                            long long bi = std::stoll(bv);
+                            if (desc) return ai > bi;
+                            return ai < bi;
+                        }
+                    } catch (...) {}
+                    if (desc) return av > bv;
+                    return av < bv;
+                });
+        }
         if (node.limit >= 0 && (int)result.rows.size() > node.limit) {
             result.rows.resize(node.limit);
         }
@@ -342,8 +411,40 @@ QueryResult QueryExecutor::execute(const std::string& query) {
         result.message = "OK";
         return result;
     } else if (node.table == "messages") {
+        const std::vector<std::string> allowed = {"id", "sender_id", "subject", "body", "created_at"};
+        if (!(node.columns.size() == 1 && node.columns[0] == "*")) {
+            for (const auto& c : node.columns) {
+                bool ok = false;
+                for (const auto& a : {"id", "sender_id", "subject", "body", "created_at"}) {
+                    if (c == a) { ok = true; break; }
+                }
+                if (!ok) { result.message = "Unknown column"; return result; }
+            }
+        }
+        if (!node.whereColumn.empty()) {
+            bool ok = false;
+            for (const auto& a : {"id", "sender_id", "subject", "body", "created_at"}) {
+                if (node.whereColumn == a) { ok = true; break; }
+            }
+            if (!ok) { result.message = "Unknown column"; return result; }
+        }
+        if (!node.orderByColumn.empty()) {
+            bool ok = false;
+            for (const auto& a : {"id", "sender_id", "subject", "body", "created_at"}) {
+                if (node.orderByColumn == a) { ok = true; break; }
+            }
+            if (!ok) { result.message = "Unknown column"; return result; }
+        }
         auto messages = storage_->getAllMessages(false);
         for (const auto& m : messages) {
+            if (!node.whereColumn.empty()) {
+                if (node.whereColumn == "id" && node.whereValue != std::to_string(m.id)) continue;
+                else if (node.whereColumn == "sender_id" && node.whereValue != std::to_string(m.sender_id)) continue;
+                else if (node.whereColumn == "subject" && node.whereValue != m.subject) continue;
+                else if (node.whereColumn == "body" && node.whereValue != m.body) continue;
+                else if (node.whereColumn == "created_at" && node.whereValue != std::to_string(m.created_at)) continue;
+                else continue;
+            }
             std::map<std::string, std::string> row;
             if (node.columns.size() == 1 && node.columns[0] == "*") {
                 row["id"] = std::to_string(m.id);
@@ -362,6 +463,27 @@ QueryResult QueryExecutor::execute(const std::string& query) {
             }
             result.rows.push_back(row);
         }
+        if (!node.orderByColumn.empty()) {
+            bool desc = (node.orderByDir == "DESC");
+            std::stable_sort(result.rows.begin(), result.rows.end(),
+                [&](const auto& a, const auto& b) {
+                    std::string av = a.count(node.orderByColumn) ? a.at(node.orderByColumn) : "";
+                    std::string bv = b.count(node.orderByColumn) ? b.at(node.orderByColumn) : "";
+                    try {
+                        bool anum = !av.empty() && std::all_of(av.begin(), av.end(), [](unsigned char ch){ return std::isdigit(ch); });
+                        bool bnum = !bv.empty() && std::all_of(bv.begin(), bv.end(), [](unsigned char ch){ return std::isdigit(ch); });
+                        if (anum && bnum) {
+                            // handle negative? not expected
+                            long long ai = std::stoll(av);
+                            long long bi = std::stoll(bv);
+                            if (desc) return ai > bi;
+                            return ai < bi;
+                        }
+                    } catch (...) {}
+                    if (desc) return av > bv;
+                    return av < bv;
+                });
+        }
         if (node.limit >= 0 && (int)result.rows.size() > node.limit) {
             result.rows.resize(node.limit);
         }
@@ -369,24 +491,71 @@ QueryResult QueryExecutor::execute(const std::string& query) {
         result.message = "OK";
         return result;
     } else if (node.table == "recipients") {
-        std::vector<Recipient> recips;
-        storage_->getAllRecipients(false); // call to ensure
-        // get all
+        const std::vector<std::string> allowed = {"message_id", "user_id", "type"};
+        if (!(node.columns.size() == 1 && node.columns[0] == "*")) {
+            for (const auto& c : node.columns) {
+                bool ok = false;
+                for (const auto& a : allowed) {
+                    if (c == a) { ok = true; break; }
+                }
+                if (!ok) { result.message = "Unknown column"; return result; }
+            }
+        }
+        if (!node.whereColumn.empty()) {
+            bool ok = false;
+            for (const auto& a : allowed) {
+                if (node.whereColumn == a) { ok = true; break; }
+            }
+            if (!ok) { result.message = "Unknown column"; return result; }
+        }
+        if (!node.orderByColumn.empty()) {
+            bool ok = false;
+            for (const auto& a : allowed) {
+                if (node.orderByColumn == a) { ok = true; break; }
+            }
+            if (!ok) { result.message = "Unknown column"; return result; }
+        }
         auto all = storage_->getAllRecipients(false);
         for (const auto& r : all) {
+            if (!node.whereColumn.empty()) {
+                if (node.whereColumn == "message_id" && node.whereValue != std::to_string(r.message_id)) continue;
+                else if (node.whereColumn == "user_id" && node.whereValue != std::to_string(r.user_id)) continue;
+                else if (node.whereColumn == "type" && node.whereValue != std::string(r.type)) continue;
+                else continue;
+            }
             std::map<std::string, std::string> row;
             if (node.columns.size() == 1 && node.columns[0] == "*") {
                 row["message_id"] = std::to_string(r.message_id);
                 row["user_id"] = std::to_string(r.user_id);
-                row["type"] = r.type;
+                row["type"] = std::string(r.type);
             } else {
                 for (const auto& c : node.columns) {
                     if (c == "message_id") row[c] = std::to_string(r.message_id);
                     else if (c == "user_id") row[c] = std::to_string(r.user_id);
-                    else if (c == "type") row[c] = r.type;
+                    else if (c == "type") row[c] = std::string(r.type);
                 }
             }
             result.rows.push_back(row);
+        }
+        if (!node.orderByColumn.empty()) {
+            bool desc = (node.orderByDir == "DESC");
+            std::stable_sort(result.rows.begin(), result.rows.end(),
+                [&](const auto& a, const auto& b) {
+                    std::string av = a.count(node.orderByColumn) ? a.at(node.orderByColumn) : "";
+                    std::string bv = b.count(node.orderByColumn) ? b.at(node.orderByColumn) : "";
+                    try {
+                        bool anum = !av.empty() && std::all_of(av.begin(), av.end(), [](unsigned char ch){ return std::isdigit(ch); });
+                        bool bnum = !bv.empty() && std::all_of(bv.begin(), bv.end(), [](unsigned char ch){ return std::isdigit(ch); });
+                        if (anum && bnum) {
+                            long long ai = std::stoll(av);
+                            long long bi = std::stoll(bv);
+                            if (desc) return ai > bi;
+                            return ai < bi;
+                        }
+                    } catch (...) {}
+                    if (desc) return av > bv;
+                    return av < bv;
+                });
         }
         if (node.limit >= 0 && (int)result.rows.size() > node.limit) {
             result.rows.resize(node.limit);

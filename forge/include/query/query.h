@@ -21,6 +21,7 @@ enum class TokenType {
     COMMA, SEMICOLON, LPAREN, RPAREN,
     STAR,
     ASC, DESC,
+    SHOW, TABLES, DESCRIBE,
     END
 };
 

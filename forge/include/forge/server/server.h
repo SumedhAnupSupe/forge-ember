@@ -3,6 +3,8 @@
 
 #include <string>
 #include <memory>
+#include <atomic>
+#include <thread>
 #include "storage/storage.h"
 #include "services/user_service.h"
 #include "services/message_service.h"
@@ -14,7 +16,7 @@ namespace server {
 
 class ForgeServer {
 public:
-    ForgeServer(const std::string& host, int port, const std::string& dataDir);
+    ForgeServer(const std::string& host = "127.0.0.1", int port = 8080, const std::string& dataDir = "./forge/data");
     bool start();
     void stop();
     
@@ -27,6 +29,7 @@ private:
     std::shared_ptr<UserService> userService_;
     std::shared_ptr<MessageService> messageService_;
     std::shared_ptr<AuthManager> authManager_;
+    std::atomic<bool> running_{false};
 };
 
 } // namespace server

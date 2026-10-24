@@ -82,6 +82,14 @@ void IndexManager::onUserCreated(const User& user) {
     usersEmailIndex_->insert(std::string(user.email), user.id);
 }
 
+void IndexManager::onUserUpdated(const User& oldUser, const User& newUser) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    const std::string oldEmail(oldUser.email);
+    const std::string newEmail(newUser.email);
+    if (oldEmail != newEmail) usersEmailIndex_->remove(oldEmail, oldUser.id);
+    usersEmailIndex_->insert(newEmail, newUser.id);
+}
+
 void IndexManager::onMessageCreated(const Message& message) {
     std::lock_guard<std::mutex> lock(mutex_);
     messagesIdIndex_->insert(std::to_string(message.id), message.id);

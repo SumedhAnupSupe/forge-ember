@@ -40,6 +40,7 @@ bool MessageService::createMessage(uint32_t senderId, const std::string& subject
     Message message;
     memset(&message, 0, sizeof(message));
     message.id = storage_->getNextMessageId();
+    if (message.id == 0) return false; // ID space exhausted; never persist/reuse zero.
     message.sender_id = senderId;
     strncpy(message.subject, subject.c_str(), 127);
     message.subject[127] = '\0';

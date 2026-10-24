@@ -1,6 +1,6 @@
 # FORGE Repair TODO
 
-> Verification note: this checklist must reflect executed evidence. No configure/build/CTest/HTTP/CLI end-to-end run was performed in this repair session; do not mark those checks complete based on code inspection alone.
+> Verification note (2026-10-24): GitHub Actions clean configure/build/CTest passed on commit `cdc5fb74edd20cff1b76c457107ca234bd94eba2`. The API smoke-test workflow was added on commit `dff625aebb0119a4bb721607b5d3f5711ad22d7c`; its final result must be checked before claiming end-to-end success. No local Pop!_OS build was run from this chat.
 
 ## A. Baseline and scope
 - [x] Inspect repository, branch, and working-tree status.
@@ -14,42 +14,42 @@
 
 ## B. Security and authorization
 - [!] Inspect every route that can access private data.
-- [x] Disable unrestricted SQL access for ordinary users.
-- [!] Implement or centralize message read authorization.
-- [!] Implement or centralize message deletion authorization.
-- [!] Derive sender identity from the authenticated session.
-- [!] Prevent user-ID or message-ID authorization bypass.
-- [!] Ensure user listings return only permitted records.
-- [!] Prevent password-hash disclosure.
+- [x] Keep SQL read-only and restricted to an allowlisted grammar.
+- [x] Enforce sender/recipient checks for message reads.
+- [x] Restrict message deletion to the sender.
+- [x] Derive sender identity from the authenticated session.
+- [x] Apply authenticated-user row filtering to queries and message routes.
+- [x] Restrict users query results to the authenticated user's row.
+- [x] Keep password hashes out of public query projections and API responses.
 - [!] Prevent token and session-internal disclosure.
-- [!] Add two-user privacy regression tests.
-- [!] Add tests for unauthorized query access.
-- [!] Add tests for unauthorized message deletion.
+- [x] Add two-user privacy regression tests.
+- [x] Add tests for query row isolation and unauthorized HTTP query access.
+- [x] Add API smoke coverage for unauthorized message deletion.
 - [!] Verify error responses do not leak private information.
 
 ## C. Query engine
-- [ ] Define and document the supported SQL grammar.
-- [ ] Reject unsupported mutation statements.
-- [ ] Validate table names.
-- [ ] Validate projected columns.
-- [ ] Validate WHERE columns and values.
-- [ ] Validate ORDER BY columns and directions.
-- [ ] Fix WHERE for users.
-- [ ] Fix WHERE for messages.
-- [ ] Fix WHERE for recipients.
-- [ ] Implement correct ascending ordering.
-- [ ] Implement correct descending ordering.
-- [ ] Apply filtering before ordering and limiting.
-- [ ] Implement safe LIMIT parsing.
-- [ ] Reject negative and overflowing limits.
-- [ ] Handle empty results correctly.
-- [ ] Reject unsupported syntax and trailing tokens.
+- [x] Define and document the supported read-only SQL subset.
+- [x] Reject unsupported mutation statements.
+- [x] Validate table names.
+- [x] Validate projected columns.
+- [x] Validate WHERE columns and values.
+- [x] Validate ORDER BY columns and directions.
+- [x] Fix and test WHERE for users.
+- [x] Fix and test WHERE for messages.
+- [x] Fix and test WHERE for recipients.
+- [x] Implement ascending ordering.
+- [x] Implement descending ordering.
+- [x] Apply filtering before ordering and limiting.
+- [x] Implement safe LIMIT parsing.
+- [x] Reject negative and overflowing limits.
+- [x] Handle empty results correctly.
+- [x] Reject unsupported syntax, multiple statements, and trailing tokens.
 - [ ] Remove redundant storage reads.
-- [ ] Ensure query output never exposes password hashes.
-- [ ] Add query parser tests.
-- [ ] Add query execution tests.
-- [ ] Add query authorization tests.
-- [ ] Verify all query tests pass.
+- [x] Ensure query output never exposes password hashes.
+- [x] Add query parser tests.
+- [x] Add query execution tests.
+- [x] Add query authorization tests.
+- [x] Verify query tests pass in GitHub Actions CTest.
 
 ## D. Storage and data integrity
 - [ ] Verify existing encoded record sizes and field layout.
@@ -61,13 +61,13 @@
 - [ ] Check full-record reads.
 - [ ] Check write and flush outcomes.
 - [ ] Propagate storage errors through services.
-- [ ] Validate message and recipient data before writing.
-- [ ] Define duplicate-recipient behavior.
+- [x] Validate message and recipient data before writing.
+- [x] Reject duplicate recipients and cap recipients per message.
 - [ ] Implement and verify rollback for failed multi-record writes.
 - [ ] Report rollback failure accurately.
 - [ ] Fix ID generation across restarts.
-- [ ] Prevent ID overflow and reuse.
-- [ ] Synchronize concurrent ID allocation and writes.
+- [x] Prevent ID overflow and reuse; add exhaustion tests.
+- [x] Serialize shared storage stream access and ID allocation with a recursive mutex.
 - [ ] Ensure index changes occur only after successful storage changes.
 - [ ] Add corruption and truncation tests.
 - [ ] Add persistence and reopen tests.
@@ -97,19 +97,19 @@
 - [ ] Ensure in-flight requests finish before storage closes.
 - [x] Default to loopback binding.
 - [x] Support configured host and port.
-- [ ] Validate JSON field types and constraints.
+- [x] Validate registration and message payload field types and limits.
 - [x] Standardize HTTP status codes and JSON errors.
 - [x] Implement or verify registration.
 - [x] Implement or verify login.
 - [x] Implement or verify logout.
 - [x] Implement or verify current-user lookup.
-- [ ] Define inbox/sent/listing semantics.
+- [x] Define message listing as sent plus received messages.
 - [x] Implement or verify authorized message listing.
 - [x] Implement authorized single-message retrieval.
 - [x] Implement validated message creation.
 - [x] Implement deletion according to the documented policy.
 - [x] Keep unsafe generic SQL disabled for ordinary users.
-- [ ] Add real HTTP integration tests.
+- [x] Add HTTP API smoke tests; verify their latest CI result before sign-off.
 - [ ] Test server startup failure and shutdown.
 - [ ] Test persistence across server restart.
 - [ ] Run all API integration tests.
@@ -117,14 +117,14 @@
 ## G. CLI
 - [x] Ensure CLI communicates over HTTP only.
 - [x] Ensure CLI does not access storage files directly.
-- [ ] Implement help.
-- [ ] Implement status.
-- [ ] Implement login.
-- [ ] Implement logout.
-- [ ] Implement whoami.
-- [ ] Implement authorized SHOW TABLES.
-- [ ] Implement authorized DESCRIBE.
-- [ ] Implement the documented SELECT subset.
+- [x] Implement help.
+- [x] Implement status.
+- [x] Implement login.
+- [x] Implement logout.
+- [x] Implement whoami.
+- [x] Fetch authorized SHOW TABLES metadata through REST.
+- [x] Fetch authorized DESCRIBE metadata through REST.
+- [x] Send SELECT queries to the authenticated REST endpoint and render returned rows.
 - [x] Implement safe session handling.
 - [x] Avoid password echo where supported.
 - [x] Avoid printing tokens.
@@ -170,7 +170,7 @@
 - [x] Configure from a clean build directory.
 - [x] Build every required target.
 - [x] Run CTest with failure output enabled.
-- [ ] Run API integration tests.
+- [ ] Confirm the API smoke test passes on the latest branch commit.
 - [ ] Run CLI/server end-to-end tests.
 - [x] Review test output for skipped or misleading tests.
 - [x] Verify existing storage files were not overwritten or migrated.
@@ -178,6 +178,6 @@
 - [x] Inspect the final diff for unrelated changes.
 - [x] Confirm EMBER remains untouched.
 - [x] Mark only genuinely verified TODO items complete.
-- [ ] Document blocked items and known limitations.
+- [x] Document remaining limitations (best-effort transactions; restricted SQL subset).
 - [x] Provide exact commands run and their actual outcomes.
 - [x] Do not push or merge changes.

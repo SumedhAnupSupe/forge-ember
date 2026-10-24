@@ -91,10 +91,10 @@ jobs:
             request -X POST "$EMBER_URL/api/v1/auth/login" -H 'Content-Type: application/json' \
               -d "$1"
           }
-          register '{"name":"Alice Integration","email":"alice-flow@example.test","password":"FlowPass123!"}'
-          register '{"name":"Bob Integration","email":"bob-flow@example.test","password":"FlowPass123!"}'
-          ALICE_LOGIN="$(login '{"email":"alice-flow@example.test","password":"FlowPass123!"}')"
-          BOB_LOGIN="$(login '{"email":"bob-flow@example.test","password":"FlowPass123!"}')"
+          register '{"name":"Alice Integration","email":"alice-flow@example.com","password":"FlowPass123!"}'
+          register '{"name":"Bob Integration","email":"bob-flow@example.com","password":"FlowPass123!"}'
+          ALICE_LOGIN="$(login '{"email":"alice-flow@example.com","password":"FlowPass123!"}')"
+          BOB_LOGIN="$(login '{"email":"bob-flow@example.com","password":"FlowPass123!"}')"
           ALICE_TOKEN="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1])["token"])' "$ALICE_LOGIN")"
           BOB_TOKEN="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1])["token"])' "$BOB_LOGIN")"
           ALICE_ID="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1])["user"]["id"])' "$ALICE_LOGIN")"

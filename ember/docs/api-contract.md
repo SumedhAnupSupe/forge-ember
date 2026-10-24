@@ -1,17 +1,22 @@
-# EMBER API contract (stage 1)
+# EMBER / FORGE API contract
 
-Base URL: `http://127.0.0.1:8081`
+The frontend uses the Vite same-origin `/api/v1` path. EMBER forwards supported calls to FORGE while preserving upstream status codes and JSON.
 
-| Method | Path | Upstream FORGE route | Notes |
-|---|---|---|---|
-| GET | `/health` | Local | EMBER process health only |
-| POST | `/api/v1/users` | POST same path | Register |
-| POST | `/api/v1/auth/login` | POST same path | Returns FORGE bearer token and user ID |
-| POST | `/api/v1/auth/logout` | POST same path | Requires Authorization bearer |
-| GET | `/api/v1/users/me` | GET same path | Requires Authorization bearer |
-| GET | `/api/v1/messages` | GET same path | Requires Authorization bearer |
-| GET | `/api/v1/messages/{id}` | GET same path | Requires Authorization bearer |
-| POST | `/api/v1/messages` | POST same path | Requires numeric recipient IDs |
-| DELETE | `/api/v1/messages/{id}` | DELETE same path | Existing FORGE deletion semantics only |
+| Method | Path | Status |
+|---|---|---|
+| POST | `/auth/login` | Forwarded to FORGE; token is kept in browser session storage for local development |
+| POST | `/auth/logout` | Forwarded with bearer token |
+| POST | `/users` | Registration |
+| GET | `/users/me` | Current user |
+| GET | `/users/lookup?email=...` | Authenticated exact-email recipient lookup added in FORGE |
+| GET | `/messages` | Messages visible to current user |
+| GET | `/messages/:id` | Authorized message detail |
+| POST | `/messages` | Create message using numeric recipient IDs |
+| POST | `/query` | FORGE restricted read-only query API, used to fetch caller-visible recipient rows |
+| DELETE | `/messages/:id` | FORGE's existing sender-only delete semantics; not equivalent to recipient trash |
 
-Responses preserve FORGE's current JSON shapes and HTTP status. Errors from an unavailable FORGE service return HTTP 502 with a JSON `error` field.
+The frontend service resolves email recipients through the exact-email lookup route and submits numeric IDs to FORGE.
+
+## Unsupported
+
+Per-user read/unread, star, recipient-specific trash/restore/permanent-delete and attachments are not implemented in FORGE. EMBER must return/communicate an unsupported-feature error rather than simulate persistence. The current development token storage is not suitable for production.

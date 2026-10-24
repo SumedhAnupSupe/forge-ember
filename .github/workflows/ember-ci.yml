@@ -1,0 +1,53 @@
+name: EMBER integration checks
+
+on:
+  pull_request:
+  push:
+    branches: [main, feat/ember-implementation]
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install frontend dependencies
+        working-directory: ember/posto-—-elegant-mail-client
+        run: npm install
+      - name: Type-check
+        working-directory: ember/posto-—-elegant-mail-client
+        run: npm run lint
+      - name: Build frontend
+        working-directory: ember/posto-—-elegant-mail-client
+        run: npm run build
+      - name: Install C++ build dependencies for end-to-end environment
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ libargon2-dev jq
+      - name: Build FORGE for end-to-end tests
+        run: cmake -S forge -B build/forge && cmake --build build/forge -j2
+      - name: Build EMBER for end-to-end tests
+        run: cmake -S ember/backend -B build/ember && cmake --build build/ember -j2
+      - name: Run curl-based two-account API end-to-end tests
+        run: bash tests/curl-e2e.sh
+      - name: Install Playwright browser
+        working-directory: ember/posto-—-elegant-mail-client
+        run: npx playwright install --with-deps chromium
+      - name: Run full-stack end-to-end tests
+        working-directory: ember/posto-—-elegant-mail-client
+        env:
+          CI: "true"
+        run: npx playwright test
+
+  cpp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ libargon2-dev
+      - name: Build FORGE
+        run: cmake -S forge -B build/forge && cmake --build build/forge -j2
+      - name: Test FORGE
+        run: ctest --test-dir build/forge --output-on-failure
+      - name: Build EMBER
+        run: cmake -S ember/backend -B build/ember && cmake --build build/ember -j2

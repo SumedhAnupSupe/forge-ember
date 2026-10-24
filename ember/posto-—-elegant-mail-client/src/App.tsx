@@ -42,8 +42,8 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(mailService.getCurrentUser());
   const [authTab, setAuthTab] = useState<'login' | 'signup'>('login');
   const [authName, setAuthName] = useState<string>('Alex Morgan');
-  const [authEmail, setAuthEmail] = useState<string>('alex@posto.mail');
-  const [authPassword, setAuthPassword] = useState<string>('secret123');
+  const [authEmail, setAuthEmail] = useState<string>('');
+  const [authPassword, setAuthPassword] = useState<string>('');
   const [authError, setAuthError] = useState<string | null>(null);
 
   // Screen Controls: Option to close/open sidebar and inbox list
@@ -113,13 +113,9 @@ export default function App() {
       else if (activeFolder === 'starred') list = await mailService.getStarred();
       else if (activeFolder === 'trash') list = await mailService.getTrash();
 
-      // Category Filter
-      if (activeCategory === 'unread') {
-        list = list.filter(m => !m.is_read);
-      } else if (activeCategory === 'starred') {
-        list = list.filter(m => m.is_starred);
-      } else if (activeCategory === 'attachments') {
-        list = list.filter(m => !!m.attachment);
+      // Per-user read/star and attachment metadata are not available in the current FORGE API.
+      if (activeCategory !== 'all') {
+        showToast('This filter needs mailbox metadata that FORGE does not expose yet.');
       }
 
       // Search Filter
@@ -147,21 +143,17 @@ export default function App() {
       }
 
       // Counts
-      const [inboxMsgs, starredMsgs, sentMsgs, trashMsgs] = await Promise.all([
+      const [inboxMsgs, sentMsgs] = await Promise.all([
         mailService.getInbox(),
-        mailService.getStarred(),
         mailService.getSent(),
-        mailService.getTrash(),
       ]);
 
-      setCounts({
-        inbox: inboxMsgs.filter(m => !m.is_read).length,
-        starred: starredMsgs.length,
-        sent: sentMsgs.length,
-        trash: trashMsgs.length,
-      });
+      setCounts({ inbox: 0, starred: 0, sent: sentMsgs.length, trash: 0 });
     } catch (e) {
       console.error(e);
+      setMessages([]);
+      setSelectedMail(null);
+      showToast(e instanceof Error ? e.message : 'Could not load mailbox');
     } finally {
       setIsLoading(false);
     }
@@ -198,19 +190,8 @@ export default function App() {
     }
   };
 
-  const handleQuickLogin = async (name: string, email: string) => {
-    try {
-      const user = await mailService.login(email, 'secret');
-      setCurrentUser(user);
-      setSelectedMail(null);
-      showToast(`Welcome, ${user.name}!`);
-    } catch (err: any) {
-      showToast('Login failed: ' + err.message);
-    }
-  };
-
   const handleLogout = async () => {
-    await mailService.logout();
+    try { await mailService.logout(); } catch (err) { console.error(err); }
     setCurrentUser(null);
     setSelectedMail(null);
     showToast('Signed out of session');
@@ -219,37 +200,17 @@ export default function App() {
   // Mail Interaction Handlers
   const handleSelectMail = async (msg: Message) => {
     setSelectedMail(msg);
-    if (!msg.is_read) {
-      await mailService.markAsRead(msg.id, true);
-      setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, is_read: true } : m));
-      setCounts(c => ({ ...c, inbox: Math.max(0, c.inbox - 1) }));
-    }
+    // FORGE does not yet persist per-user read state; opening a message is supported.
   };
 
-  const handleToggleStar = async (e: React.MouseEvent, msgId: number) => {
+  const handleToggleStar = async (e: React.MouseEvent, _msgId: number) => {
     e.stopPropagation();
-    const updated = await mailService.toggleStar(msgId);
-    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, is_starred: updated } : m));
-    if (selectedMail && selectedMail.id === msgId) {
-      setSelectedMail(prev => prev ? { ...prev, is_starred: updated } : null);
-    }
-    setCounts(c => ({ ...c, starred: c.starred + (updated ? 1 : -1) }));
+    showToast('Starred mail is unavailable until FORGE adds per-user mailbox state.');
   };
 
-  const handleDeleteMail = async (e: React.MouseEvent, msgId: number) => {
+  const handleDeleteMail = async (e: React.MouseEvent, _msgId: number) => {
     e.stopPropagation();
-    if (activeFolder === 'trash') {
-      await mailService.permanentDelete(msgId);
-      showToast('Permanently deleted mail');
-    } else {
-      await mailService.deleteMail(msgId);
-      showToast('Moved to Trash');
-    }
-    setMessages(prev => prev.filter(m => m.id !== msgId));
-    if (selectedMail && selectedMail.id === msgId) {
-      setSelectedMail(null);
-    }
-    loadMailbox();
+    showToast('Trash and permanent deletion are unavailable until FORGE adds per-user mailbox state.');
   };
 
   // Trigger Flight Animation when hitting Send Mail
@@ -437,28 +398,6 @@ export default function App() {
               </button>
             </form>
 
-            {/* Quick 1-click test profiles */}
-            <div className="mt-6 pt-5 border-t border-[#E8DFC9] w-full">
-              <span className="text-[11px] font-bold text-[#7A5B44] block text-center mb-2">
-                Or sign in with 1-click test profiles:
-              </span>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('Alex Morgan', 'alex@posto.mail')}
-                  className="p-2 rounded-xl bg-[#EDE1D0] hover:bg-[#E5D5C0] border border-[#D5C1A6] text-center font-bold text-[#422616] transition-colors truncate"
-                >
-                  Alex Morgan
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('Sophie Chen', 'sophie@posto.mail')}
-                  className="p-2 rounded-xl bg-[#EDE1D0] hover:bg-[#E5D5C0] border border-[#D5C1A6] text-center font-bold text-[#422616] transition-colors truncate"
-                >
-                  Sophie Chen
-                </button>
-              </div>
-            </div>
 
           </div>
 

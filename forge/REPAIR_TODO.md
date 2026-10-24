@@ -1,6 +1,6 @@
 # FORGE Repair TODO
 
-> Verification note (2026-10-24): GitHub Actions clean configure/build/CTest passed on commit `cdc5fb74edd20cff1b76c457107ca234bd94eba2`. The API smoke-test workflow was added on commit `dff625aebb0119a4bb721607b5d3f5711ad22d7c`; its final result must be checked before claiming end-to-end success. No local Pop!_OS build was run from this chat.
+> Verification note (2026-10-24): GitHub Actions clean configure/build/CTest and the API smoke test passed on commit `f340a47af7e67f39226c208f76c5dcd6d16a05c6`. The branch then received a small change to defer message-index publication until all message records are written (`11bf0bfb011228cd063dbed685380cd00e754498`); that newer commit's CI result must be checked before sign-off. No local Pop!_OS build was run from this chat.
 
 ## A. Baseline and scope
 - [x] Inspect repository, branch, and working-tree status.
@@ -44,7 +44,7 @@
 - [x] Reject negative and overflowing limits.
 - [x] Handle empty results correctly.
 - [x] Reject unsupported syntax, multiple statements, and trailing tokens.
-- [ ] Remove redundant storage reads.
+- [x] Remove redundant per-row storage reads from authorized message/recipient queries.
 - [x] Ensure query output never exposes password hashes.
 - [x] Add query parser tests.
 - [x] Add query execution tests.
@@ -65,15 +65,15 @@
 - [x] Reject duplicate recipients and cap recipients per message.
 - [ ] Implement and verify rollback for failed multi-record writes.
 - [ ] Report rollback failure accurately.
-- [ ] Fix ID generation across restarts.
+- [x] Restore ID counters by scanning persisted records; test ID allocation after reopen.
 - [x] Prevent ID overflow and reuse; add exhaustion tests.
 - [x] Serialize shared storage stream access and ID allocation with a recursive mutex.
-- [ ] Ensure index changes occur only after successful storage changes.
-- [ ] Add corruption and truncation tests.
-- [ ] Add persistence and reopen tests.
+- [x] Defer message/recipient index publication until all records are written; update user indexes only after successful storage changes.
+- [x] Add corruption/truncation test confirming an invalid existing file is not truncated.
+- [x] Test storage reopen and API account persistence across server restart.
 - [ ] Add failed-write and rollback tests.
 - [ ] Add concurrency tests.
-- [ ] Run all storage tests using temporary directories.
+- [x] Run storage tests using isolated temporary directories in CTest.
 
 ## E. Authentication
 - [x] Require Argon2id with no silent fallback.
@@ -101,7 +101,7 @@
 - [x] Standardize HTTP status codes and JSON errors.
 - [x] Implement or verify registration.
 - [x] Implement or verify login.
-- [x] Implement or verify logout.
+- [x] Require a valid session for logout and test unauthenticated logout rejection.
 - [x] Implement or verify current-user lookup.
 - [x] Define message listing as sent plus received messages.
 - [x] Implement or verify authorized message listing.
@@ -111,8 +111,8 @@
 - [x] Keep unsafe generic SQL disabled for ordinary users.
 - [x] Add HTTP API smoke tests; verify their latest CI result before sign-off.
 - [ ] Test server startup failure and shutdown.
-- [ ] Test persistence across server restart.
-- [ ] Run all API integration tests.
+- [x] Test account login and profile retrieval after restarting the API server with the same data directory.
+- [x] Run the automated API smoke test covering auth, schema, query restrictions, message access, deletion, logout, and restart persistence.
 
 ## G. CLI
 - [x] Ensure CLI communicates over HTTP only.

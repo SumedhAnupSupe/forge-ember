@@ -226,19 +226,25 @@ QueryResult QueryExecutor::execute(const std::string& query, uint32_t authentica
     if (current().type == TokenType::STAR) {
         node.columns.push_back("*");
         advance();
-    } else {
-        while (current().type == TokenType::IDENTIFIER || current().type == TokenType::COMMA) {
-            if (current().type == TokenType::COMMA) { advance(); continue; }
-            if (current().type == TokenType::IDENTIFIER) {
-                node.columns.push_back(current().value);
-                advance();
-                continue;
-            }
-            break;
+        if (current().type == TokenType::COMMA) {
+            result.message = "Parse error: '*' cannot be combined with named columns";
+            return result;
         }
-        if (node.columns.empty()) {
+    } else {
+        if (current().type != TokenType::IDENTIFIER) {
             result.message = "Parse error: missing columns";
             return result;
+        }
+        node.columns.push_back(current().value);
+        advance();
+        while (current().type == TokenType::COMMA) {
+            advance();
+            if (current().type != TokenType::IDENTIFIER) {
+                result.message = "Parse error: expected column after comma";
+                return result;
+            }
+            node.columns.push_back(current().value);
+            advance();
         }
     }
     

@@ -411,6 +411,64 @@ bool ForgeServer::startInBackground() {
         }
     });
     
+    svr_->Get("/api/v1/schema/tables", [&](const httplib::Request& req, httplib::Response& res) {
+        const std::string auth = req.get_header_value("Authorization");
+        uint32_t uid = 0;
+        if (auth.find("Bearer ") != 0 || auth.size() <= 7 ||
+            !authManager_->validateSession(auth.substr(7), uid)) {
+            res.status = 401;
+            json err; err["error"] = "Unauthorized";
+            res.set_content(err.dump(), "application/json");
+            return;
+        }
+        json response;
+        response["tables"] = {"users", "messages", "recipients"};
+        res.set_content(response.dump(), "application/json");
+    });
+
+    svr_->Get(R"(/api/v1/schema/(users|messages|recipients))", [&](const httplib::Request& req, httplib::Response& res) {
+        const std::string auth = req.get_header_value("Authorization");
+        uint32_t uid = 0;
+        if (auth.find("Bearer ") != 0 || auth.size() <= 7 ||
+            !authManager_->validateSession(auth.substr(7), uid)) {
+            res.status = 401;
+            json err; err["error"] = "Unauthorized";
+            res.set_content(err.dump(), "application/json");
+            return;
+        }
+        if (req.matches.size() < 2) {
+            res.status = 404;
+            json err; err["error"] = "Unknown table";
+            res.set_content(err.dump(), "application/json");
+            return;
+        }
+        const std::string table = req.matches[1];
+        json fields = json::array();
+        auto addField = [&](const char* name, const char* type) {
+            fields.push_back({{"field", name}, {"type", type}, {"nullable", false}});
+        };
+        if (table == "users") {
+            addField("id", "uint32"); addField("name", "char[64]");
+            addField("email", "char[128]"); addField("created_at", "uint64");
+        } else if (table == "messages") {
+            addField("id", "uint32"); addField("sender_id", "uint32");
+            addField("subject", "char[128]"); addField("body", "char[512]");
+            addField("created_at", "uint64");
+        } else if (table == "recipients") {
+            addField("message_id", "uint32"); addField("user_id", "uint32");
+            addField("type", "char[4]");
+        } else {
+            res.status = 404;
+            json err; err["error"] = "Unknown table";
+            res.set_content(err.dump(), "application/json");
+            return;
+        }
+        json response;
+        response["table"] = table;
+        response["fields"] = std::move(fields);
+        res.set_content(response.dump(), "application/json");
+    });
+
     svr_->Post("/api/v1/query", [&](const httplib::Request& req, httplib::Response& res) {
         std::string auth = req.get_header_value("Authorization");
         if (auth.find("Bearer ") != 0 || auth.length() <= 7) {

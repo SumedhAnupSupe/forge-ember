@@ -2,6 +2,7 @@
 #include <cstring>
 #include <ctime>
 #include <iostream>
+#include <set>
 
 namespace forge {
 
@@ -95,29 +96,31 @@ bool MessageService::getMessageById(uint32_t id, Message& message, bool includeD
 
 std::vector<Message> MessageService::getMessagesForUser(uint32_t userId, bool includeDeleted) {
     std::vector<Message> result;
-    if (!storage_ || !indexManager_) return result;
-    
-    std::vector<Recipient> allRecipients = storage_->getAllRecipients(includeDeleted);
-    std::vector<uint32_t> relevantMessageIds;
-    for (const auto& rec : allRecipients) {
-        if (rec.user_id == userId && (includeDeleted || rec.is_deleted == 0)) {
-            bool exists = false;
-            for (auto mid : relevantMessageIds) {
-                if (mid == rec.message_id) { exists = true; break; }
-            }
-            if (!exists) relevantMessageIds.push_back(rec.message_id);
+    if (!storage_) return result;
+
+    // Include sent messages as well as messages addressed to this user.
+    // Use IDs to avoid returning a message twice when the sender also appears
+    // in its recipient list.
+    std::set<uint32_t> includedIds;
+    const auto allMessages = storage_->getAllMessages(includeDeleted);
+    for (const auto& message : allMessages) {
+        if (message.sender_id == userId) {
+            result.push_back(message);
+            includedIds.insert(message.id);
         }
     }
-    
-    for (uint32_t msgId : relevantMessageIds) {
-        Message msg;
-        if (getMessageById(msgId, msg, includeDeleted)) {
-            if (includeDeleted || msg.is_deleted == 0) {
-                result.push_back(msg);
-            }
+
+    const auto allRecipients = storage_->getAllRecipients(includeDeleted);
+    for (const auto& recipient : allRecipients) {
+        if (recipient.user_id != userId || (!includeDeleted && recipient.is_deleted != 0)) continue;
+        if (includedIds.find(recipient.message_id) != includedIds.end()) continue;
+
+        Message message;
+        if (getMessageById(recipient.message_id, message, includeDeleted)) {
+            result.push_back(message);
+            includedIds.insert(message.id);
         }
     }
-    
     return result;
 }
 

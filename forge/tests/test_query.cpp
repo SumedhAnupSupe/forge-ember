@@ -144,6 +144,42 @@ int test_query() {
         std::cout << "  Unterminated string rejected OK" << std::endl;
     else { std::cerr << "  Unterminated string rejection failed" << std::endl; failures++; }
 
+    if (!executor.execute("SELECT *, email FROM users;", 1).success)
+        std::cout << "  Mixed wildcard projection rejected OK" << std::endl;
+    else { std::cerr << "  Mixed wildcard projection was accepted" << std::endl; failures++; }
+
+    if (!executor.execute("SELECT id, FROM users;", 1).success)
+        std::cout << "  Missing projection after comma rejected OK" << std::endl;
+    else { std::cerr << "  Missing projection after comma was accepted" << std::endl; failures++; }
+
+    if (!executor.execute("SELECT id,,email FROM users;", 1).success)
+        std::cout << "  Empty projection item rejected OK" << std::endl;
+    else { std::cerr << "  Empty projection item was accepted" << std::endl; failures++; }
+
+    if (!executor.execute("SELECT id FROM users WHERE email = 'x' OR '1' = '1';", 1).success)
+        std::cout << "  Boolean/injection-like WHERE syntax rejected OK" << std::endl;
+    else { std::cerr << "  Boolean/injection-like WHERE syntax was accepted" << std::endl; failures++; }
+
+    const auto sortedUsers = executor.execute("SELECT id FROM users ORDER BY id DESC LIMIT 2;", 1);
+    if (sortedUsers.success && sortedUsers.rows.size() == 1 &&
+        sortedUsers.rows[0].at("id") == "1")
+        std::cout << "  ORDER BY and LIMIT apply to caller-visible rows OK" << std::endl;
+    else { std::cerr << "  ORDER BY/LIMIT caller-visible behavior failed" << std::endl; failures++; }
+
+    const auto senderMessages = executor.execute("SELECT id FROM messages;", 1);
+    const auto unrelatedMessages = executor.execute("SELECT id FROM messages;", 3);
+    if (senderMessages.success && senderMessages.rows.size() == 1 &&
+        unrelatedMessages.success && unrelatedMessages.rows.empty())
+        std::cout << "  Sender visibility and unrelated-user isolation OK" << std::endl;
+    else { std::cerr << "  Message row isolation failed" << std::endl; failures++; }
+
+    const auto senderRecipients = executor.execute("SELECT user_id FROM recipients;", 1);
+    const auto unrelatedRecipients = executor.execute("SELECT user_id FROM recipients;", 3);
+    if (senderRecipients.success && senderRecipients.rows.size() == 2 &&
+        unrelatedRecipients.success && unrelatedRecipients.rows.empty())
+        std::cout << "  Sender recipient-list visibility and isolation OK" << std::endl;
+    else { std::cerr << "  Sender recipient-list isolation failed" << std::endl; failures++; }
+
     storage->close();
     std::filesystem::remove_all(dir);
     return failures;

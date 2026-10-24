@@ -1,5 +1,7 @@
 # FORGE Repair TODO
 
+> Verification note (2026-10-24): the restricted authenticated `SELECT` endpoint is implemented in `forge/src/server/server.cpp`; the previous local CLI output claiming queries were disabled likely came from an older build or checkout. This branch now hardens projection-list parsing and adds regression cases for malformed projections, injection-like trailing syntax, ordering/limits, and query row visibility. GitHub Actions must pass on the final commit before sign-off; no local Pop!_OS build was run from this chat.
+
 > Verification note (2026-10-24): GitHub Actions clean configure/build/CTest and the API smoke test passed on commit `f340a47af7e67f39226c208f76c5dcd6d16a05c6`. The branch then received a small change to defer message-index publication until all message records are written (`11bf0bfb011228cd063dbed685380cd00e754498`); that newer commit's CI result must be checked before sign-off. No local Pop!_OS build was run from this chat.
 
 ## A. Baseline and scope
@@ -170,7 +172,7 @@
 - [x] Configure from a clean build directory.
 - [x] Build every required target.
 - [x] Run CTest with failure output enabled.
-- [ ] Confirm the API smoke test passes on the latest branch commit.
+- [ ] Confirm the API smoke test passes on the latest branch commit (including new query authorization cases).
 - [ ] Run CLI/server end-to-end tests.
 - [x] Review test output for skipped or misleading tests.
 - [x] Verify existing storage files were not overwritten or migrated.

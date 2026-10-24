@@ -234,6 +234,10 @@ QueryResult QueryExecutor::execute(const std::string& query, uint32_t authentica
         }
     }
     
+    for (auto& column : node.columns) {
+        std::transform(column.begin(), column.end(), column.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    }
+    
     if (!eat(TokenType::FROM)) {
         result.message = "Parse error: expected FROM";
         return result;
@@ -307,8 +311,8 @@ QueryResult QueryExecutor::execute(const std::string& query, uint32_t authentica
                 return result;
             }
             long long lval = std::stoll(numstr);
-            if (lval < 0) { result.message = "Parse error: invalid LIMIT"; return result; }
-            node.limit = (int)lval;
+            if (lval < 0 || lval > INT_MAX) { result.message = "Parse error: invalid LIMIT"; return result; }
+            node.limit = static_cast<int>(lval);
         } catch (...) {
             result.message = "Parse error: invalid LIMIT";
             return result;
@@ -316,7 +320,8 @@ QueryResult QueryExecutor::execute(const std::string& query, uint32_t authentica
         advance();
     }
     
-    if (current().type != TokenType::END && current().type != TokenType::SEMICOLON) {
+    if (current().type == TokenType::SEMICOLON) advance();
+    if (current().type != TokenType::END) {
         result.message = "Parse error: unexpected trailing tokens";
         return result;
     }

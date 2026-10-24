@@ -146,7 +146,7 @@ async def sent_only(token: str = Depends(bearer_token)) -> list[dict[str, Any]]:
     user_id, messages = await get_all_messages(token)
     return [m for m in messages if m["sender_id"] == user_id]
 
-@app.get("/api/v1/messages/{message_id}", response_model=MessageOut)
+@app.get("/api/v1/messages/{message_id}")
 async def message_detail(message_id: int, token: str = Depends(bearer_token)) -> dict[str, Any]:
     payload = await forge.require_success("GET", f"/api/v1/messages/{message_id}", token=token)
     if not isinstance(payload, dict):

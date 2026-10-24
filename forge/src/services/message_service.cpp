@@ -68,9 +68,6 @@ bool MessageService::createMessage(uint32_t senderId, const std::string& subject
         recipient.is_deleted = 0;
         if (storage_->createRecipient(recipient)) {
             createdRecipients.push_back(recipient);
-            if (indexManager_) {
-                indexManager_->onRecipientCreated(recipient);
-            }
         } else {
             allRecipientsCreated = false;
             break;
@@ -78,15 +75,20 @@ bool MessageService::createMessage(uint32_t senderId, const std::string& subject
     }
     
     if (!allRecipientsCreated) {
-        storage_->deleteMessage(message.id);
-        for (const auto& cr : createdRecipients) {
-            storage_->deleteRecipientsByMessage(cr.message_id);
+        const bool messageRolledBack = storage_->deleteMessage(message.id);
+        const bool recipientsRolledBack = storage_->deleteRecipientsByMessage(message.id);
+        if (!messageRolledBack || !recipientsRolledBack) {
+            std::cerr << "Message creation rollback was incomplete for message "
+                      << message.id << std::endl;
         }
         return false;
     }
-    
+
+    // Publish index entries only after every record has been persisted.
     if (indexManager_) {
         indexManager_->onMessageCreated(message);
+        for (const auto& recipient : createdRecipients)
+            indexManager_->onRecipientCreated(recipient);
     }
     
     outMessage = message;

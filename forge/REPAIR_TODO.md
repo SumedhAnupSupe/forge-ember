@@ -1,11 +1,13 @@
 # FORGE Repair TODO
 
+> Verification note: this checklist must reflect executed evidence. No configure/build/CTest/HTTP/CLI end-to-end run was performed in this repair session; do not mark those checks complete based on code inspection alone.
+
 ## A. Baseline and scope
 - [x] Inspect repository, branch, and working-tree status.
 - [x] Preserve existing uncommitted user changes.
 - [x] Inspect current production source lists and CMake targets.
-- [x] Record baseline build outcome.
-- [x] Record baseline test outcome.
+- [ ] Record baseline build outcome (not run in this repair session).
+- [ ] Record baseline test outcome (not run in this repair session).
 - [x] Inspect existing tests and identify weak or misleading tests.
 - [x] Create this persistent TODO checklist.
 - [x] Confirm EMBER files remain untouched.

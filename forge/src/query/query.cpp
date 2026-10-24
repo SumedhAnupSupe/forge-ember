@@ -369,8 +369,8 @@ QueryResult QueryExecutor::execute(const std::string& query, uint32_t authentica
         }
         auto users = storage_->getAllUsers(false);
         for (const auto& u : users) {
+            if (authenticatedUserId != 0 && u.id != authenticatedUserId) continue;
             if (!node.whereColumn.empty()) {
-                if (authenticatedUserId != 0 && u.id != authenticatedUserId) continue;
                 if (node.whereColumn == "email" && node.whereValue != u.email) continue;
                 else if (node.whereColumn == "id" && node.whereValue != std::to_string(u.id)) continue;
                 else if (node.whereColumn == "name" && node.whereValue != u.name) continue;

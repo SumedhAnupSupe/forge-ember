@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <httplib.h>
-#include <nlohmann/json.hpp>
+#include <json.hpp>
 
 namespace ember {
 class ForgeClient {

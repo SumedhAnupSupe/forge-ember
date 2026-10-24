@@ -3,9 +3,9 @@ import { test, expect, type Page } from '@playwright/test';
 async function register(page: Page, name: string, email: string, password: string) {
   await page.goto('/');
   await page.getByRole('button', { name: 'Register' }).click();
-  await page.getByLabel('Full Name').fill(name);
-  await page.getByLabel('Email Address').fill(email);
-  await page.getByLabel('Password').fill(password);
+  await page.getByPlaceholder('e.g. Alex Morgan').fill(name);
+  await page.getByPlaceholder('name@posto.mail').fill(email);
+  await page.locator('input[type="password"]').fill(password);
   await page.getByRole('button', { name: 'Create My Account' }).click();
   await expect(page.getByRole('button', { name: 'New Mail' })).toBeVisible({ timeout: 10000 });
 }
@@ -28,9 +28,9 @@ test('two registered users can send, receive, and find persisted mail', async ({
     await register(recipient, 'E2E Recipient', recipientEmail, password);
 
     await sender.getByRole('button', { name: 'New Mail' }).click();
-    await sender.getByLabel('To', { exact: true }).fill(recipientEmail);
-    await sender.getByLabel('Subject', { exact: true }).fill(subject);
-    await sender.getByLabel('Message', { exact: true }).fill(body);
+    await sender.getByPlaceholder('recipient@example.com').fill(recipientEmail);
+    await sender.getByPlaceholder('Subject of correspondence...').fill(subject);
+    await sender.getByPlaceholder('Compose your message...').fill(body);
     await sender.getByRole('button', { name: 'Send Mail' }).click();
 
     await expect(sender.getByText('Mail Successfully Delivered!', { exact: true })).toBeVisible({ timeout: 7000 });
@@ -40,7 +40,7 @@ test('two registered users can send, receive, and find persisted mail', async ({
     await expect(sender.getByText(subject, { exact: true })).toBeVisible({ timeout: 10000 });
 
     await recipient.getByRole('button', { name: 'Refresh' }).click().catch(() => {});
-    await expect(recipient.getByRole('button', { name: 'Inbox' })).toBeVisible({ timeout: 10000 });
+    await expect(recipient.getByText('Inbox', { exact: true })).toBeVisible({ timeout: 10000 });
     await expect(recipient.getByText(subject, { exact: true })).toBeVisible({ timeout: 10000 });
     await recipient.getByText(subject, { exact: true }).click();
     await expect(recipient.getByText(body, { exact: true })).toBeVisible({ timeout: 10000 });
@@ -52,8 +52,8 @@ test('two registered users can send, receive, and find persisted mail', async ({
 
 test('invalid login shows an error and does not open the mailbox', async ({ page }) => {
   await page.goto('/');
-  await page.getByLabel('Email Address').fill(`missing-${Date.now()}@posto.test`);
-  await page.getByLabel('Password').fill('Definitely-Wrong-Password-42!');
+  await page.getByPlaceholder('name@posto.mail').fill(`missing-${Date.now()}@posto.test`);
+  await page.locator('input[type="password"]').fill('Definitely-Wrong-Password-42!');
   await page.getByRole('button', { name: 'Open Mailbox' }).click();
   await expect(page.getByText('Invalid credentials')).toBeVisible({ timeout: 10000 });
   await expect(page.getByRole('button', { name: 'New Mail' })).toHaveCount(0);

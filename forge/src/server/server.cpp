@@ -417,10 +417,48 @@ bool ForgeServer::startInBackground() {
             res.set_content(err.dump(), "application/json");
             return;
         }
-        res.status = 403;
-        json err; err["error"] = "Forbidden";
-        res.set_content(err.dump(), "application/json");
-        return;
+        try {
+            const auto body = json::parse(req.body);
+            if (!body.is_object() || !body.contains("query") || !body["query"].is_string()) {
+                res.status = 400;
+                json err; err["error"] = "Expected a JSON object with a string query field";
+                res.set_content(err.dump(), "application/json");
+                return;
+            }
+            const std::string sql = body["query"].get<std::string>();
+            if (sql.empty() || sql.size() > 4096) {
+                res.status = 400;
+                json err; err["error"] = "Query must be between 1 and 4096 bytes";
+                res.set_content(err.dump(), "application/json");
+                return;
+            }
+            query::QueryExecutor executor(storage_);
+            const auto queryResult = executor.execute(sql, uid);
+            if (!queryResult.success) {
+                res.status = 400;
+                json err; err["error"] = queryResult.message;
+                res.set_content(err.dump(), "application/json");
+                return;
+            }
+            json response;
+            response["rows"] = json::array();
+            for (const auto& row : queryResult.rows) {
+                json item = json::object();
+                for (const auto& column : row) item[column.first] = column.second;
+                response["rows"].push_back(std::move(item));
+            }
+            response["row_count"] = queryResult.rows.size();
+            res.status = 200;
+            res.set_content(response.dump(), "application/json");
+        } catch (const json::exception&) {
+            res.status = 400;
+            json err; err["error"] = "Invalid JSON request";
+            res.set_content(err.dump(), "application/json");
+        } catch (...) {
+            res.status = 500;
+            json err; err["error"] = "Query failed";
+            res.set_content(err.dump(), "application/json");
+        }
     });
     
     // Bind synchronously so startInBackground() reports address/port errors to its caller.

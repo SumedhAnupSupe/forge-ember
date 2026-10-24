@@ -380,6 +380,24 @@ QueryResult QueryExecutor::execute(const std::string& query) {
                     else if (c == "created_at") row[c] = std::to_string(u.created_at);
                 }
             }
+            if (!node.orderByColumn.empty() && !row.count(node.orderByColumn)) {
+                if (node.orderByColumn == "id") row[node.orderByColumn] = std::to_string(u.id);
+                else if (node.orderByColumn == "name") row[node.orderByColumn] = u.name;
+                else if (node.orderByColumn == "email") row[node.orderByColumn] = u.email;
+                else if (node.orderByColumn == "created_at") row[node.orderByColumn] = std::to_string(u.created_at);
+            }
+            if (!node.orderByColumn.empty() && !row.count(node.orderByColumn)) {
+                if (node.orderByColumn == "id") row[node.orderByColumn] = std::to_string(m.id);
+                else if (node.orderByColumn == "sender_id") row[node.orderByColumn] = std::to_string(m.sender_id);
+                else if (node.orderByColumn == "subject") row[node.orderByColumn] = m.subject;
+                else if (node.orderByColumn == "body") row[node.orderByColumn] = m.body;
+                else if (node.orderByColumn == "created_at") row[node.orderByColumn] = std::to_string(m.created_at);
+            }
+            if (!node.orderByColumn.empty() && !row.count(node.orderByColumn)) {
+                if (node.orderByColumn == "message_id") row[node.orderByColumn] = std::to_string(r.message_id);
+                else if (node.orderByColumn == "user_id") row[node.orderByColumn] = std::to_string(r.user_id);
+                else if (node.orderByColumn == "type") row[node.orderByColumn] = std::string(r.type);
+            }
             result.rows.push_back(row);
         }
         if (!node.orderByColumn.empty()) {
@@ -403,6 +421,11 @@ QueryResult QueryExecutor::execute(const std::string& query) {
                     if (desc) return av > bv;
                     return av < bv;
                 });
+        }
+        if (!(node.columns.size() == 1 && node.columns[0] == "*") &&
+            !node.orderByColumn.empty() &&
+            std::find(node.columns.begin(), node.columns.end(), node.orderByColumn) == node.columns.end()) {
+            for (auto& row : result.rows) row.erase(node.orderByColumn);
         }
         if (node.limit >= 0 && (int)result.rows.size() > node.limit) {
             result.rows.resize(node.limit);

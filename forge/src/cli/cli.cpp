@@ -180,50 +180,58 @@ void ForgeCLI::run() {
         std::string upper = cmd;
         std::transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
         if (upper == "SHOW TABLES;" || upper == "SHOW TABLES") {
-            if (token_.empty()) { std::cout << "Unauthorized" << std::endl; continue; }
-            std::cout << "+-----------+" << std::endl;
-            std::cout << "| Tables    |" << std::endl;
-            std::cout << "+-----------+" << std::endl;
-            std::cout << "| users     |" << std::endl;
-            std::cout << "| messages  |" << std::endl;
-            std::cout << "| recipients|" << std::endl;
-            std::cout << "+-----------+" << std::endl;
+            if (token_.empty()) { std::cout << "Unauthorized: please login first." << std::endl; continue; }
+            try {
+                httplib::Client cli(host_.c_str(), port_);
+                cli.set_connection_timeout(3);
+                httplib::Headers headers = {{"Authorization", "Bearer " + token_}};
+                auto res = cli.Get("/api/v1/schema/tables", headers);
+                if (!res) { std::cout << "Connection error." << std::endl; continue; }
+                if (res->status == 401) { token_.clear(); std::cout << "Session expired or invalid. Please login again." << std::endl; continue; }
+                if (res->status != 200) { std::cout << "Failed to fetch schema." << std::endl; continue; }
+                const json response = json::parse(res->body);
+                if (!response.contains("tables") || !response["tables"].is_array()) {
+                    std::cout << "Invalid schema response." << std::endl; continue;
+                }
+                std::vector<std::map<std::string, std::string>> rows;
+                for (const auto& table : response["tables"]) {
+                    if (table.is_string()) rows.push_back({{"table", table.get<std::string>()}});
+                }
+                printTable(rows);
+            } catch (const std::exception&) { std::cout << "Invalid schema response." << std::endl; }
             continue;
         }
         if (upper.find("DESCRIBE ") == 0) {
-            if (token_.empty()) { std::cout << "Unauthorized" << std::endl; continue; }
-            std::string rest = upper.substr(9);
-            while (!rest.empty() && (rest.back() == ';' || isspace((unsigned char)rest.back()))) rest.pop_back();
-            if (rest == "USERS") {
-                std::cout << "+------------+----------+------+" << std::endl;
-                std::cout << "| Field      | Type     | Null |" << std::endl;
-                std::cout << "+------------+----------+------+" << std::endl;
-                std::cout << "| id         | uint32   | NO   |" << std::endl;
-                std::cout << "| name       | char[64] | NO   |" << std::endl;
-                std::cout << "| email      | char[128]| NO   |" << std::endl;
-                std::cout << "| created_at | uint64   | NO   |" << std::endl;
-                std::cout << "+------------+----------+------+" << std::endl;
-            } else if (rest == "MESSAGES") {
-                std::cout << "+-----------+----------+------+" << std::endl;
-                std::cout << "| Field     | Type     | Null |" << std::endl;
-                std::cout << "+-----------+----------+------+" << std::endl;
-                std::cout << "| id        | uint32   | NO   |" << std::endl;
-                std::cout << "| sender_id | uint32   | NO   |" << std::endl;
-                std::cout << "| subject   | char[128]| NO   |" << std::endl;
-                std::cout << "| body      | char[512]| NO   |" << std::endl;
-                std::cout << "| created_at| uint64   | NO   |" << std::endl;
-                std::cout << "+-----------+----------+------+" << std::endl;
-            } else if (rest == "RECIPIENTS") {
-                std::cout << "+-----------+---------+------+" << std::endl;
-                std::cout << "| Field     | Type    | Null |" << std::endl;
-                std::cout << "+-----------+---------+------+" << std::endl;
-                std::cout << "| message_id| uint32  | NO   |" << std::endl;
-                std::cout << "| user_id   | uint32  | NO   |" << std::endl;
-                std::cout << "| type      | char[4] | NO   |" << std::endl;
-                std::cout << "+-----------+---------+------+" << std::endl;
-            } else {
-                std::cout << "Unknown table" << std::endl;
+            if (token_.empty()) { std::cout << "Unauthorized: please login first." << std::endl; continue; }
+            std::string table = trim(cmd.substr(9));
+            while (!table.empty() && (table.back() == ';' || isspace((unsigned char)table.back()))) table.pop_back();
+            std::transform(table.begin(), table.end(), table.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            if (table != "users" && table != "messages" && table != "recipients") {
+                std::cout << "Unknown table" << std::endl; continue;
             }
+            try {
+                httplib::Client cli(host_.c_str(), port_);
+                cli.set_connection_timeout(3);
+                httplib::Headers headers = {{"Authorization", "Bearer " + token_}};
+                auto res = cli.Get(("/api/v1/schema/" + table).c_str(), headers);
+                if (!res) { std::cout << "Connection error." << std::endl; continue; }
+                if (res->status == 401) { token_.clear(); std::cout << "Session expired or invalid. Please login again." << std::endl; continue; }
+                if (res->status != 200) { std::cout << "Failed to fetch schema." << std::endl; continue; }
+                const json response = json::parse(res->body);
+                if (!response.contains("fields") || !response["fields"].is_array()) {
+                    std::cout << "Invalid schema response." << std::endl; continue;
+                }
+                std::vector<std::map<std::string, std::string>> rows;
+                for (const auto& field : response["fields"]) {
+                    if (!field.is_object()) continue;
+                    rows.push_back({
+                        {"Field", field.value("field", "")},
+                        {"Type", field.value("type", "")},
+                        {"Null", field.value("nullable", true) ? "YES" : "NO"}
+                    });
+                }
+                printTable(rows);
+            } catch (const std::exception&) { std::cout << "Invalid schema response." << std::endl; }
             continue;
         }
         if (upper.find("SELECT") == 0) {

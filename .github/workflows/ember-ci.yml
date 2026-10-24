@@ -23,11 +23,13 @@ jobs:
         working-directory: ember/posto-—-elegant-mail-client
         run: npm run build
       - name: Install C++ build dependencies for end-to-end environment
-        run: sudo apt-get update && sudo apt-get install -y cmake g++ libargon2-dev
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ libargon2-dev jq
       - name: Build FORGE for end-to-end tests
         run: cmake -S forge -B build/forge && cmake --build build/forge -j2
       - name: Build EMBER for end-to-end tests
         run: cmake -S ember/backend -B build/ember && cmake --build build/ember -j2
+      - name: Run curl-based two-account API end-to-end tests
+        run: bash tests/curl-e2e.sh
       - name: Install Playwright browser
         working-directory: ember/posto-—-elegant-mail-client
         run: npx playwright install --with-deps chromium

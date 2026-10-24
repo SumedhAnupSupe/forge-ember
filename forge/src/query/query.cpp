@@ -5,6 +5,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <climits>
+#include <unordered_set>
+#include <unordered_map>
 
 namespace forge {
 namespace query {
@@ -465,14 +467,16 @@ QueryResult QueryExecutor::execute(const std::string& query, uint32_t authentica
             if (!ok) { result.message = "Unknown column"; return result; }
         }
         auto messages = storage_->getAllMessages(false);
-        for (const auto& m : messages) {
-            if (authenticatedUserId != 0 && m.sender_id != authenticatedUserId) {
-                std::vector<Recipient> visibleRecipients;
-                if (!storage_->readRecipientsByMessage(m.id, visibleRecipients, false)) continue;
-                const bool isRecipient = std::any_of(visibleRecipients.begin(), visibleRecipients.end(),
-                    [&](const Recipient& recipient) { return recipient.user_id == authenticatedUserId && recipient.is_deleted == 0; });
-                if (!isRecipient) continue;
+        std::unordered_set<uint32_t> visibleMessageIds;
+        if (authenticatedUserId != 0) {
+            for (const auto& recipient : storage_->getAllRecipients(false)) {
+                if (recipient.user_id == authenticatedUserId && recipient.is_deleted == 0)
+                    visibleMessageIds.insert(recipient.message_id);
             }
+        }
+        for (const auto& m : messages) {
+            if (authenticatedUserId != 0 && m.sender_id != authenticatedUserId &&
+                visibleMessageIds.find(m.id) == visibleMessageIds.end()) continue;
             if (!node.whereColumn.empty()) {
                 bool matches = false;
                 if (node.whereColumn == "id") matches = node.whereValue == std::to_string(m.id);
@@ -565,10 +569,15 @@ QueryResult QueryExecutor::execute(const std::string& query, uint32_t authentica
             if (!ok) { result.message = "Unknown column"; return result; }
         }
         auto all = storage_->getAllRecipients(false);
+        std::unordered_map<uint32_t, uint32_t> messageSenders;
+        if (authenticatedUserId != 0) {
+            for (const auto& message : storage_->getAllMessages(false))
+                messageSenders[message.id] = message.sender_id;
+        }
         for (const auto& r : all) {
             if (authenticatedUserId != 0 && r.user_id != authenticatedUserId) {
-                Message parentMessage;
-                if (!storage_->readMessage(r.message_id, parentMessage) || parentMessage.sender_id != authenticatedUserId) continue;
+                const auto parent = messageSenders.find(r.message_id);
+                if (parent == messageSenders.end() || parent->second != authenticatedUserId) continue;
             }
             if (!node.whereColumn.empty()) {
                 bool matches = false;

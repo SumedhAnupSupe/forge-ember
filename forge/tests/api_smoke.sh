@@ -142,7 +142,7 @@ import json, sys
 r = json.load(open(sys.argv[1]))
 assert r["row_count"] == 0 and r["rows"] == []
 PY
-code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/query" -H "Authorization: Bearer $ALICE_TOKEN" -H 'Content-Type: application/json' -d '{"query":"SELECT message_id, user_id, type FROM recipients WHERE message_id = 1 ORDER BY user_id ASC LIMIT 10;"}')
+code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/query" -H "Authorization: Bearer $ALICE_TOKEN" -H 'Content-Type: application/json' -d "{\"query\":\"SELECT message_id, user_id, type FROM recipients WHERE message_id = $MESSAGE_ID ORDER BY user_id ASC LIMIT 10;\"}")
 assert_code 200 "$code"
 python3 - "$RESPONSE" <<'PY'
 import json, sys

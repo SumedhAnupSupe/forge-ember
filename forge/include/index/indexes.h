@@ -4,6 +4,7 @@
 #include "index/hash_table.h"
 #include "storage/storage.h"
 #include <memory>
+#include <mutex>
 
 namespace forge {
 
@@ -37,6 +38,7 @@ private:
     std::unique_ptr<HashTable> usersEmailIndex_;
     std::unique_ptr<HashTable> messagesIdIndex_;
     std::unique_ptr<HashTable> recipientsMessageIndex_;
+    mutable std::mutex mutex_;
 };
 
 } // namespace forge

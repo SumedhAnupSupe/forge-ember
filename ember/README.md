@@ -1,28 +1,27 @@
 # EMBER
 
-EMBER is the mail-client application layer for the FORGE database project. The supplied POSTO React UI remains the visual foundation; this folder adds a C++ HTTP adapter and a clearer frontend/backend boundary.
+EMBER is the mail-client application layer for FORGE. The supplied POSTO React UI remains the visual foundation, while its service layer now talks to the EMBER HTTP adapter and FORGE REST API.
 
 ## Architecture
 
 ```text
-Browser (POSTO / React + TypeScript)
-       │ HTTP/JSON
-       ▼
-EMBER backend (C++17, port 8081)
-       │ HTTP/JSON; forwards the FORGE bearer token
-       ▼
-FORGE server (C++17, port 8080)
-       │
-       ▼
+POSTO / React + TypeScript + Vite
+        │ /api/v1 (Vite development proxy)
+        ▼
+EMBER backend / C++17 / port 8081
+        │ HTTP/JSON with FORGE bearer token
+        ▼
+FORGE server / C++17 / port 8080
+        ▼
 FORGE services, indexes and binary storage
 ```
 
-EMBER must not open FORGE `.dat` or `.idx` files and must not duplicate FORGE storage or authentication logic. FORGE remains the source of truth.
+EMBER must not open FORGE `.dat` or `.idx` files or duplicate its storage logic. FORGE remains the source of truth.
 
 ## Local development
 
-1. Build and start FORGE using the instructions in `../forge/README.md`.
-2. Build EMBER backend:
+1. Build and start FORGE using `forge/README.md`.
+2. Build EMBER:
 
    ```bash
    cmake -S ember/backend -B build/ember
@@ -30,7 +29,7 @@ EMBER must not open FORGE `.dat` or `.idx` files and must not duplicate FORGE st
    ./build/ember/ember-server
    ```
 
-3. Start the POSTO frontend:
+3. Start POSTO:
 
    ```bash
    cd ember/posto-—-elegant-mail-client
@@ -38,12 +37,17 @@ EMBER must not open FORGE `.dat` or `.idx` files and must not duplicate FORGE st
    npm run dev
    ```
 
-The frontend uses `VITE_EMBER_API_URL` (default `http://127.0.0.1:8081`). The backend uses `FORGE_ORIGIN` (default `http://127.0.0.1:8080`).
+Vite serves the frontend on port 3000 and proxies `/api` to EMBER on port 8081. Set `FORGE_ORIGIN` to change the upstream FORGE URL.
 
-## Current implementation boundary
+## Implemented integration
 
-The adapter forwards the currently implemented FORGE auth and message routes. It deliberately does not fabricate per-user read/star/trash state, attachment handling, recipient-name lookup, or restore/permanent-delete operations that FORGE does not yet expose. Those require explicit FORGE schema/API work before the UI can promise them.
+- Real registration, login, logout and current-user lookup.
+- Real message list/detail calls and a scoped FORGE query to determine recipient rows.
+- Sending by exact email lookup, then FORGE's numeric-recipient message endpoint.
+- Honest errors for unsupported per-user mailbox state and attachments.
 
-## Security notes
+## Current limitations
 
-This is a local-development adapter, not a production deployment. It currently forwards bearer tokens from the browser and allows the local Vite origin. For production, move FORGE tokens behind an EMBER-managed HttpOnly cookie session, add CSRF protection, configure trusted origins, use HTTPS, and rate-limit authentication routes.
+FORGE currently lacks per-user read/star/trash/restore state and attachment storage. Those controls are intentionally not reported as successful. Message endpoints do not return sender profiles, so the UI uses an explicit `User #ID` label for other senders rather than inventing names. Search/sort only operate on data actually returned.
+
+The browser stores its bearer token in `sessionStorage` for this development milestone. This is not a production security design. Before deployment, move tokens to an EMBER-managed HttpOnly session cookie, add CSRF protection, HTTPS, trusted-origin validation and authentication rate limits.

@@ -5,6 +5,7 @@
 #include <vector>
 #include <memory>
 #include <map>
+#include <cstdint>
 
 namespace forge {
 
@@ -69,6 +70,9 @@ class QueryExecutor {
 public:
     QueryExecutor(std::shared_ptr<forge::Storage> storage = nullptr);
     QueryResult execute(const std::string& query);
+    // Executes a SELECT with row-level visibility restricted to the authenticated user.
+    // User ID 0 is reserved for trusted internal tests/tools and must not be used by HTTP routes.
+    QueryResult execute(const std::string& query, uint32_t authenticatedUserId);
 private:
     std::shared_ptr<forge::Storage> storage_;
 };

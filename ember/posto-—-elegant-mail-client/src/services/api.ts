@@ -1,260 +1,125 @@
 /**
- * POSTO Mail Service Layer
+ * Live POSTO -> EMBER -> FORGE service.
+ * The browser never reads FORGE storage files. Unsupported mailbox-state features fail honestly.
  */
-
 import { User, Message, Recipient } from '../types';
+import { request, setToken, ApiError } from './httpClient';
 
-const SAMPLE_TEMPLATES = [
-  {
-    sender: { id: 101, name: 'Eleanor Vance', email: 'eleanor.vance@studio.co', avatarColor: '#8C4E26' },
-    subject: 'Autumn Editorial Campaign & Typography Specs',
-    body: `Hello,\n\nI have reviewed the proofs for our upcoming autumn release. The warm linen and mocha palette feels exceptionally tactile and refined. Attached are the final vector assets and print specifications for your sign-off.\n\nCould you review by tomorrow afternoon?\n\nWarm regards,\nEleanor`,
-    tag: 'Design',
-    attachment: { name: 'Autumn_Editorial_Specs.pdf', size: '2.4 MB' },
-    is_read: false,
-    is_starred: true,
-  },
-  {
-    sender: { id: 102, name: 'Marcus Sterling', email: 'm.sterling@foundry.io', avatarColor: '#3D2619' },
-    subject: 'Architecture Review: Binary serialization & indexing milestones',
-    body: `Hey,\n\nGreat progress on the file manager and fixed-capacity binary buffers. Everything is parsing with zero memory leaks. Let's do a quick sync at 2 PM to walk through the recipient chaining logic.\n\nBest,\nMarcus`,
-    tag: 'Engineering',
-    attachment: { name: 'Engine_Benchmark_v1.zip', size: '1.1 MB' },
-    is_read: false,
-    is_starred: false,
-  },
-  {
-    sender: { id: 103, name: 'Clara Dubois', email: 'clara@atelier-postal.fr', avatarColor: '#A75427' },
-    subject: 'Your custom brass wax seal stamp has been dispatched 📮',
-    body: `Dear client,\n\nYour bespoke engraved seal with the Posto monogram has passed inspection. It is carefully packed with two sticks of Venetian terracotta sealing wax.\n\nTracking: POST-FR-98214\n\nThank you for choosing handmade quality!`,
-    tag: 'Orders',
-    attachment: { name: 'Dispatch_Receipt_98214.pdf', size: '420 KB' },
-    is_read: true,
-    is_starred: true,
-  },
-  {
-    sender: { id: 104, name: 'David Zhao', email: 'david.zhao@venture.org', avatarColor: '#5A3824' },
-    subject: 'Invitation: Private Salon & Exhibition Preview',
-    body: `You are cordially invited to our private evening reception celebrating classic typography and physical printmaking. Drinks and curated tastings will be served from 7 PM onward.\n\nPlease RSVP by replying to this thread.\n\nDavid`,
-    tag: 'Events',
-    is_read: true,
-    is_starred: false,
-  },
-  {
-    sender: { id: 105, name: 'Sophia Larsson', email: 'sophia@nordicdesign.se', avatarColor: '#7A4828' },
-    subject: 'Updated brand guidelines & color tokens for Posto',
-    body: `Hi team,\n\nHere are the updated hex tokens for our warm sand, espresso, and terracotta scales. Please verify that all card radii and typography hierarchies align with the brand constitution.\n\nCheers,\nSophia`,
-    tag: 'Design',
-    attachment: { name: 'Posto_Design_Tokens.json', size: '18 KB' },
-    is_read: true,
-    is_starred: false,
-  },
-  {
-    sender: { id: 106, name: 'The Posto Team', email: 'concierge@posto.mail', avatarColor: '#2C180E' },
-    subject: 'Welcome to your private POSTO correspondence account',
-    body: `Welcome!\n\nYour Posto mailbox is completely configured. Enjoy private, uncluttered mail management with custom wax seals, instant search, and refined stationery styling.\n\nFeel free to explore your inbox or draft your first message!`,
-    tag: 'Welcome',
-    is_read: true,
-    is_starred: true,
-  }
-];
+type WireUser = { id: number; name: string; email: string; created_at?: number };
+type WireMessage = { id: number; sender_id: number; subject: string; body: string; created_at: number };
+type QueryResult = { rows: Record<string, string | number>[]; row_count: number };
 
 class MailService {
-  private currentUser: User | null = null;
-  private messages: Message[] = [];
-  private nextMessageId: number = 2000;
+  private currentUser: User | null = this.readSavedUser();
 
-  constructor() {
-    // Clear old session so starting animation and login ALWAYS show!
-    sessionStorage.removeItem('posto_session_initialized');
-    this.currentUser = null;
+  private readSavedUser(): User | null {
+    try {
+      const raw = sessionStorage.getItem('ember_current_user');
+      return raw ? JSON.parse(raw) as User : null;
+    } catch { return null; }
   }
-
-  private saveMessages(): void {
-    localStorage.setItem('posto_messages_v3', JSON.stringify(this.messages));
-  }
-
-  public getCurrentUser(): User | null {
-    return this.currentUser;
-  }
-
-  public async login(email: string, _password: string): Promise<User> {
-    const cleanEmail = email.trim().toLowerCase();
-    const name = cleanEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-
-    const user: User = {
-      id: Math.floor(Math.random() * 8000) + 1000,
-      name: name || 'Alex Morgan',
-      email: cleanEmail,
-      created_at: Math.floor(Date.now() / 1000),
-    };
-
+  private saveUser(user: User | null): void {
     this.currentUser = user;
-    this.seedUserMailbox(user);
-    return user;
+    if (user) sessionStorage.setItem('ember_current_user', JSON.stringify(user));
+    else sessionStorage.removeItem('ember_current_user');
   }
+  public getCurrentUser(): User | null { return this.currentUser; }
 
-  public async register(name: string, email: string, _password: string): Promise<User> {
-    const cleanEmail = email.trim().toLowerCase();
-    const user: User = {
-      id: Math.floor(Math.random() * 8000) + 1000,
-      name: name.trim() || 'New User',
-      email: cleanEmail,
-      created_at: Math.floor(Date.now() / 1000),
-    };
-
-    this.currentUser = user;
-    this.seedUserMailbox(user);
-    return user;
+  public async login(email: string, password: string): Promise<User> {
+    const result = await request<{token: string}>('/auth/login', {
+      method: 'POST', body: JSON.stringify({ email: email.trim(), password })
+    });
+    if (!result.token) throw new Error('FORGE did not return an authentication token.');
+    setToken(result.token);
+    const user = await request<WireUser>('/users/me');
+    const mapped: User = { id: user.id, name: user.name, email: user.email, created_at: user.created_at ?? Math.floor(Date.now() / 1000) };
+    this.saveUser(mapped);
+    return mapped;
   }
-
-  private seedUserMailbox(user: User): void {
-    const now = Math.floor(Date.now() / 1000);
-    this.messages = SAMPLE_TEMPLATES.map((tmpl, idx) => ({
-      id: this.nextMessageId++,
-      sender: tmpl.sender,
-      recipients: [{ id: user.id, name: user.name, email: user.email, type: 'TO' as const }],
-      subject: tmpl.subject,
-      body: tmpl.body,
-      created_at: now - (idx * 3600 * 4) - 900,
-      is_read: tmpl.is_read,
-      is_starred: tmpl.is_starred,
-      is_deleted: false,
-      tag: tmpl.tag,
-      attachment: tmpl.attachment,
-      wax_seal: 'monogram',
-    }));
-    this.saveMessages();
+  public async register(name: string, email: string, password: string): Promise<User> {
+    await request<WireUser>('/users', { method: 'POST', body: JSON.stringify({ name: name.trim(), email: email.trim(), password }) });
+    return this.login(email, password);
   }
-
   public async logout(): Promise<void> {
-    this.currentUser = null;
+    try { await request('/auth/logout', { method: 'POST', body: '{}' }); }
+    finally { setToken(null); this.saveUser(null); }
   }
 
+  private async loadMessages(): Promise<Message[]> {
+    if (!this.currentUser) return [];
+    const [wireMessages, query] = await Promise.all([
+      request<WireMessage[]>('/messages'),
+      request<QueryResult>('/query', { method: 'POST', body: JSON.stringify({ query: 'SELECT message_id, user_id, type FROM recipients;' }) })
+    ]);
+    const rows = query.rows ?? [];
+    const recipientRows = rows.map(r => ({
+      message_id: Number(r.message_id), user_id: Number(r.user_id), type: String(r.type || 'TO') as Recipient['type']
+    }));
+    return wireMessages.map((m) => {
+      const recipients: Recipient[] = recipientRows.filter(r => r.message_id === m.id).map(r => ({
+        id: r.user_id, name: r.user_id === this.currentUser!.id ? this.currentUser!.name : `User #${r.user_id}`,
+        email: r.user_id === this.currentUser!.id ? this.currentUser!.email : '', type: r.type
+      }));
+      const isOwn = m.sender_id === this.currentUser!.id;
+      return {
+        id: m.id,
+        sender: { id: m.sender_id, name: isOwn ? this.currentUser!.name : `User #${m.sender_id}`, email: isOwn ? this.currentUser!.email : '' },
+        recipients, subject: m.subject, body: m.body, created_at: Number(m.created_at),
+        is_read: false, is_starred: false, is_deleted: false
+      };
+    });
+  }
   public async getInbox(): Promise<Message[]> {
-    if (!this.currentUser) return [];
-    const myEmail = this.currentUser.email.toLowerCase();
-    return this.messages.filter(m => 
-      !m.is_deleted && 
-      m.recipients.some(r => r.email.toLowerCase() === myEmail)
-    );
+    const list = await this.loadMessages();
+    return list.filter(m => m.sender.id !== this.currentUser?.id && m.recipients.some(r => r.id === this.currentUser?.id));
   }
-
   public async getSent(): Promise<Message[]> {
-    if (!this.currentUser) return [];
-    const myEmail = this.currentUser.email.toLowerCase();
-    return this.messages.filter(m => 
-      !m.is_deleted && 
-      m.sender.email.toLowerCase() === myEmail
-    );
+    return (await this.loadMessages()).filter(m => m.sender.id === this.currentUser?.id);
   }
-
   public async getStarred(): Promise<Message[]> {
-    if (!this.currentUser) return [];
-    const myEmail = this.currentUser.email.toLowerCase();
-    return this.messages.filter(m => 
-      !m.is_deleted && 
-      m.is_starred &&
-      (m.recipients.some(r => r.email.toLowerCase() === myEmail) || m.sender.email.toLowerCase() === myEmail)
-    );
+    throw new ApiError('Starred mail requires per-user mailbox state in FORGE and is not available yet.', 501, 'FEATURE_NOT_SUPPORTED');
   }
-
   public async getTrash(): Promise<Message[]> {
-    if (!this.currentUser) return [];
-    const myEmail = this.currentUser.email.toLowerCase();
-    return this.messages.filter(m => 
-      m.is_deleted && 
-      (m.recipients.some(r => r.email.toLowerCase() === myEmail) || m.sender.email.toLowerCase() === myEmail)
-    );
+    throw new ApiError('Trash requires per-user mailbox state in FORGE and is not available yet.', 501, 'FEATURE_NOT_SUPPORTED');
   }
-
   public async sendMail(payload: {
-    subject: string;
-    body: string;
+    subject: string; body: string;
     recipients: { email: string; name?: string; type: 'TO' | 'CC' | 'BCC' }[];
-    tag?: string;
-    attachment?: { name: string; size: string };
+    tag?: string; attachment?: { name: string; size: string };
     wax_seal?: 'monogram' | 'oak' | 'crest' | 'star';
   }): Promise<Message> {
-    if (!this.currentUser) {
-      throw new Error('Must be logged in to send mail');
-    }
-
-    const formattedRecipients: Recipient[] = payload.recipients.map((r, idx) => ({
-      id: Math.floor(Math.random() * 900) + 50,
-      name: r.name || r.email.split('@')[0],
-      email: r.email.trim(),
-      type: r.type || 'TO'
+    if (!this.currentUser) throw new Error('Please sign in before sending mail.');
+    if (payload.attachment) throw new ApiError('Attachments are not supported by the current FORGE API.', 501, 'ATTACHMENTS_NOT_SUPPORTED');
+    const recipients = await Promise.all(payload.recipients.map(async recipient => {
+      const user = await request<WireUser>(`/users/lookup?email=${encodeURIComponent(recipient.email.trim())}`);
+      return { user_id: user.id, type: recipient.type };
     }));
-
-    const newMsg: Message = {
-      id: this.nextMessageId++,
-      sender: {
-        id: this.currentUser.id,
-        name: this.currentUser.name,
-        email: this.currentUser.email,
-        avatarColor: '#C8622A'
-      },
-      recipients: formattedRecipients,
-      subject: payload.subject.trim() || '(No Subject)',
-      body: payload.body || '',
-      created_at: Math.floor(Date.now() / 1000),
-      is_read: true,
-      is_starred: false,
-      is_deleted: false,
-      tag: payload.tag || 'Outgoing',
-      attachment: payload.attachment,
-      wax_seal: payload.wax_seal || 'monogram',
+    const created = await request<{id: number}>('/messages', { method: 'POST', body: JSON.stringify({
+      subject: payload.subject.trim() || '(No Subject)', body: payload.body, recipients
+    })});
+    const wire = await request<WireMessage>(`/messages/${created.id}`);
+    return {
+      id: wire.id,
+      sender: { id: this.currentUser.id, name: this.currentUser.name, email: this.currentUser.email },
+      recipients: payload.recipients.map((r, i) => ({ id: recipients[i].user_id, name: r.name || r.email, email: r.email, type: r.type })),
+      subject: wire.subject, body: wire.body, created_at: Number(wire.created_at),
+      is_read: true, is_starred: false, is_deleted: false
     };
-
-    this.messages.unshift(newMsg);
-    this.saveMessages();
-    return newMsg;
   }
-
-  public async markAsRead(id: number, isRead: boolean = true): Promise<boolean> {
-    const target = this.messages.find(m => m.id === id);
-    if (target) {
-      target.is_read = isRead;
-      this.saveMessages();
-      return true;
-    }
-    return false;
+  public async markAsRead(_id: number, _isRead = true): Promise<boolean> {
+    throw new ApiError('Read/unread state is not yet stored per user in FORGE.', 501, 'FEATURE_NOT_SUPPORTED');
   }
-
-  public async toggleStar(id: number): Promise<boolean> {
-    const target = this.messages.find(m => m.id === id);
-    if (!target) return false;
-    target.is_starred = !target.is_starred;
-    this.saveMessages();
-    return target.is_starred;
+  public async toggleStar(_id: number): Promise<boolean> {
+    throw new ApiError('Starred state is not yet stored per user in FORGE.', 501, 'FEATURE_NOT_SUPPORTED');
   }
-
-  public async deleteMail(id: number): Promise<boolean> {
-    const target = this.messages.find(m => m.id === id);
-    if (target) {
-      target.is_deleted = true;
-      this.saveMessages();
-      return true;
-    }
-    return false;
+  public async deleteMail(_id: number): Promise<boolean> {
+    throw new ApiError('Recipient-specific trash is not yet implemented in FORGE.', 501, 'FEATURE_NOT_SUPPORTED');
   }
-
-  public async restoreMail(id: number): Promise<boolean> {
-    const target = this.messages.find(m => m.id === id);
-    if (target) {
-      target.is_deleted = false;
-      this.saveMessages();
-      return true;
-    }
-    return false;
+  public async restoreMail(_id: number): Promise<boolean> {
+    throw new ApiError('Restore is not yet implemented in FORGE.', 501, 'FEATURE_NOT_SUPPORTED');
   }
-
-  public async permanentDelete(id: number): Promise<boolean> {
-    this.messages = this.messages.filter(m => m.id !== id);
-    this.saveMessages();
-    return true;
+  public async permanentDelete(_id: number): Promise<boolean> {
+    throw new ApiError('Permanent deletion is not yet implemented in FORGE.', 501, 'FEATURE_NOT_SUPPORTED');
   }
 }
-
 export const mailService = new MailService();

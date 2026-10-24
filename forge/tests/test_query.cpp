@@ -161,11 +161,19 @@ int test_query() {
         std::cout << "  Boolean/injection-like WHERE syntax rejected OK" << std::endl;
     else { std::cerr << "  Boolean/injection-like WHERE syntax was accepted" << std::endl; failures++; }
 
-    const auto sortedUsers = executor.execute("SELECT id FROM users ORDER BY id DESC LIMIT 2;", 1);
-    if (sortedUsers.success && sortedUsers.rows.size() == 1 &&
-        sortedUsers.rows[0].at("id") == "1")
-        std::cout << "  ORDER BY and LIMIT apply to caller-visible rows OK" << std::endl;
-    else { std::cerr << "  ORDER BY/LIMIT caller-visible behavior failed" << std::endl; failures++; }
+    const auto sortedUsers = executor.execute("SELECT id FROM users ORDER BY id DESC LIMIT 2;", 0);
+    if (sortedUsers.success && sortedUsers.rows.size() == 2 &&
+        sortedUsers.rows[0].at("id") == "4" &&
+        sortedUsers.rows[1].at("id") == "3")
+        std::cout << "  Descending ORDER BY and LIMIT work OK" << std::endl;
+    else { std::cerr << "  ORDER BY/LIMIT behavior failed" << std::endl; failures++; }
+
+    const auto ascendingUsers = executor.execute("SELECT id FROM users ORDER BY id ASC LIMIT 2;", 0);
+    if (ascendingUsers.success && ascendingUsers.rows.size() == 2 &&
+        ascendingUsers.rows[0].at("id") == "1" &&
+        ascendingUsers.rows[1].at("id") == "2")
+        std::cout << "  Ascending ORDER BY and LIMIT work OK" << std::endl;
+    else { std::cerr << "  Ascending ORDER BY/LIMIT behavior failed" << std::endl; failures++; }
 
     const auto senderMessages = executor.execute("SELECT id FROM messages;", 1);
     const auto unrelatedMessages = executor.execute("SELECT id FROM messages;", 4);

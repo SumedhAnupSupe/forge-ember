@@ -50,6 +50,14 @@ int test_services() {
 
             MessageService messages(storage, im);
             Message sent{};
+            const std::vector<std::pair<uint32_t, RecipientType>> duplicateRecipients = {
+                {u2.id, RecipientType::TO}, {u2.id, RecipientType::CC}
+            };
+            Message rejected{};
+            if (!messages.createMessage(u1.id, "Duplicate", "Should fail", duplicateRecipients, rejected))
+                std::cout << "  Duplicate message recipients rejected OK" << std::endl;
+            else { std::cout << "  Duplicate message recipients accepted FAILED" << std::endl; failures++; }
+
             const std::vector<std::pair<uint32_t, RecipientType>> recipients = {
                 {u2.id, RecipientType::TO}
             };

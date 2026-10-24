@@ -25,6 +25,7 @@ public:
 private:
     std::shared_ptr<Storage> storage_;
     std::shared_ptr<IndexManager> indexManager_;
+    std::mutex createMutex_;
 };
 
 } // namespace forge

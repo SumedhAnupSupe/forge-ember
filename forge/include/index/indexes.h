@@ -29,6 +29,7 @@ public:
     
     // Update operations
     void onUserCreated(const User& user);
+    void onUserUpdated(const User& oldUser, const User& newUser);
     void onMessageCreated(const Message& message);
     void onRecipientCreated(const Recipient& recipient);
     void onMessageDeleted(uint32_t messageId);

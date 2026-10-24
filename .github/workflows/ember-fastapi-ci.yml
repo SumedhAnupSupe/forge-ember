@@ -1,0 +1,31 @@
+name: EMBER FastAPI CI
+
+on:
+  push:
+    branches: [main, "feat/ember-fastapi-backend"]
+    paths:
+      - "ember/backend/**"
+      - ".github/workflows/ember-fastapi-ci.yml"
+  pull_request:
+    paths:
+      - "ember/backend/**"
+      - ".github/workflows/ember-fastapi-ci.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ember/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: ember/backend/pyproject.toml
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --extra dev
+      - run: uv run pytest -q
+      - run: uv run python -c "from app.main import app; print('EMBER routes:', len(app.routes))"

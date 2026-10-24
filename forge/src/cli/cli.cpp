@@ -224,59 +224,7 @@ void ForgeCLI::run() {
             continue;
         }
         if (upper.find("SELECT") == 0) {
-            if (token_.empty()) { std::cout << "Unauthorized" << std::endl; continue; }
-            try {
-                httplib::Client cli(host_.c_str(), port_);
-                cli.set_connection_timeout(5);
-                httplib::Headers h = {{"Authorization", "Bearer " + token_}};
-                json j = {{"sql", cmd}};
-                auto res = cli.Post("/api/v1/query", h, j.dump(), "application/json");
-                if (res && res->status == 200) {
-                    try {
-                        auto rj = json::parse(res->body);
-                        if (rj.contains("rows") && rj["rows"].is_array()) {
-                            std::vector<std::map<std::string, std::string>> rows;
-                            for (const auto& rr : rj["rows"]) {
-                                std::map<std::string, std::string> m;
-                                for (auto it = rr.begin(); it != rr.end(); ++it) {
-                                    if (it->is_string()) m[it.key()] = it->get<std::string>();
-                                    else m[it.key()] = it->dump();
-                                }
-                                rows.push_back(m);
-                            }
-                            printTable(rows);
-                        } else {
-                            std::cout << res->body << std::endl;
-                        }
-                    } catch (...) {
-                        std::cout << res->body << std::endl;
-                    }
-                } else if (res) {
-                    if (res->status == 401) { std::cout << "Session expired or invalid" << std::endl; token_ = ""; continue; }
-                    if (res->status == 403) { 
-                        // Try to parse error message
-                        try {
-                            auto rj = json::parse(res->body);
-                            if (rj.contains("error")) std::cout << "Error: " << rj["error"].get<std::string>() << std::endl;
-                            else std::cout << "Error: Forbidden" << std::endl;
-                        } catch (...) {
-                            std::cout << "Error: Forbidden" << std::endl;
-                        }
-                        continue; 
-                    }
-                    try {
-                        auto rj = json::parse(res->body);
-                        if (rj.contains("error")) std::cout << "Error: " << rj["error"].get<std::string>() << std::endl;
-                        else std::cout << "Error: " << res->body << std::endl;
-                    } catch (...) {
-                        std::cout << "Error: " << res->body << std::endl;
-                    }
-                } else {
-                    std::cout << "Connection error" << std::endl;
-                }
-            } catch (...) {
-                std::cout << "Connection error" << std::endl;
-            }
+            std::cout << "SQL queries are temporarily disabled: the server query endpoint is not implemented safely yet." << std::endl;
             continue;
         }
         std::cout << "Unknown command. Type 'help'." << std::endl;

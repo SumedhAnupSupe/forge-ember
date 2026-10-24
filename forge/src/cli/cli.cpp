@@ -4,6 +4,9 @@
 #include <httplib.h>
 #include <json.hpp>
 #include <vector>
+#include <map>
+#include <utility>
+#include <exception>
 #include <algorithm>
 #include <cctype>
 #ifdef _WIN32

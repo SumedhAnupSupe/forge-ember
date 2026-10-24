@@ -46,6 +46,8 @@ void EmberServer::configureRoutes() {
     server_.Post("/api/v1/auth/logout", [proxy](const httplib::Request& req, httplib::Response& res) { proxy(req, res, "POST", "/api/v1/auth/logout"); });
     server_.Post("/api/v1/users", [proxy](const httplib::Request& req, httplib::Response& res) { proxy(req, res, "POST", "/api/v1/users"); });
     server_.Get("/api/v1/users/me", [proxy](const httplib::Request& req, httplib::Response& res) { proxy(req, res, "GET", "/api/v1/users/me"); });
+    server_.Get("/api/v1/users/lookup", [proxy](const httplib::Request& req, httplib::Response& res) { proxy(req, res, "GET", req.target); });
+    server_.Post("/api/v1/query", [proxy](const httplib::Request& req, httplib::Response& res) { proxy(req, res, "POST", "/api/v1/query"); });
     server_.Get("/api/v1/messages", [proxy](const httplib::Request& req, httplib::Response& res) { proxy(req, res, "GET", "/api/v1/messages"); });
     server_.Post("/api/v1/messages", [proxy](const httplib::Request& req, httplib::Response& res) { proxy(req, res, "POST", "/api/v1/messages"); });
     server_.Get(R"(/api/v1/messages/(\d+))", [proxy](const httplib::Request& req, httplib::Response& res) {

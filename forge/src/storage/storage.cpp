@@ -42,6 +42,7 @@ void Storage::close() {
 
 bool Storage::openFiles() {
     const auto openDataFile = [](std::fstream& file, const std::string& path) -> bool {
+        file.clear();
         std::error_code ec;
         const bool existed = std::filesystem::exists(path, ec);
         if (ec) return false;

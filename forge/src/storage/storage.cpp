@@ -41,36 +41,34 @@ void Storage::close() {
 }
 
 bool Storage::openFiles() {
-    std::string usersPath = dataDir_ + "/users.dat";
-    std::string messagesPath = dataDir_ + "/messages.dat";
-    std::string recipientsPath = dataDir_ + "/recipients.dat";
-    
-    usersFile_.open(usersPath, std::ios::binary | std::ios::in | std::ios::out);
-    if (!usersFile_.is_open()) {
-        usersFile_.open(usersPath, std::ios::binary | std::ios::out | std::ios::trunc);
-        if (!usersFile_.is_open()) return false;
-        usersFile_.close();
-        usersFile_.open(usersPath, std::ios::binary | std::ios::in | std::ios::out);
-        if (!usersFile_.is_open()) return false;
-    }
-    
-    messagesFile_.open(messagesPath, std::ios::binary | std::ios::in | std::ios::out);
-    if (!messagesFile_.is_open()) {
-        messagesFile_.open(messagesPath, std::ios::binary | std::ios::out | std::ios::trunc);
-        if (!messagesFile_.is_open()) return false;
-        messagesFile_.close();
-        messagesFile_.open(messagesPath, std::ios::binary | std::ios::in | std::ios::out);
-        if (!messagesFile_.is_open()) return false;
-    }
-    
-    recipientsFile_.open(recipientsPath, std::ios::binary | std::ios::in | std::ios::out);
-    if (!recipientsFile_.is_open()) {
-        recipientsFile_.open(recipientsPath, std::ios::binary | std::ios::out | std::ios::trunc);
-        if (!recipientsFile_.is_open()) return false;
-        recipientsFile_.close();
-        recipientsFile_.open(recipientsPath, std::ios::binary | std::ios::in | std::ios::out);
-        if (!recipientsFile_.is_open()) return false;
-    }
+    const auto openDataFile = [](std::fstream& file, const std::string& path) -> bool {
+        std::error_code ec;
+        const bool existed = std::filesystem::exists(path, ec);
+        if (ec) return false;
+
+        if (existed) {
+            // Never truncate an existing file merely because it could not be opened.
+            file.open(path, std::ios::binary | std::ios::in | std::ios::out);
+            return file.is_open();
+        }
+
+        // Create only a genuinely absent file. app mode avoids truncating a file
+        // that may appear between the exists check and the create operation.
+        file.open(path, std::ios::binary | std::ios::out | std::ios::app);
+        if (!file.is_open()) return false;
+        file.close();
+        file.clear();
+        file.open(path, std::ios::binary | std::ios::in | std::ios::out);
+        return file.is_open();
+    };
+
+    const std::string usersPath = dataDir_ + "/users.dat";
+    const std::string messagesPath = dataDir_ + "/messages.dat";
+    const std::string recipientsPath = dataDir_ + "/recipients.dat";
+
+    if (!openDataFile(usersFile_, usersPath)) return false;
+    if (!openDataFile(messagesFile_, messagesPath)) return false;
+    if (!openDataFile(recipientsFile_, recipientsPath)) return false;
     return true;
 }
 

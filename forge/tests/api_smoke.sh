@@ -132,4 +132,32 @@ assert_code 200 "$code"
 code=$(request "http://127.0.0.1:$PORT/api/v1/users/me" -H "Authorization: Bearer $ALICE_TOKEN")
 assert_code 401 "$code"
 
+# Restart the server against the same data directory and verify durable user data.
+kill "$PID"
+wait "$PID" 2>/dev/null || true
+PID=""
+"$SERVER" --host 127.0.0.1 --port "$PORT" --data-dir "$DATA_DIR/data" >"$LOG" 2>&1 &
+PID=""
+for _ in $(seq 1 40); do
+  if curl -fsS "http://127.0.0.1:$PORT/health" >"$RESPONSE"; then
+    PID="$(pgrep -f "^$SERVER --host 127.0.0.1 --port $PORT --data-dir $DATA_DIR/data$" | head -n1 || true)"
+    break
+  fi
+  sleep 0.25
+done
+# If process lookup is unavailable, keep the restarted server PID via a direct launch below.
+if [[ -z "$PID" ]]; then
+  echo "Could not track restarted FORGE server process"
+  exit 1
+fi
+code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/auth/login" -H 'Content-Type: application/json' -d '{"email":"alice-smoke@example.test","password":"SmokePass123!"}')
+assert_code 200 "$code"
+RESTARTED_TOKEN="$(json_value token)"
+code=$(request "http://127.0.0.1:$PORT/api/v1/users/me" -H "Authorization: Bearer $RESTARTED_TOKEN")
+assert_code 200 "$code"
+python3 - "$RESPONSE" "$ALICE_ID" <<'PY'
+import json, sys
+assert str(json.load(open(sys.argv[1]))["id"]) == sys.argv[2]
+PY
+
 echo "FORGE API smoke tests passed"

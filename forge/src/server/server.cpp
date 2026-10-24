@@ -14,7 +14,9 @@ ForgeServer::ForgeServer(const std::string& host, int port, const std::string& d
 }
 
 bool ForgeServer::start() {
-    return startInBackground();
+    if (!startInBackground()) return false;
+    if (serverThread_.joinable()) serverThread_.join();
+    return listenerSucceeded_.load();
 }
 
 bool ForgeServer::startInBackground() {
@@ -289,16 +291,45 @@ bool ForgeServer::startInBackground() {
                 res.set_content(err.dump(), "application/json");
                 return;
             }
+            if (!j.contains("subject") || !j["subject"].is_string() ||
+                !j.contains("body") || !j["body"].is_string() ||
+                !j.contains("recipients") || !j["recipients"].is_array()) {
+                res.status = 400;
+                json err; err["error"] = "Invalid request";
+                res.set_content(err.dump(), "application/json");
+                return;
+            }
             std::vector<std::pair<uint32_t, RecipientType>> recips;
-            if (j.contains("recipients") && j["recipients"].is_array()) {
-                for (const auto& r : j["recipients"]) {
-                    if (!r.is_object() || !r.contains("user_id")) continue;
-                    if (!r["user_id"].is_number_unsigned() && !r["user_id"].is_number_integer()) continue;
-                    uint32_t rid = r["user_id"].get<uint32_t>();
-                    std::string t = r.value("type", "TO");
-                    if (t == "CC") recips.push_back({rid, RecipientType::CC});
-                    else if (t == "BCC") recips.push_back({rid, RecipientType::BCC});
-                    else recips.push_back({rid, RecipientType::TO});
+            for (const auto& r : j["recipients"]) {
+                if (!r.is_object() || !r.contains("user_id") ||
+                    (!r["user_id"].is_number_unsigned() && !r["user_id"].is_number_integer())) {
+                    res.status = 400;
+                    json err; err["error"] = "Invalid recipient";
+                    res.set_content(err.dump(), "application/json");
+                    return;
+                }
+                const auto rawId = r["user_id"].get<long long>();
+                if (rawId <= 0 || static_cast<unsigned long long>(rawId) > UINT32_MAX) {
+                    res.status = 400;
+                    json err; err["error"] = "Invalid recipient user_id";
+                    res.set_content(err.dump(), "application/json");
+                    return;
+                }
+                if (r.contains("type") && !r["type"].is_string()) {
+                    res.status = 400;
+                    json err; err["error"] = "Invalid recipient type";
+                    res.set_content(err.dump(), "application/json");
+                    return;
+                }
+                const std::string t = r.value("type", "TO");
+                if (t == "TO") recips.push_back({static_cast<uint32_t>(rawId), RecipientType::TO});
+                else if (t == "CC") recips.push_back({static_cast<uint32_t>(rawId), RecipientType::CC});
+                else if (t == "BCC") recips.push_back({static_cast<uint32_t>(rawId), RecipientType::BCC});
+                else {
+                    res.status = 400;
+                    json err; err["error"] = "Unknown recipient type";
+                    res.set_content(err.dump(), "application/json");
+                    return;
                 }
             }
             Message m;
@@ -392,13 +423,19 @@ bool ForgeServer::startInBackground() {
         return;
     });
     
-    running_ = true;
-    // Try to listen; if fails, return false
-    bool ok = svr_->listen(host_.c_str(), port_);
-    running_ = false;
-    if (!ok) {
+    // Bind synchronously so startInBackground() reports address/port errors to its caller.
+    if (!svr_->bind_to_port(host_.c_str(), port_)) {
+        running_ = false;
+        storage_->close();
+        svr_.reset();
         return false;
     }
+    listenerSucceeded_ = false;
+    running_ = true;
+    serverThread_ = std::thread([this]() {
+        listenerSucceeded_ = svr_->listen_after_bind();
+        running_ = false;
+    });
     return true;
 }
 

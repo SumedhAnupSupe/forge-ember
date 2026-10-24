@@ -1,0 +1,6 @@
+{
+  "name": "POSTO — Elegant Mail Client",
+  "description": "A charming, aesthetic beige and brown mail application featuring an interactive postman animation, seamless authentication, and modern mailbox management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -51,7 +51,8 @@ int test_query() {
     };
     if (!addUser(1, "Alice", "alice@example.com") ||
         !addUser(2, "Bob", "bob@example.com") ||
-        !addUser(3, "Carol", "carol@example.com")) {
+        !addUser(3, "Carol", "carol@example.com") ||
+        !addUser(4, "Dave", "dave@example.com")) {
         std::cerr << "  Could not create test users" << std::endl;
         storage->close();
         std::filesystem::remove_all(dir);
@@ -167,14 +168,14 @@ int test_query() {
     else { std::cerr << "  ORDER BY/LIMIT caller-visible behavior failed" << std::endl; failures++; }
 
     const auto senderMessages = executor.execute("SELECT id FROM messages;", 1);
-    const auto unrelatedMessages = executor.execute("SELECT id FROM messages;", 3);
+    const auto unrelatedMessages = executor.execute("SELECT id FROM messages;", 4);
     if (senderMessages.success && senderMessages.rows.size() == 1 &&
         unrelatedMessages.success && unrelatedMessages.rows.empty())
         std::cout << "  Sender visibility and unrelated-user isolation OK" << std::endl;
     else { std::cerr << "  Message row isolation failed" << std::endl; failures++; }
 
     const auto senderRecipients = executor.execute("SELECT user_id FROM recipients;", 1);
-    const auto unrelatedRecipients = executor.execute("SELECT user_id FROM recipients;", 3);
+    const auto unrelatedRecipients = executor.execute("SELECT user_id FROM recipients;", 4);
     if (senderRecipients.success && senderRecipients.rows.size() == 2 &&
         unrelatedRecipients.success && unrelatedRecipients.rows.empty())
         std::cout << "  Sender recipient-list visibility and isolation OK" << std::endl;

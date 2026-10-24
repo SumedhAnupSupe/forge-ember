@@ -27,6 +27,20 @@ int test_storage() {
         } else {
             std::cout << "  Create user FAILED" << std::endl; failures++;
         }
+        s.setNextUserId(UINT32_MAX);
+        const uint32_t lastUserId = s.getNextUserId();
+        const uint32_t exhaustedUserId = s.getNextUserId();
+        if (lastUserId == UINT32_MAX && exhaustedUserId == 0)
+            std::cout << "  User ID exhaustion handled without wraparound OK" << std::endl;
+        else { std::cout << "  User ID exhaustion FAILED" << std::endl; failures++; }
+
+        s.setNextMessageId(UINT32_MAX);
+        const uint32_t lastMessageId = s.getNextMessageId();
+        const uint32_t exhaustedMessageId = s.getNextMessageId();
+        if (lastMessageId == UINT32_MAX && exhaustedMessageId == 0)
+            std::cout << "  Message ID exhaustion handled without wraparound OK" << std::endl;
+        else { std::cout << "  Message ID exhaustion FAILED" << std::endl; failures++; }
+
         s.close();
     }
     // reopen

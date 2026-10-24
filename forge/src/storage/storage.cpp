@@ -169,7 +169,7 @@ void Storage::setNextMessageId(uint32_t id) {
 // User operations
 bool Storage::createUser(const User& user) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    if (!isOpen_) return false;
+    if (!isOpen_ || user.id == 0) return false;
     std::vector<uint8_t> data = BinaryCodec::serializeUser(user);
     usersFile_.seekp(0, std::ios::end);
     usersFile_.write(reinterpret_cast<const char*>(data.data()), data.size());
@@ -283,7 +283,7 @@ std::vector<User> Storage::getAllUsers(bool includeDeleted) {
 // Message operations
 bool Storage::createMessage(const Message& message) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    if (!isOpen_) return false;
+    if (!isOpen_ || message.id == 0) return false;
     std::vector<uint8_t> data = BinaryCodec::serializeMessage(message);
     messagesFile_.seekp(0, std::ios::end);
     messagesFile_.write(reinterpret_cast<const char*>(data.data()), data.size());
@@ -392,7 +392,7 @@ std::vector<Message> Storage::getAllMessages(bool includeDeleted) {
 // Recipient operations
 bool Storage::createRecipient(const Recipient& recipient) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    if (!isOpen_) return false;
+    if (!isOpen_ || recipient.message_id == 0 || recipient.user_id == 0) return false;
     std::vector<uint8_t> data = BinaryCodec::serializeRecipient(recipient);
     recipientsFile_.seekp(0, std::ios::end);
     recipientsFile_.write(reinterpret_cast<const char*>(data.data()), data.size());

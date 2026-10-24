@@ -34,6 +34,7 @@ private:
     std::shared_ptr<AuthManager> authManager_;
     std::shared_ptr<httplib::Server> svr_;
     std::atomic<bool> running_{false};
+    std::atomic<bool> listenerSucceeded_{false};
     std::thread serverThread_;
 };
 

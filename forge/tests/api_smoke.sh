@@ -102,6 +102,14 @@ assert_code 400 "$code"
 code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/query" -H 'Content-Type: application/json' -d '{"query":"SELECT * FROM users;"}')
 assert_code 401 "$code"
 
+# The parser rejects malformed projections and injection-like trailing syntax.
+code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/query" -H "Authorization: Bearer $ALICE_TOKEN" -H 'Content-Type: application/json' -d '{"query":"SELECT *, email FROM users;"}')
+assert_code 400 "$code"
+code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/query" -H "Authorization: Bearer $ALICE_TOKEN" -H 'Content-Type: application/json' -d '{"query":"SELECT id FROM users WHERE email = '\''x'\'' OR '\''1'\'' = '\''1'\'';"}')
+assert_code 400 "$code"
+code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/query" -H "Authorization: Bearer $ALICE_TOKEN" -H 'Content-Type: application/json' -d '{"query":"SELECT id, FROM users;"}')
+assert_code 400 "$code"
+
 # Create a message from Alice to Bob; both sender and recipient can list/read it.
 code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/messages" -H "Authorization: Bearer $ALICE_TOKEN" -H 'Content-Type: application/json' -d "{\"subject\":\"Smoke subject\",\"body\":\"Smoke body\",\"recipients\":[{\"user_id\":$BOB_ID,\"type\":\"TO\"}]}")
 assert_code 201 "$code"
@@ -117,6 +125,32 @@ PY
 
 code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $BOB_TOKEN")
 assert_code 200 "$code"
+
+# SQL message visibility matches the REST authorization rules.
+code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/query" -H "Authorization: Bearer $BOB_TOKEN" -H 'Content-Type: application/json' -d '{"query":"SELECT id, subject FROM messages;"}')
+assert_code 200 "$code"
+python3 - "$RESPONSE" "$MESSAGE_ID" <<'PY'
+import json, sys
+r = json.load(open(sys.argv[1]))
+assert r["row_count"] == 1
+assert str(r["rows"][0]["id"]) == sys.argv[2]
+PY
+code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/query" -H "Authorization: Bearer $CAROL_TOKEN" -H 'Content-Type: application/json' -d '{"query":"SELECT id FROM messages;"}')
+assert_code 200 "$code"
+python3 - "$RESPONSE" <<'PY'
+import json, sys
+r = json.load(open(sys.argv[1]))
+assert r["row_count"] == 0 and r["rows"] == []
+PY
+code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/query" -H "Authorization: Bearer $ALICE_TOKEN" -H 'Content-Type: application/json' -d '{"query":"SELECT message_id, user_id, type FROM recipients WHERE message_id = 1 ORDER BY user_id ASC LIMIT 10;"}')
+assert_code 200 "$code"
+python3 - "$RESPONSE" <<'PY'
+import json, sys
+r = json.load(open(sys.argv[1]))
+assert r["row_count"] == 1
+assert r["rows"][0]["user_id"] == "2"
+assert r["rows"][0]["type"] == "TO"
+PY
 
 # A non-participant cannot read or delete the message.
 code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $CAROL_TOKEN")

@@ -159,6 +159,23 @@ bool ForgeServer::startInBackground() {
         res.set_content(response.dump(), "application/json");
     });
     
+    svr_->Get("/api/v1/users/lookup", [&](const httplib::Request& req, httplib::Response& res) {
+        const std::string auth = req.get_header_value("Authorization");
+        uint32_t uid = 0;
+        if (auth.rfind("Bearer ", 0) != 0 || !authManager_->validateSession(auth.substr(7), uid)) {
+            res.status = 401; res.set_content(R"({"error":"Unauthorized"})", "application/json"); return;
+        }
+        if (!req.has_param("email")) {
+            res.status = 400; res.set_content(R"({"error":"email query parameter required"})", "application/json"); return;
+        }
+        User user{};
+        if (!userService_->getUserByEmail(req.get_param_value("email"), user) || user.is_deleted) {
+            res.status = 404; res.set_content(R"({"error":"User not found"})", "application/json"); return;
+        }
+        json response; response["id"] = user.id; response["name"] = user.name; response["email"] = user.email;
+        res.set_content(response.dump(), "application/json");
+    });
+
     svr_->Get("/api/v1/users/me", [&](const httplib::Request& req, httplib::Response& res) {
         std::string auth = req.get_header_value("Authorization");
         if (auth.find("Bearer ") != 0 || auth.length() <= 7) {

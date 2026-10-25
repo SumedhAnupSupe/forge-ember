@@ -23,7 +23,9 @@ cleanup() {
     for pid in "${PIDS[@]}"; do wait "$pid" 2>/dev/null || true; done
   fi
 }
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 [[ -d "$FORGE_DIR" && -d "$BACKEND_DIR" && -d "$FRONTEND_DIR" ]] || die "Run this script from the repository checkout; expected forge/, backend/, and ember/posto-—-elegant-mail-client/."
 

@@ -41,7 +41,7 @@ async def list_mail(folder: str, authorization: str | None = Header(default=None
         raise HTTPException(status_code=404, detail="Unknown mailbox")
     token = require_token(authorization)
     me = await forge.me(token)
-    rows = await forge.messages(token)
+    rows = await forge.messages(token, include_deleted=(folder == "trash"))
     result = []
     for row in rows:
         message = await enrich(token, row)

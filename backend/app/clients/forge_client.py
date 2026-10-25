@@ -57,8 +57,8 @@ class ForgeClient:
     async def logout(self, token: str) -> None:
         await self.request("POST", "/api/v1/auth/logout", token=token)
 
-    async def messages(self, token: str) -> list[dict[str, Any]]:
-        data = await self.request("GET", "/api/v1/messages", token=token)
+    async def messages(self, token: str, include_deleted: bool = False) -> list[dict[str, Any]]:
+        data = await self.request("GET", "/api/v1/messages", token=token, params={"include_deleted": "true"} if include_deleted else None)
         if not isinstance(data, list):
             raise ForgeError("Unexpected FORGE message list response")
         return data

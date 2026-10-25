@@ -304,7 +304,7 @@ bool Storage::readMessage(uint32_t id, Message& message) {
         if (messagesFile_.gcount() != (std::streamsize)Message::ENCODED_RECORD_SIZE) return false;
         Message tempMsg;
         if (BinaryCodec::deserializeMessage(buffer, 0, tempMsg)) {
-            if (tempMsg.id == id && tempMsg.is_deleted == 0) {
+            if (tempMsg.id == id) {
                 message = tempMsg;
                 return true;
             }

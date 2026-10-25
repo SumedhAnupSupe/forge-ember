@@ -12,10 +12,7 @@ def require_token(authorization: str | None) -> str:
 
 
 async def query_user(token: str, user_id: int) -> dict:
-    rows = await forge.query(token, f"SELECT id, name, email, created_at FROM users WHERE id = {user_id} LIMIT 1")
-    if not rows:
-        raise HTTPException(status_code=502, detail=f"FORGE returned no user record for id {user_id}")
-    return rows[0]
+    return await forge.lookup_user_id(token, user_id)
 
 
 async def enrich(token: str, raw: dict) -> MessageOut:

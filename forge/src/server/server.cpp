@@ -480,6 +480,112 @@ bool ForgeServer::startInBackground() {
         res.set_content(response.dump(), "application/json");
     });
 
+    // Authenticated mailbox state mutation endpoints used by the FastAPI adapter.
+    // The current FORGE record layout stores read/star/trash flags on Message, so
+    // these flags are shared by all recipients until per-recipient state is modeled.
+    svr_->Patch(R"(/api/v1/messages/(\\d+)/state)", [&](const httplib::Request& req, httplib::Response& res) {
+        const std::string auth = req.get_header_value("Authorization");
+        uint32_t uid = 0;
+        if (auth.rfind("Bearer ", 0) != 0 || !authManager_->validateSession(auth.substr(7), uid)) {
+            res.status = 401; res.set_content(R"({"error":"Unauthorized"})", "application/json"); return;
+        }
+        try {
+            const auto body = json::parse(req.body);
+            if (!body.is_object() || body.size() != 1 ||
+                (!body.contains("is_read") && !body.contains("is_starred"))) {
+                res.status = 400; res.set_content(R"({"error":"Expected is_read or is_starred boolean"})", "application/json"); return;
+            }
+            const std::string field = body.contains("is_read") ? "is_read" : "is_starred";
+            if (!body[field].is_boolean()) {
+                res.status = 400; res.set_content(R"({"error":"State value must be boolean"})", "application/json"); return;
+            }
+            const uint32_t id = static_cast<uint32_t>(std::stoul(req.matches[1]));
+            Message message{};
+            if (!messageService_->getMessageById(id, message, false)) {
+                res.status = 404; res.set_content(R"({"error":"Message not found"})", "application/json"); return;
+            }
+            bool authorized = message.sender_id == uid;
+            std::vector<Recipient> recipients;
+            if (storage_->readRecipientsByMessage(id, recipients, false)) {
+                for (const auto& recipient : recipients) if (recipient.user_id == uid) authorized = true;
+            }
+            if (!authorized) {
+                res.status = 404; res.set_content(R"({"error":"Message not found"})", "application/json"); return;
+            }
+            if (field == "is_read") message.is_read = body[field].get<bool>() ? 1 : 0;
+            else message.is_starred = body[field].get<bool>() ? 1 : 0;
+            if (!messageService_->updateMessage(message)) {
+                res.status = 500; res.set_content(R"({"error":"Could not update message state"})", "application/json"); return;
+            }
+            res.set_content(R"({"status":"ok"})", "application/json");
+        } catch (...) {
+            res.status = 400; res.set_content(R"({"error":"Invalid request"})", "application/json");
+        }
+    });
+
+    svr_->Patch(R"(/api/v1/messages/(\\d+)/mailbox)", [&](const httplib::Request& req, httplib::Response& res) {
+        const std::string auth = req.get_header_value("Authorization");
+        uint32_t uid = 0;
+        if (auth.rfind("Bearer ", 0) != 0 || !authManager_->validateSession(auth.substr(7), uid)) {
+            res.status = 401; res.set_content(R"({"error":"Unauthorized"})", "application/json"); return;
+        }
+        try {
+            const auto body = json::parse(req.body);
+            if (!body.is_object() || !body.contains("is_deleted") || !body["is_deleted"].is_boolean()) {
+                res.status = 400; res.set_content(R"({"error":"Expected boolean is_deleted"})", "application/json"); return;
+            }
+            const uint32_t id = static_cast<uint32_t>(std::stoul(req.matches[1]));
+            Message message{};
+            if (!messageService_->getMessageById(id, message, false)) {
+                res.status = 404; res.set_content(R"({"error":"Message not found"})", "application/json"); return;
+            }
+            bool authorized = message.sender_id == uid;
+            std::vector<Recipient> recipients;
+            if (storage_->readRecipientsByMessage(id, recipients, false)) {
+                for (const auto& recipient : recipients) if (recipient.user_id == uid) authorized = true;
+            }
+            if (!authorized) {
+                res.status = 404; res.set_content(R"({"error":"Message not found"})", "application/json"); return;
+            }
+            message.is_deleted = body["is_deleted"].get<bool>() ? 1 : 0;
+            if (!messageService_->updateMessage(message)) {
+                res.status = 500; res.set_content(R"({"error":"Could not update mailbox state"})", "application/json"); return;
+            }
+            res.set_content(R"({"status":"ok"})", "application/json");
+        } catch (...) {
+            res.status = 400; res.set_content(R"({"error":"Invalid request"})", "application/json");
+        }
+    });
+
+    svr_->Delete(R"(/api/v1/messages/(\\d+)/mailbox)", [&](const httplib::Request& req, httplib::Response& res) {
+        const std::string auth = req.get_header_value("Authorization");
+        uint32_t uid = 0;
+        if (auth.rfind("Bearer ", 0) != 0 || !authManager_->validateSession(auth.substr(7), uid)) {
+            res.status = 401; res.set_content(R"({"error":"Unauthorized"})", "application/json"); return;
+        }
+        try {
+            const uint32_t id = static_cast<uint32_t>(std::stoul(req.matches[1]));
+            Message message{};
+            if (!messageService_->getMessageById(id, message, false)) {
+                res.status = 404; res.set_content(R"({"error":"Message not found"})", "application/json"); return;
+            }
+            bool authorized = message.sender_id == uid;
+            std::vector<Recipient> recipients;
+            if (storage_->readRecipientsByMessage(id, recipients, false)) {
+                for (const auto& recipient : recipients) if (recipient.user_id == uid) authorized = true;
+            }
+            if (!authorized) {
+                res.status = 404; res.set_content(R"({"error":"Message not found"})", "application/json"); return;
+            }
+            if (!messageService_->deleteMessage(id)) {
+                res.status = 500; res.set_content(R"({"error":"Could not permanently delete message"})", "application/json"); return;
+            }
+            res.set_content(R"({"status":"ok"})", "application/json");
+        } catch (...) {
+            res.status = 400; res.set_content(R"({"error":"Invalid request"})", "application/json");
+        }
+    });
+
     svr_->Post("/api/v1/query", [&](const httplib::Request& req, httplib::Response& res) {
         std::string auth = req.get_header_value("Authorization");
         if (auth.find("Bearer ") != 0 || auth.length() <= 7) {

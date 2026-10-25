@@ -202,11 +202,12 @@ bool ForgeServer::startInBackground() {
             res.set_content(err.dump(), "application/json");
             return;
         }
-        auto msgs = messageService_->getMessagesForUser(uid, false);
+        const bool includeDeleted = req.has_param("include_deleted") && req.get_param_value("include_deleted") == "true";
+        auto msgs = messageService_->getMessagesForUser(uid, includeDeleted);
         json arr = json::array();
         for (const auto& m : msgs) {
             json item;
-            item["id"] = m.id; item["sender_id"] = m.sender_id; item["subject"] = m.subject; item["body"] = m.body; item["created_at"] = m.created_at;
+            item["id"] = m.id; item["sender_id"] = m.sender_id; item["subject"] = m.subject; item["body"] = m.body; item["created_at"] = m.created_at; item["is_read"] = (m.is_read != 0); item["is_starred"] = (m.is_starred != 0); item["is_deleted"] = (m.is_deleted != 0);
             arr.push_back(item);
         }
         res.set_content(arr.dump(), "application/json");

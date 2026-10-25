@@ -506,7 +506,7 @@ bool ForgeServer::startInBackground() {
     // Authenticated mailbox state mutation endpoints used by the FastAPI adapter.
     // The current FORGE record layout stores read/star/trash flags on Message, so
     // these flags are shared by all recipients until per-recipient state is modeled.
-    svr_->Patch(R"(/api/v1/messages/(\\d+)/state)", [&](const httplib::Request& req, httplib::Response& res) {
+    svr_->Patch(R"(/api/v1/messages/(\d+)/state)", [&](const httplib::Request& req, httplib::Response& res) {
         const std::string auth = req.get_header_value("Authorization");
         uint32_t uid = 0;
         if (auth.rfind("Bearer ", 0) != 0 || !authManager_->validateSession(auth.substr(7), uid)) {
@@ -546,7 +546,7 @@ bool ForgeServer::startInBackground() {
         }
     });
 
-    svr_->Patch(R"(/api/v1/messages/(\\d+)/mailbox)", [&](const httplib::Request& req, httplib::Response& res) {
+    svr_->Patch(R"(/api/v1/messages/(\d+)/mailbox)", [&](const httplib::Request& req, httplib::Response& res) {
         const std::string auth = req.get_header_value("Authorization");
         uint32_t uid = 0;
         if (auth.rfind("Bearer ", 0) != 0 || !authManager_->validateSession(auth.substr(7), uid)) {
@@ -580,7 +580,7 @@ bool ForgeServer::startInBackground() {
         }
     });
 
-    svr_->Delete(R"(/api/v1/messages/(\\d+)/mailbox)", [&](const httplib::Request& req, httplib::Response& res) {
+    svr_->Delete(R"(/api/v1/messages/(\d+)/mailbox)", [&](const httplib::Request& req, httplib::Response& res) {
         const std::string auth = req.get_header_value("Authorization");
         uint32_t uid = 0;
         if (auth.rfind("Bearer ", 0) != 0 || !authManager_->validateSession(auth.substr(7), uid)) {

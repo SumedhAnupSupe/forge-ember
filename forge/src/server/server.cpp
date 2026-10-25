@@ -165,11 +165,16 @@ bool ForgeServer::startInBackground() {
         if (auth.rfind("Bearer ", 0) != 0 || !authManager_->validateSession(auth.substr(7), uid)) {
             res.status = 401; res.set_content(R"({"error":"Unauthorized"})", "application/json"); return;
         }
-        if (!req.has_param("email")) {
-            res.status = 400; res.set_content(R"({"error":"email query parameter required"})", "application/json"); return;
-        }
         User user{};
-        if (!userService_->getUserByEmail(req.get_param_value("email"), user) || user.is_deleted) {
+        bool found = false;
+        if (req.has_param("email")) found = userService_->getUserByEmail(req.get_param_value("email"), user);
+        else if (req.has_param("id")) {
+            try { found = userService_->getUserById(static_cast<uint32_t>(std::stoul(req.get_param_value("id"))), user); }
+            catch (...) { found = false; }
+        } else {
+            res.status = 400; res.set_content(R"({"error":"email or id query parameter required"})", "application/json"); return;
+        }
+        if (!found || user.is_deleted) {
             res.status = 404; res.set_content(R"({"error":"User not found"})", "application/json"); return;
         }
         json response; response["id"] = user.id; response["name"] = user.name; response["email"] = user.email;

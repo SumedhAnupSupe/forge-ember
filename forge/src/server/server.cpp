@@ -537,7 +537,7 @@ bool ForgeServer::startInBackground() {
             }
             const uint32_t id = static_cast<uint32_t>(std::stoul(req.matches[1]));
             Message message{};
-            if (!messageService_->getMessageById(id, message, false)) {
+            if (!messageService_->getMessageById(id, message, true)) {
                 res.status = 404; res.set_content(R"({"error":"Message not found"})", "application/json"); return;
             }
             bool authorized = message.sender_id == uid;

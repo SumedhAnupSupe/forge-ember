@@ -200,12 +200,17 @@ export default function App() {
 
   const handleQuickLogin = async (name: string, email: string) => {
     try {
-      const user = await mailService.login(email, 'secret');
+      let user: User;
+      try {
+        user = await mailService.login(email, 'secret123');
+      } catch {
+        user = await mailService.register(name, email, 'secret123');
+      }
       setCurrentUser(user);
       setSelectedMail(null);
       showToast(`Welcome, ${user.name}!`);
     } catch (err: any) {
-      showToast('Login failed: ' + err.message);
+      showToast('Quick login failed: ' + err.message);
     }
   };
 

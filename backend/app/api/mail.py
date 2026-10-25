@@ -76,12 +76,15 @@ async def send_mail(payload: SendMailRequest, authorization: str | None = Header
     emails = [str(r.email).lower() for r in payload.recipients]
     if len(set(emails)) != len(emails):
         raise HTTPException(status_code=422, detail="Duplicate recipient email")
-    users = await forge.query(token, "SELECT id, email FROM users")
     recipients = []
     for item, email in zip(payload.recipients, emails):
-        match = next((u for u in users if str(u.get("email", "")).lower() == email), None)
-        if match is None:
-            raise HTTPException(status_code=422, detail=f"Recipient account not found: {email}")
+        try:
+            match = await forge.lookup_user(token, email)
+        except Exception as exc:
+            from app.clients.forge_client import ForgeError
+            if isinstance(exc, ForgeError) and exc.status_code == 404:
+                raise HTTPException(status_code=422, detail=f"Recipient account not found: {email}") from exc
+            raise
         recipients.append({"user_id": int(match["id"]), "type": item.type})
     result = await forge.send(token, payload.subject, payload.body, recipients)
     return {"success": True, "id": int(result["id"])}

@@ -33,10 +33,10 @@ install_system_deps() {
   if command -v apt-get >/dev/null 2>&1; then
     info "Installing required system packages (sudo may ask for your password)..."
     if [[ $EUID -eq 0 ]]; then
-      apt-get update
+#      apt-get update
       DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake pkg-config libargon2-dev curl ca-certificates git python3 python3-venv
     elif command -v sudo >/dev/null 2>&1; then
-      sudo apt-get update
+#      sudo apt-get update
       sudo DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake pkg-config libargon2-dev curl ca-certificates git python3 python3-venv
     else
       die "apt-get is available but sudo is not. Install build-essential, cmake, pkg-config, libargon2-dev, curl, and python3-venv manually."

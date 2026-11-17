@@ -208,6 +208,24 @@ bool Storage::applyMessageTransaction(const Message& message,
             continue;
         }
         if (!createRecipient(recipient)) return false;
+        existingRecipients.push_back(recipient);
+    }
+
+    // Mailbox-state rows are part of the same journaled transaction. This
+    // closes the crash window between committing recipients and creating
+    // sender/recipient mailbox copies.
+    std::set<uint32_t> participants{message.sender_id};
+    for (const auto& recipient : recipients) participants.insert(recipient.user_id);
+    for (const uint32_t userId : participants) {
+        MailboxState existingState{};
+        if (readMailboxState(message.id, userId, existingState)) continue;
+        MailboxState state{};
+        state.message_id = message.id;
+        state.user_id = userId;
+        state.is_read = message.is_read;
+        state.is_starred = message.is_starred;
+        state.is_deleted = message.is_deleted;
+        if (!createMailboxState(state)) return false;
     }
     return true;
 }

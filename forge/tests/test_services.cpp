@@ -75,6 +75,26 @@ int test_services() {
                     std::cout << "  Sent/received message listing FAILED" << std::endl;
                     failures++;
                 }
+
+                MailboxState bobState{};
+                if (storage->readMailboxState(sent.id, u2.id, bobState)) {
+                    bobState.is_read = 1;
+                    if (storage->updateMailboxState(bobState)) {
+                        const auto senderAfterRead = messages.getMessagesForUser(u1.id);
+                        const auto recipientAfterRead = messages.getMessagesForUser(u2.id);
+                        const bool senderStillUnread = senderAfterRead.size() == 1 && !senderAfterRead[0].is_read;
+                        const bool recipientRead = recipientAfterRead.size() == 1 && recipientAfterRead[0].is_read;
+                        if (senderStillUnread && recipientRead)
+                            std::cout << "  Independent per-user read state OK" << std::endl;
+                        else { std::cout << "  Independent per-user read state FAILED" << std::endl; failures++; }
+                    } else {
+                        std::cout << "  Mailbox state update FAILED" << std::endl;
+                        failures++;
+                    }
+                } else {
+                    std::cout << "  Mailbox state creation FAILED" << std::endl;
+                    failures++;
+                }
             }
         }
     } else { failures++; }

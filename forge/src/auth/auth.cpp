@@ -109,10 +109,15 @@ bool AuthManager::verifyPassword(const std::string& password, const std::string&
 std::string AuthManager::createSession(uint32_t userId) {
     std::string token = generateToken();
     std::lock_guard<std::mutex> lock(mutex_);
+    const auto now = std::chrono::system_clock::now();
+    for (auto it = sessions_.begin(); it != sessions_.end();) {
+        if (it->second.expiresAt <= now) it = sessions_.erase(it);
+        else ++it;
+    }
     Session session;
     session.token = token;
     session.userId = userId;
-    session.createdAt = std::chrono::system_clock::now();
+    session.createdAt = now;
     session.expiresAt = session.createdAt + std::chrono::hours(24);
     sessions_[token] = session;
     return token;
@@ -170,6 +175,10 @@ void AuthManager::recordFailedLogin(const std::string& key) {
             [&](const auto& timestamp) { return timestamp < cutoff; }), failures.end());
         if (failures.empty()) it = failedLoginAttempts_.erase(it);
         else ++it;
+    }
+    if (failedLoginAttempts_.find(key) == failedLoginAttempts_.end() &&
+        failedLoginAttempts_.size() >= 10000) {
+        failedLoginAttempts_.erase(failedLoginAttempts_.begin());
     }
     failedLoginAttempts_[key].push_back(now);
 }

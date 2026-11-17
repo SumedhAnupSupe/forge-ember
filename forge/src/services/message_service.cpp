@@ -69,30 +69,7 @@ bool MessageService::createMessage(uint32_t senderId, const std::string& subject
     // appending either file. A pending transaction is replayed on next open.
     if (!storage_->createMessageWithRecipients(message, createdRecipients)) return false;
 
-    // Every participant receives an independent mailbox-state row. The sender
-    // is included even when they are not also listed as a recipient.
-    std::set<uint32_t> mailboxUsers{senderId};
-    for (const auto& recipient : recipients) mailboxUsers.insert(recipient.first);
-    bool allStatesCreated = true;
-    for (const uint32_t userId : mailboxUsers) {
-        MailboxState state{};
-        state.message_id = message.id;
-        state.user_id = userId;
-        if (!storage_->createMailboxState(state)) {
-            allStatesCreated = false;
-            break;
-        }
-    }
-    if (!allStatesCreated) {
-        storage_->deleteMailboxStatesByMessage(message.id);
-        const bool messageRolledBack = storage_->deleteMessage(message.id);
-        const bool recipientsRolledBack = storage_->deleteRecipientsByMessage(message.id);
-        if (!messageRolledBack || !recipientsRolledBack) {
-            std::cerr << "Message/mailbox-state rollback was incomplete for message "
-                      << message.id << std::endl;
-        }
-        return false;
-    }
+    // The FORGE write-ahead transaction also commits all participant mailbox states.
 
     // Publish index entries only after every record has been persisted.
     if (indexManager_) {

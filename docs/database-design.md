@@ -31,7 +31,7 @@ The legacy-adoption path is not a general schema migration framework. Future rec
 
 ## Message transaction recovery
 
-Message creation writes a versioned `message.txn` journal containing the encoded message and all recipient records, with a checksum, before appending either data file. Startup validates and replays a pending journal idempotently. If the final fixed-size record append was interrupted, recovery truncates only the incomplete tail and writes the complete record from the journal. The sender and active recipients' mailbox-state rows are then created; startup migration repairs missing rows if the process stops before that step. Both journals use stream flush and same-directory atomic rename; they do not currently issue OS-level `fsync`, so they are not guarantees against sudden power loss or storage-controller cache loss.
+Message creation writes a versioned `message.txn` journal containing the encoded message and all recipient records, with a checksum, before appending data. Startup validates and replays a pending journal idempotently. If a fixed-size record append was interrupted, recovery truncates only the incomplete tail and writes the complete record from the journal. Sender and recipient mailbox-state rows are created before the journal is removed, so a crash during state creation is replayable too. Legacy v1/manifest-less stores receive a one-time mailbox-state migration; v2 stores do not recreate missing rows, preventing permanently removed copies from reappearing. Both journals use stream flush and same-directory atomic rename; they do not currently issue OS-level `fsync`, so they are not guarantees against sudden power loss or storage-controller cache loss.
 
 ## Indexes
 

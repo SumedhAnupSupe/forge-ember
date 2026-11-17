@@ -209,36 +209,49 @@ export default function App() {
   const handleSelectMail = async (msg: Message) => {
     setSelectedMail(msg);
     if (!msg.is_read) {
-      await mailService.markAsRead(msg.id, true);
-      setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, is_read: true } : m));
-      setCounts(c => ({ ...c, inbox: Math.max(0, c.inbox - 1) }));
+      try {
+        await mailService.markAsRead(msg.id, true);
+        setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, is_read: true } : m));
+        setSelectedMail(prev => prev?.id === msg.id ? { ...prev, is_read: true } : prev);
+        setCounts(c => ({ ...c, inbox: Math.max(0, c.inbox - 1) }));
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : 'Could not mark message as read');
+      }
     }
   };
 
   const handleToggleStar = async (e: React.MouseEvent, msgId: number) => {
     e.stopPropagation();
-    const updated = await mailService.toggleStar(msgId);
-    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, is_starred: updated } : m));
-    if (selectedMail && selectedMail.id === msgId) {
-      setSelectedMail(prev => prev ? { ...prev, is_starred: updated } : null);
+    try {
+      const updated = await mailService.toggleStar(msgId);
+      setMessages(prev => prev.map(m => m.id === msgId ? { ...m, is_starred: updated } : m));
+      if (selectedMail && selectedMail.id === msgId) {
+        setSelectedMail(prev => prev ? { ...prev, is_starred: updated } : null);
+      }
+      setCounts(c => ({ ...c, starred: Math.max(0, c.starred + (updated ? 1 : -1)) }));
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not update star state');
     }
-    setCounts(c => ({ ...c, starred: c.starred + (updated ? 1 : -1) }));
   };
 
   const handleDeleteMail = async (e: React.MouseEvent, msgId: number) => {
     e.stopPropagation();
-    if (activeFolder === 'trash') {
-      await mailService.permanentDelete(msgId);
-      showToast('Permanently deleted mail');
-    } else {
-      await mailService.deleteMail(msgId);
-      showToast('Moved to Trash');
+    try {
+      if (activeFolder === 'trash') {
+        await mailService.permanentDelete(msgId);
+        showToast('Permanently deleted mail');
+      } else {
+        await mailService.deleteMail(msgId);
+        showToast('Moved to Trash');
+      }
+      setMessages(prev => prev.filter(m => m.id !== msgId));
+      if (selectedMail && selectedMail.id === msgId) {
+        setSelectedMail(null);
+      }
+      await loadMailbox();
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not update this message');
     }
-    setMessages(prev => prev.filter(m => m.id !== msgId));
-    if (selectedMail && selectedMail.id === msgId) {
-      setSelectedMail(null);
-    }
-    loadMailbox();
   };
 
   // Trigger Flight Animation when hitting Send Mail

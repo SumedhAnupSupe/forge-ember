@@ -389,9 +389,7 @@ int test_storage() {
         recipient.user_id = 2;
         std::strcpy(recipient.type, "TO");
         if (!purgeStorage.open() ||
-            !purgeStorage.createMessageWithRecipients(message, {recipient}) ||
-            !purgeStorage.createMailboxState(MailboxState{88, 1, 0, 0, 0}) ||
-            !purgeStorage.createMailboxState(MailboxState{88, 2, 0, 0, 0})) {
+            !purgeStorage.createMessageWithRecipients(message, {recipient})) {
             std::cout << "  Purge recovery fixture setup FAILED" << std::endl;
             failures++;
         }

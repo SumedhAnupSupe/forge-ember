@@ -76,13 +76,21 @@ class MailService {
     } finally { this.clearSession(); }
   }
 
-  private list(folder: string): Promise<Message[]> {
-    return this.request<Message[]>(`/mail/${folder}?sort=newest`);
+  private list(folder: string, options: {
+    q?: string; sort?: 'newest' | 'oldest'; limit?: number; offset?: number;
+  } = {}): Promise<Message[]> {
+    const params = new URLSearchParams({
+      sort: options.sort ?? 'newest',
+      limit: String(options.limit ?? 50),
+      offset: String(options.offset ?? 0),
+    });
+    if (options.q?.trim()) params.set('q', options.q.trim());
+    return this.request<Message[]>(`/mail/${folder}?${params.toString()}`);
   }
-  public getInbox(): Promise<Message[]> { return this.list('inbox'); }
-  public getSent(): Promise<Message[]> { return this.list('sent'); }
-  public getStarred(): Promise<Message[]> { return this.list('starred'); }
-  public getTrash(): Promise<Message[]> { return this.list('trash'); }
+  public getInbox(options?: { q?: string; sort?: 'newest' | 'oldest'; limit?: number; offset?: number }): Promise<Message[]> { return this.list('inbox', options); }
+  public getSent(options?: { q?: string; sort?: 'newest' | 'oldest'; limit?: number; offset?: number }): Promise<Message[]> { return this.list('sent', options); }
+  public getStarred(options?: { q?: string; sort?: 'newest' | 'oldest'; limit?: number; offset?: number }): Promise<Message[]> { return this.list('starred', options); }
+  public getTrash(options?: { q?: string; sort?: 'newest' | 'oldest'; limit?: number; offset?: number }): Promise<Message[]> { return this.list('trash', options); }
 
   public async sendMail(payload: {
     subject: string; body: string;

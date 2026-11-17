@@ -37,7 +37,7 @@ flowchart TD
 - FORGE returns a viewer-scoped sender/recipient envelope with each message: senders see the full envelope, ordinary recipients see TO/CC, and each BCC recipient sees only their own BCC entry. EMBER applies a second BCC filter as defense in depth.
 - Read/star/trash state is stored independently per `(message_id, user_id)` in `mailbox_states.dat`; legacy message flags are retained for migration compatibility.
 - Message plus recipient creation is journaled and replayed idempotently on startup. The journal does not yet cover all update/delete operations and does not call OS-level `fsync`.
-- Permanent removal deletes the caller's mailbox-state row. Physical compaction of the shared message and recipient records after the final participant removes their copy remains outstanding.
+- Permanent removal deletes the caller's mailbox-state row. When no participant state remains, FORGE replays a purge journal to compact the message, recipient, and mailbox-state files.
 
 ## Container networking
 

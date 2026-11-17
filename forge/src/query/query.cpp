@@ -476,13 +476,19 @@ QueryResult QueryExecutor::execute(const std::string& query, uint32_t authentica
         std::unordered_set<uint32_t> visibleMessageIds;
         if (authenticatedUserId != 0) {
             for (const auto& recipient : storage_->getAllRecipients(false)) {
-                if (recipient.user_id == authenticatedUserId && recipient.is_deleted == 0)
+                MailboxState state{};
+                if (recipient.user_id == authenticatedUserId && recipient.is_deleted == 0 &&
+                    storage_->readMailboxState(recipient.message_id, authenticatedUserId, state))
                     visibleMessageIds.insert(recipient.message_id);
             }
         }
         for (const auto& m : messages) {
-            if (authenticatedUserId != 0 && m.sender_id != authenticatedUserId &&
-                visibleMessageIds.find(m.id) == visibleMessageIds.end()) continue;
+            if (authenticatedUserId != 0) {
+                const bool sender = m.sender_id == authenticatedUserId;
+                if (!sender && visibleMessageIds.find(m.id) == visibleMessageIds.end()) continue;
+                MailboxState state{};
+                if (!storage_->readMailboxState(m.id, authenticatedUserId, state)) continue;
+            }
             if (!node.whereColumn.empty()) {
                 bool matches = false;
                 if (node.whereColumn == "id") matches = node.whereValue == std::to_string(m.id);
@@ -577,11 +583,19 @@ QueryResult QueryExecutor::execute(const std::string& query, uint32_t authentica
         auto all = storage_->getAllRecipients(false);
         std::unordered_map<uint32_t, uint32_t> messageSenders;
         std::unordered_set<uint32_t> visibleMessageIds;
+        std::unordered_set<uint32_t> senderMessageIds;
         if (authenticatedUserId != 0) {
-            for (const auto& message : storage_->getAllMessages(false))
+            for (const auto& message : storage_->getAllMessages(false)) {
                 messageSenders[message.id] = message.sender_id;
+                MailboxState state{};
+                if (message.sender_id == authenticatedUserId &&
+                    storage_->readMailboxState(message.id, authenticatedUserId, state))
+                    senderMessageIds.insert(message.id);
+            }
             for (const auto& recipient : all) {
-                if (recipient.user_id == authenticatedUserId)
+                MailboxState state{};
+                if (recipient.user_id == authenticatedUserId &&
+                    storage_->readMailboxState(recipient.message_id, authenticatedUserId, state))
                     visibleMessageIds.insert(recipient.message_id);
             }
         }
@@ -589,7 +603,8 @@ QueryResult QueryExecutor::execute(const std::string& query, uint32_t authentica
             if (authenticatedUserId != 0) {
                 const auto parent = messageSenders.find(r.message_id);
                 if (parent == messageSenders.end()) continue;
-                const bool isSender = parent->second == authenticatedUserId;
+                const bool isSender = parent->second == authenticatedUserId &&
+                    senderMessageIds.find(r.message_id) != senderMessageIds.end();
                 if (!isSender && visibleMessageIds.find(r.message_id) == visibleMessageIds.end())
                     continue;
                 // Participants may see TO/CC entries, but BCC identities are

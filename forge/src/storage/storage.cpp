@@ -215,7 +215,7 @@ bool Storage::applyMessageTransaction(const Message& message,
 bool Storage::createMessageWithRecipients(const Message& message,
                                           const std::vector<Recipient>& recipients) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    if (!isOpen_ || message.id == 0 || recipients.empty() ||
+    if (!isOpen_ || message.id == 0 || message.sender_id == 0 || recipients.empty() ||
         recipients.size() > kMaxJournalRecipients) return false;
 
     const auto journalPath = std::filesystem::path(dataDir_) / "message.txn";
@@ -225,10 +225,17 @@ bool Storage::createMessageWithRecipients(const Message& message,
     if (ec) return false;
     if (journalExists && !recoverPendingMessageTransaction()) return false;
 
+    Message duplicateMessage{};
+    if (readMessage(message.id, duplicateMessage)) return false;
+    std::vector<Recipient> duplicateRecipients;
+    if (readRecipientsByMessage(message.id, duplicateRecipients, true)) return false;
+
     std::vector<uint8_t> payload = BinaryCodec::serializeMessage(message);
     std::set<uint32_t> uniqueUsers;
     for (const auto& recipient : recipients) {
+        const std::string recipientType(recipient.type);
         if (recipient.message_id != message.id || recipient.user_id == 0 ||
+            (recipientType != "TO" && recipientType != "CC" && recipientType != "BCC") ||
             !uniqueUsers.insert(recipient.user_id).second) return false;
         const auto bytes = BinaryCodec::serializeRecipient(recipient);
         payload.insert(payload.end(), bytes.begin(), bytes.end());

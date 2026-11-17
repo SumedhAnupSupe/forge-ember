@@ -79,5 +79,26 @@ int test_codec() {
         std::cout << "  Unterminated field deserialization rejected OK" << std::endl;
     }
 
+    MailboxState mailboxState{};
+    mailboxState.message_id = 42;
+    mailboxState.user_id = 7;
+    mailboxState.is_read = 1;
+    mailboxState.is_starred = 0;
+    mailboxState.is_deleted = 1;
+    const auto stateBytes = BinaryCodec::serializeMailboxState(mailboxState);
+    MailboxState decodedState{};
+    if (stateBytes.size() == MailboxState::ENCODED_RECORD_SIZE &&
+        BinaryCodec::deserializeMailboxState(stateBytes, 0, decodedState) &&
+        decodedState.message_id == mailboxState.message_id &&
+        decodedState.user_id == mailboxState.user_id &&
+        decodedState.is_read == mailboxState.is_read &&
+        decodedState.is_starred == mailboxState.is_starred &&
+        decodedState.is_deleted == mailboxState.is_deleted) {
+        std::cout << "  Mailbox state round-trip OK" << std::endl;
+    } else {
+        std::cout << "  Mailbox state round-trip FAILED" << std::endl;
+        failures++;
+    }
+
     return failures;
 }

@@ -17,8 +17,9 @@ def test_mailbox_search_sort_and_offset_pagination(monkeypatch) -> None:
             {"id": 12, "sender_id": 1, "subject": "alpha second", "body": "three", "created_at": 10},
         ]
 
-    async def lookup_user_id(_token: str, user_id: int) -> dict:
+    async def lookup_user_id(_token: str, user_id: int, message_id: int) -> dict:
         assert user_id == 1
+        assert message_id in {10, 11, 12}
         return {"id": 1, "name": "Alice", "email": "alice@example.com"}
 
     async def query(_token: str, _sql: str) -> list[dict]:

@@ -43,9 +43,6 @@ bool ForgeServer::startInBackground() {
         std::vector<Recipient> recipients;
         if (storage_->readRecipientsByMessage(message.id, recipients, false)) {
             for (const auto& recipient : recipients) {
-                MailboxState recipientState{};
-                if (!storage_->readMailboxState(message.id, recipient.user_id, recipientState))
-                    continue;
                 const bool isSender = message.sender_id == viewerId;
                 const std::string recipientType(recipient.type);
                 if (!isSender && recipientType == "BCC" && recipient.user_id != viewerId)

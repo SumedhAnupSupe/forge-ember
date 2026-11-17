@@ -46,10 +46,10 @@ bool initializeStorageFormat(const std::string& dataDir) {
     {
         std::ofstream output(temporaryPath, std::ios::binary | std::ios::trunc);
         if (!output.is_open()) return false;
-        output << "FORGE_STORAGE\\n" << kStorageFormatVersion << "\\n"
+        output << "FORGE_STORAGE\n" << kStorageFormatVersion << "\n"
                << forge::User::ENCODED_RECORD_SIZE << " "
                << forge::Message::ENCODED_RECORD_SIZE << " "
-               << forge::Recipient::ENCODED_RECORD_SIZE << "\\n";
+               << forge::Recipient::ENCODED_RECORD_SIZE << "\n";
         output.flush();
         if (!output.good()) {
             output.close();

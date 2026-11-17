@@ -37,6 +37,8 @@ jobs:
         run: timeout 180s cmake --build build/forge --clean-first --parallel 2
       - name: Test
         run: ctest --test-dir build/forge --output-on-failure --verbose --timeout 30
+      - name: Benchmark smoke
+        run: timeout 60s build/forge/forge-benchmarks --messages 100
       - name: API smoke test
         run: timeout 120s bash forge/tests/api_smoke.sh
 

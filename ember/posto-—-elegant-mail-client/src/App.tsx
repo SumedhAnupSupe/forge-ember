@@ -29,7 +29,7 @@ import { Logo } from './components/Logo';
 import { PostalAnimation } from './components/PostalAnimation';
 import { SendFlightAnimation } from './components/SendFlightAnimation';
 import { mailService } from './services/api';
-import { Message, User } from './types';
+import { Message, RecipientType, User } from './types';
 
 type ActiveFolder = 'inbox' | 'starred' | 'sent' | 'trash';
 type FilterCategory = 'all' | 'unread' | 'starred' | 'attachments';
@@ -77,6 +77,8 @@ export default function App() {
   // Compose Modal State
   const [isComposeOpen, setIsComposeOpen] = useState<boolean>(false);
   const [composeTo, setComposeTo] = useState<string>('');
+  const [composeCc, setComposeCc] = useState<string>('');
+  const [composeBcc, setComposeBcc] = useState<string>('');
   const [composeSubject, setComposeSubject] = useState<string>('');
   const [composeBody, setComposeBody] = useState<string>('');
   const [composeTag, setComposeTag] = useState<string>('General');
@@ -86,6 +88,7 @@ export default function App() {
     senderName: string;
     senderEmail: string;
     recipientEmail: string;
+    recipients: { email: string; type: RecipientType }[];
     subject: string;
     body: string;
     tag: string;
@@ -282,17 +285,28 @@ export default function App() {
   // Trigger Flight Animation when hitting Send Mail
   const handleSendCompose = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!composeTo.trim()) {
-      showToast('Please specify a recipient');
+    if (!currentUser) return;
+    const recipients: { email: string; type: RecipientType }[] = [
+      ...composeTo.split(',').map(email => ({ email: email.trim(), type: 'TO' as const })),
+      ...composeCc.split(',').map(email => ({ email: email.trim(), type: 'CC' as const })),
+      ...composeBcc.split(',').map(email => ({ email: email.trim(), type: 'BCC' as const })),
+    ].filter(recipient => recipient.email.length > 0);
+    if (recipients.length === 0) {
+      showToast('Add at least one recipient');
       return;
     }
-    if (!currentUser) return;
+    const normalizedEmails = recipients.map(recipient => recipient.email.toLowerCase());
+    if (new Set(normalizedEmails).size !== normalizedEmails.length) {
+      showToast('A recipient can appear only once across To, CC, and BCC');
+      return;
+    }
 
-    // Launch the cool send flight animation!
+    // Launch the send-flight animation with the complete recipient envelope.
     setActiveFlight({
       senderName: currentUser.name,
       senderEmail: currentUser.email,
-      recipientEmail: composeTo.trim(),
+      recipientEmail: recipients.map(recipient => recipient.email).join(', '),
+      recipients,
       subject: composeSubject.trim() || '(No Subject)',
       body: composeBody,
       tag: composeTag,
@@ -307,11 +321,13 @@ export default function App() {
       await mailService.sendMail({
         subject: activeFlight.subject,
         body: activeFlight.body,
-        recipients: activeFlight.recipientEmail.split(',').map(s => s.trim()).filter(Boolean).map(email => ({ email, type: 'TO' as const })),
+        recipients: activeFlight.recipients,
         tag: activeFlight.tag,
       });
       showToast(`Mail delivered to ${activeFlight.recipientEmail}! 💌`);
       setComposeTo('');
+      setComposeCc('');
+      setComposeBcc('');
       setComposeSubject('');
       setComposeBody('');
       setActiveFlight(null);
@@ -332,6 +348,7 @@ export default function App() {
       senderName: currentUser.name,
       senderEmail: currentUser.email,
       recipientEmail: selectedMail.sender.email,
+      recipients: [{ email: selectedMail.sender.email, type: 'TO' }],
       subject: `Re: ${selectedMail.subject}`,
       body: replyText + `\n\n--- In reply to ${selectedMail.sender.name} ---`,
       tag: 'Reply',
@@ -1010,11 +1027,32 @@ export default function App() {
               <div>
                 <label className="text-xs font-bold text-[#543825] block mb-1">To</label>
                 <input
-                  type="email"
-                  required
+                  type="text"
                   value={composeTo}
                   onChange={(e) => setComposeTo(e.target.value)}
-                  placeholder="recipient@example.com"
+                  placeholder="recipient@example.com, another@example.com"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#D5C1A6] text-xs font-mono text-[#2D1C13] focus:outline-none focus:ring-1 focus:ring-[#C8622A]"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#543825] block mb-1">CC</label>
+                <input
+                  type="text"
+                  value={composeCc}
+                  onChange={(e) => setComposeCc(e.target.value)}
+                  placeholder="Optional CC recipients, comma separated"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#D5C1A6] text-xs font-mono text-[#2D1C13] focus:outline-none focus:ring-1 focus:ring-[#C8622A]"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#543825] block mb-1">BCC</label>
+                <input
+                  type="text"
+                  value={composeBcc}
+                  onChange={(e) => setComposeBcc(e.target.value)}
+                  placeholder="Optional BCC recipients, comma separated"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#D5C1A6] text-xs font-mono text-[#2D1C13] focus:outline-none focus:ring-1 focus:ring-[#C8622A]"
                 />
               </div>

@@ -28,6 +28,7 @@ public:
     
     // Message operations
     bool createMessage(const Message& message);
+    bool createMessageWithRecipients(const Message& message, const std::vector<Recipient>& recipients);
     bool readMessage(uint32_t id, Message& message);
     bool updateMessage(const Message& message);
     bool deleteMessage(uint32_t id);
@@ -72,6 +73,9 @@ private:
     void closeFiles();
     bool scanForMaxIds();
     bool migrateMailboxStates();
+    bool recoverPendingMessageTransaction();
+    bool applyMessageTransaction(const Message& message, const std::vector<Recipient>& recipients);
+    bool repairTrailingPartialRecord(const std::string& filename, size_t recordSize);
 };
 
 } // namespace forge

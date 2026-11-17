@@ -1209,7 +1209,13 @@ bool Storage::removeMailboxState(uint32_t messageId, uint32_t userId) {
     }
     mailboxStatesFile_.clear();
     mailboxStatesFile_.open(sourcePath, std::ios::binary | std::ios::in | std::ios::out);
-    return mailboxStatesFile_.is_open();
+    if (!mailboxStatesFile_.is_open()) return false;
+
+    const auto remainingStates = getAllMailboxStates();
+    const bool hasOtherParticipant = std::any_of(remainingStates.begin(), remainingStates.end(),
+        [&](const MailboxState& state) { return state.message_id == messageId; });
+    if (!hasOtherParticipant) return purgeMessageRecords(messageId);
+    return true;
 }
 
 } // namespace forge

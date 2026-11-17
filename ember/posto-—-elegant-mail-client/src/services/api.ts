@@ -95,8 +95,6 @@ class MailService {
   public async sendMail(payload: {
     subject: string; body: string;
     recipients: { email: string; name?: string; type: RecipientType }[];
-    tag?: string; attachment?: { name: string; size: string };
-    wax_seal?: 'monogram' | 'oak' | 'crest' | 'star';
   }): Promise<Message> {
     const created = await this.request<{ success: boolean; id: number }>('/mail', {
       method: 'POST',

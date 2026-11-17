@@ -17,7 +17,7 @@ EMBER is the browser-facing API. OpenAPI is available at `/docs` when the backen
 | PATCH | `/api/v1/mail/{message_id}/star` | Change starred state |
 | DELETE | `/api/v1/mail/{message_id}` | Move message to trash |
 | POST | `/api/v1/mail/{message_id}/restore` | Restore message from trash |
-| DELETE | `/api/v1/mail/{message_id}/permanent` | Remove the caller's mailbox-state row; shared message/recipient record compaction after the last participant removes their copy is not yet implemented |
+| DELETE | `/api/v1/mail/{message_id}/permanent` | Remove the caller's mailbox-state row; when it is the final participant, FORGE physically compacts the message, recipient, and mailbox-state records using a replayable purge journal |
 
 ## Mailbox query parameters
 
@@ -41,4 +41,4 @@ EMBER uses FORGE's authenticated REST API for users, messages, recipient lookup,
 ## Known contract gaps
 
 - Draft, reply-all, forwarding, and thread APIs are not implemented.
-- Permanent delete removes the caller's copy; shared physical compaction after the last participant removes their copy is still outstanding.
+- Draft, reply-all, forwarding, and thread APIs are not implemented.

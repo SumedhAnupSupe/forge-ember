@@ -109,6 +109,14 @@ int test_services() {
                                 failures++;
                             }
 
+                            storage->close();
+                            const bool reopened = storage->open();
+                            const bool indexesRebuilt = reopened && im->buildIndexes();
+                            if (indexesRebuilt && messages.getMessagesForUser(u1.id).size() == 1 &&
+                                messages.getMessagesForUser(u2.id).empty())
+                                std::cout << "  Restart does not resurrect removed mailbox copy OK" << std::endl;
+                            else { std::cout << "  Removed mailbox copy resurrected after restart" << std::endl; failures++; }
+
                             if (messages.removeMailboxCopy(sent.id, u1.id)) {
                                 Message purgedMessage{};
                                 std::vector<Recipient> purgedRecipients;

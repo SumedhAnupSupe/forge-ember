@@ -63,17 +63,43 @@ Legend: **W** working (verified), **I** implemented, not verified, **P** partial
 Per-user mailbox state requires a new FORGE record type and a migration for existing `.dat` files. See the plan, task P3-1.
 
 
-## Implementation progress after Phase 1
+## Verified implementation progress
 
-The following changes have been committed to this branch after the Phase 1 baseline. They are **implemented but unverified** because this session could not obtain a local repository checkout or execute the build/test commands.
+Latest verified CI run: [run 145](https://github.com/SumedhAnupSupe/forge-ember/actions/runs/43996583436). All four jobs passed:
 
-- FORGE storage manifest format v2 validates record sizes, adds mailbox-state size, and upgrades v1/manifest-less stores after validating the existing record files.
-- Added MailboxState (11-byte record) and mailbox_states.dat, migration of sender/recipient flags, per-user read/star/trash mutations, and per-user mailbox-row removal. Tests were added for codec, migration, state isolation, and removal.
-- FORGE codec now bounds fixed-width string scans and rejects unterminated fields on serialize/deserialize. Tests cover malformed fields and legacy/corrupt manifests.
-- Fixed a malformed null-terminator literal in UserService::updateUser.
-- EMBER recipient enrichment now filters BCC identities according to the viewer; focused sender/TO/BCC visibility tests were added.
-- EMBER mailbox listing accepts bounded limit and offset.
-- POSTO passes search/sort/pagination parameters to EMBER, supports loading additional pages, no longer pre-fills demo credentials or exposes one-click test accounts, and reports failed mailbox mutations rather than showing success.
-- Added a full-stack CI workflow and Docker/Compose assets.
+| Job | Verification |
+|---|---|
+| FORGE | C++ build, CTest suite, and API smoke test |
+| EMBER | Ruff and pytest (7 tests) |
+| POSTO | TypeScript check and Vite production build |
+| Docker | Compose configuration validation and all service image builds |
 
-Not implemented yet: physical compaction/purge of shared message and recipient records after the last participant removes their mailbox copy, write-ahead recovery, drafts, reply-all/threading, efficient batch retrieval, end-to-end three-user tests, complete frontend test suite, measured benchmarks, reproducible demo, and final implementation report. No new build, test, Docker, or CI success is claimed.
+### Implemented and verified
+
+- FORGE storage manifest v2, legacy v1/manifest-less migration, fixed-width string validation, and mailbox-state record migration.
+- Restart ID restoration and \`uint32\` ID exhaustion handling.
+- Checksummed message/recipient write-ahead journal, idempotent replay, and recovery of incomplete final records.
+- Hash collision-chain lookup, deduplication, removal, and global-delete index cleanup.
+- Independent read/star/trash state per \`(message_id, user_id)\`.
+- BCC visibility enforced in FORGE response envelopes and restricted SQL query results, with a second EMBER filter.
+- Sender/recipient message envelopes are returned in the FORGE response, removing EMBER's per-recipient HTTP lookup chain.
+- Four-user API smoke coverage: sender, TO recipient, BCC recipient, unrelated user; mailbox-state isolation; per-user permanent removal; global deletion; restart.
+- EMBER bounded pagination/search/sort and POSTO load-more; CC/BCC compose controls; removal of unsupported tag/attachment affordances and default demo credentials.
+- Docker Compose config and all three images build in CI.
+
+### Remaining work — not marked complete
+
+- **P2-5:** concurrency stress tests and a deeper locking review across storage, indexes, and sessions.
+- **P2-6/P2-7:** dedicated lifecycle/health tests and additional CLI behavior/exit-code coverage.
+- **P3-4:** physical compaction of shared message and recipient records after the final participant permanently removes their mailbox copy.
+- **P3-5:** login rate limiting and further authentication/error-hygiene tests. Session expiry exists, but UI session-expiry handling is incomplete.
+- **P4:** drafts, reply/reply-all/forward, threading, broader pagination/search tests, and performance benchmarks for batch retrieval.
+- **P5:** split the large App component, add draft/thread UI, complete session-expiry and loading/empty/error UX, and add frontend component tests.
+- **P6:** more failure-injection and concurrent multi-user integration scenarios.
+- **P8:** measured benchmarks with environment details, reproducible demo, screenshots, and final report.
+
+The write-ahead journal currently uses stream flush plus same-directory atomic rename; it does not issue OS-level \`fsync\` and does not cover every update/delete operation. The final shared-record purge is also not implemented. These are explicit limitations, not claimed guarantees.
+
+## Repository hygiene and provenance
+
+Phase 1 was already present on \`feature/full-stack-improvements\` before work continued. The branch is based on the Phase 1 audit/hygiene commit; no destructive history rewrite or main-branch change was performed. The full Git history has not been scanned for secrets.

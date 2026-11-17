@@ -268,7 +268,7 @@ bool ForgeServer::startInBackground() {
         }
     });
     
-    svr_->Get("/api/v1/messages", [&](const httplib::Request& req, httplib::Response& res) {
+    svr_->Get("/api/v1/messages", [&, appendEnvelope](const httplib::Request& req, httplib::Response& res) {
         std::string auth = req.get_header_value("Authorization");
         if (auth.find("Bearer ") != 0 || auth.length() <= 7) {
             res.status = 401;

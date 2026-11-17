@@ -40,24 +40,39 @@ Legend: **W** working (verified), **I** implemented, not verified, **P** partial
 |---|---|---|---|
 | FORGE | Build, unit tests | W | Section above |
 | FORGE | Read-only SELECT endpoint, auth row filtering | I | `REPAIR_TODO.md` claims; not re-verified |
-| FORGE | Storage validation, versioning, corruption handling | Not yet verified | `REPAIR_TODO.md` section D is unchecked |
+| FORGE | Storage validation, versioning, corruption handling | I - not yet verified | Added format.meta v1 validation/legacy adoption, fixed-width string terminator validation, and tests; not run in this environment |
 | FORGE | Transactions / recovery for multi-record writes | P | Docs describe best-effort rollback only |
 | FORGE | Concurrency safety | Not yet verified | Needs code review of server/storage locking |
 | FORGE | CI | P | Workflow triggers only on `main` and one fix branch; no EMBER/POSTO jobs |
 | EMBER | Register/login/logout/me | I | Routes exist in `backend/app/api/auth.py` |
 | EMBER | Mail folders, send, read/star/trash/restore, permanent delete | I | Routes exist in `mail.py`; tests cover little |
-| EMBER | Per-user mailbox state | **A** | `is_read`/`is_starred`/`is_deleted` live on the message record (`server.cpp` PATCH routes, `schemas.py`). One user's action changes every participant's view |
-| EMBER | BCC privacy | Not yet verified, likely B | Message enrichment returns recipient lists; no visibility filtering seen in `mail.py` |
-| EMBER | Pagination / server-side search | M | `GET /{folder}` returns a plain list and filters in Python |
+| EMBER | Per-user mailbox state | **A** | Still stored on the message record; requires a new FORGE record type and data migration. Not implemented yet |
+| EMBER | BCC privacy | I - not yet verified | mail.py now filters BCC identities for non-senders and exposes only a BCC viewer's own address; three focused tests added, not run |
+| EMBER | Pagination / server-side search | I - not yet verified | Bounded limit/offset, backend query/sort, and POSTO load-more wired; pagination is still offset-based and tests are pending |
 | EMBER | Drafts | M | No draft routes |
 | EMBER | Reply / reply-all / forward, threading | M | No routes or thread fields |
 | EMBER | Login rate limiting, cookie sessions | M | Not present |
 | EMBER | Tests | P | 2 tests |
-| POSTO | Auth, folders, compose, reply UI | I | Single `App.tsx`; not yet exercised against a live backend |
+| POSTO | Auth, folders, compose, reply UI | I - not yet verified | Removed hardcoded default/demo credentials; action failures now surface instead of falsely mutating UI; backend search and load-more wired |
 | POSTO | Tests | M | No test runner configured |
-| Infra | Dockerfiles, compose, `.env.example` for all services | M | Only `backend/.env.example` exists |
+| Infra | Dockerfiles, compose, `.env.example` for all services | I - not yet verified | Added FORGE/EMBER/POSTO Dockerfiles, Compose, root .env.example, .dockerignore, and full-stack CI workflow; not built/run yet |
 | Docs | Root README, architecture, API docs | Not yet verified | |
 
 ## Open question for the project owner
 
 Per-user mailbox state requires a new FORGE record type and a migration for existing `.dat` files. See the plan, task P3-1.
+
+
+## Implementation progress after Phase 1
+
+The following changes have been committed to this branch after the Phase 1 baseline. They are **implemented but unverified** because this session could not obtain a local repository checkout or execute the build/test commands.
+
+- FORGE storage manifest (format.meta, version 1) validates record sizes and rejects unknown/incompatible manifests. Existing manifest-less stores are scanned first and then tagged; existing .dat files are not rewritten.
+- FORGE codec now bounds fixed-width string scans and rejects unterminated fields on serialize/deserialize. Tests were added for malformed fields and legacy/corrupt manifests.
+- Fixed a malformed null-terminator literal in UserService::updateUser.
+- EMBER recipient enrichment now filters BCC identities according to the viewer; focused sender/TO/BCC visibility tests were added.
+- EMBER mailbox listing accepts bounded limit and offset.
+- POSTO passes search/sort/pagination parameters to EMBER, supports loading additional pages, no longer pre-fills demo credentials or exposes one-click test accounts, and reports failed mailbox mutations rather than showing success.
+- Added a full-stack CI workflow and Docker/Compose assets.
+
+Not implemented yet: per-user mailbox state, physical message purge, write-ahead recovery, drafts, reply-all/threading, efficient batch retrieval, end-to-end three-user tests, complete frontend test suite, and final documentation/benchmark/demo deliverables. No new build, test, Docker, or CI success is claimed.

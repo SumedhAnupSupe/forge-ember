@@ -371,6 +371,64 @@ int test_storage() {
     }
     std::filesystem::remove_all(journalDir);
 
+
+    // Replay a pending last-participant purge after the message file has
+    // already been replaced, proving the multi-file compaction is idempotent.
+    const auto purgeDir = std::filesystem::temp_directory_path() /
+        ("forge_purge_recovery_test_" + std::to_string(time(nullptr)));
+    std::filesystem::create_directories(purgeDir);
+    {
+        Storage purgeStorage(purgeDir.string());
+        Message message{};
+        message.id = 88;
+        message.sender_id = 1;
+        std::strcpy(message.subject, "Purge recovery");
+        std::strcpy(message.body, "remove all copies");
+        Recipient recipient{};
+        recipient.message_id = 88;
+        recipient.user_id = 2;
+        std::strcpy(recipient.type, "TO");
+        if (!purgeStorage.open() ||
+            !purgeStorage.createMessageWithRecipients(message, {recipient}) ||
+            !purgeStorage.createMailboxState(MailboxState{88, 1, 0, 0, 0}) ||
+            !purgeStorage.createMailboxState(MailboxState{88, 2, 0, 0, 0})) {
+            std::cout << "  Purge recovery fixture setup FAILED" << std::endl;
+            failures++;
+        }
+        purgeStorage.close();
+    }
+    {
+        std::ofstream messages(purgeDir / "messages.dat", std::ios::binary | std::ios::trunc);
+        messages.close();
+        std::vector<uint8_t> purgePayload;
+        appendJournalU32(purgePayload, 88);
+        std::vector<uint8_t> purgeJournal;
+        const char purgeMagic[8] = {'F', 'O', 'R', 'G', 'E', 'P', 'U', 'R'};
+        purgeJournal.insert(purgeJournal.end(), std::begin(purgeMagic), std::end(purgeMagic));
+        appendJournalU32(purgeJournal, 1);
+        appendJournalU32(purgeJournal, static_cast<uint32_t>(purgePayload.size()));
+        appendJournalU32(purgeJournal, journalTestChecksum(purgePayload));
+        purgeJournal.insert(purgeJournal.end(), purgePayload.begin(), purgePayload.end());
+        std::ofstream journal(purgeDir / "purge.txn", std::ios::binary);
+        journal.write(reinterpret_cast<const char*>(purgeJournal.data()),
+                      static_cast<std::streamsize>(purgeJournal.size()));
+    }
+    {
+        Storage purgeStorage(purgeDir.string());
+        Message message{};
+        std::vector<Recipient> recipients;
+        const bool opened = purgeStorage.open();
+        const bool removed = opened &&
+            !purgeStorage.readMessage(88, message) &&
+            (!purgeStorage.readRecipientsByMessage(88, recipients, true) || recipients.empty()) &&
+            purgeStorage.getAllMailboxStates().empty() &&
+            !std::filesystem::exists(purgeDir / "purge.txn");
+        if (removed) std::cout << "  Interrupted physical purge replays idempotently OK" << std::endl;
+        else { std::cout << "  Interrupted physical purge recovery FAILED" << std::endl; failures++; }
+        purgeStorage.close();
+    }
+    std::filesystem::remove_all(purgeDir);
+
     const auto invalidManifestDir = std::filesystem::temp_directory_path() /
         ("forge_invalid_manifest_test_" + std::to_string(time(nullptr)));
     std::filesystem::create_directories(invalidManifestDir);

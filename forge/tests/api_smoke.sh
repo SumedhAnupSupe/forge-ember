@@ -62,7 +62,7 @@ fi
 code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/auth/logout")
 assert_code 401 "$code"
 
-# Register three isolated users.
+# Register four isolated users.
 code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/users" -H 'Content-Type: application/json' -d '{"name":"Alice Smoke","email":"alice-smoke@example.test","password":"SmokePass123!"}')
 assert_code 201 "$code"
 ALICE_ID="$(json_value id)"
@@ -72,6 +72,10 @@ assert_code 201 "$code"
 BOB_ID="$(json_value id)"
 
 code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/users" -H 'Content-Type: application/json' -d '{"name":"Carol Smoke","email":"carol-smoke@example.test","password":"SmokePass123!"}')
+assert_code 201 "$code"
+CAROL_ID="$(json_value id)"
+
+code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/users" -H 'Content-Type: application/json' -d '{"name":"Dave Smoke","email":"dave-smoke@example.test","password":"SmokePass123!"}')
 assert_code 201 "$code"
 
 code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/auth/login" -H 'Content-Type: application/json' -d '{"email":"alice-smoke@example.test","password":"SmokePass123!"}')
@@ -85,6 +89,10 @@ BOB_TOKEN="$(json_value token)"
 code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/auth/login" -H 'Content-Type: application/json' -d '{"email":"carol-smoke@example.test","password":"SmokePass123!"}')
 assert_code 200 "$code"
 CAROL_TOKEN="$(json_value token)"
+
+code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/auth/login" -H 'Content-Type: application/json' -d '{"email":"dave-smoke@example.test","password":"SmokePass123!"}')
+assert_code 200 "$code"
+DAVE_TOKEN="$(json_value token)"
 
 # Schema metadata is served by the server and requires authentication.
 code=$(request "http://127.0.0.1:$PORT/api/v1/schema/tables" -H "Authorization: Bearer $ALICE_TOKEN")

@@ -108,6 +108,19 @@ int test_services() {
                                 std::cout << "  Per-user permanent mailbox removal FAILED" << std::endl;
                                 failures++;
                             }
+
+                            if (messages.deleteMessage(sent.id)) {
+                                std::vector<uint32_t> staleRecipients;
+                                const bool messageIndexCleared = !im->hasMessageId(sent.id);
+                                const bool recipientIndexCleared = !im->findRecipientsByMessage(sent.id, staleRecipients);
+                                if (messageIndexCleared && recipientIndexCleared &&
+                                    messages.getMessagesForUser(u1.id).empty())
+                                    std::cout << "  Global delete clears message and recipient indexes OK" << std::endl;
+                                else { std::cout << "  Global delete index cleanup FAILED" << std::endl; failures++; }
+                            } else {
+                                std::cout << "  Global delete failed" << std::endl;
+                                failures++;
+                            }
                         }
                     } else {
                         std::cout << "  Mailbox state update FAILED" << std::endl;

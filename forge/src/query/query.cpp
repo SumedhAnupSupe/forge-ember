@@ -475,20 +475,14 @@ QueryResult QueryExecutor::execute(const std::string& query, uint32_t authentica
         auto messages = storage_->getAllMessages(false);
         std::unordered_set<uint32_t> visibleMessageIds;
         if (authenticatedUserId != 0) {
-            for (const auto& recipient : storage_->getAllRecipients(false)) {
-                MailboxState state{};
-                if (recipient.user_id == authenticatedUserId && recipient.is_deleted == 0 &&
-                    storage_->readMailboxState(recipient.message_id, authenticatedUserId, state))
-                    visibleMessageIds.insert(recipient.message_id);
+            for (const auto& state : storage_->getAllMailboxStates()) {
+                if (state.user_id == authenticatedUserId)
+                    visibleMessageIds.insert(state.message_id);
             }
         }
         for (const auto& m : messages) {
-            if (authenticatedUserId != 0) {
-                const bool sender = m.sender_id == authenticatedUserId;
-                if (!sender && visibleMessageIds.find(m.id) == visibleMessageIds.end()) continue;
-                MailboxState state{};
-                if (!storage_->readMailboxState(m.id, authenticatedUserId, state)) continue;
-            }
+            if (authenticatedUserId != 0 &&
+                visibleMessageIds.find(m.id) == visibleMessageIds.end()) continue;
             if (!node.whereColumn.empty()) {
                 bool matches = false;
                 if (node.whereColumn == "id") matches = node.whereValue == std::to_string(m.id);
@@ -585,18 +579,15 @@ QueryResult QueryExecutor::execute(const std::string& query, uint32_t authentica
         std::unordered_set<uint32_t> visibleMessageIds;
         std::unordered_set<uint32_t> senderMessageIds;
         if (authenticatedUserId != 0) {
+            for (const auto& state : storage_->getAllMailboxStates()) {
+                if (state.user_id == authenticatedUserId)
+                    visibleMessageIds.insert(state.message_id);
+            }
             for (const auto& message : storage_->getAllMessages(false)) {
                 messageSenders[message.id] = message.sender_id;
-                MailboxState state{};
                 if (message.sender_id == authenticatedUserId &&
-                    storage_->readMailboxState(message.id, authenticatedUserId, state))
+                    visibleMessageIds.find(message.id) != visibleMessageIds.end())
                     senderMessageIds.insert(message.id);
-            }
-            for (const auto& recipient : all) {
-                MailboxState state{};
-                if (recipient.user_id == authenticatedUserId &&
-                    storage_->readMailboxState(recipient.message_id, authenticatedUserId, state))
-                    visibleMessageIds.insert(recipient.message_id);
             }
         }
         for (const auto& r : all) {

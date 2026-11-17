@@ -75,9 +75,9 @@ class ForgeClient:
         return await self.request("GET", "/api/v1/users/lookup", token=token,
                                   params={"email": email})
 
-    async def lookup_user_id(self, token: str, user_id: int) -> dict[str, Any]:
+    async def lookup_user_id(self, token: str, user_id: int, message_id: int) -> dict[str, Any]:
         return await self.request("GET", "/api/v1/users/lookup", token=token,
-                                  params={"id": str(user_id)})
+                                  params={"id": str(user_id), "message_id": str(message_id)})
 
     async def query(self, token: str, sql: str) -> list[dict[str, Any]]:
         data = await self.request("POST", "/api/v1/query", token=token, json={"query": sql})

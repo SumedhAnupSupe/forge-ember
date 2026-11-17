@@ -44,7 +44,7 @@ bool BinaryCodec::writeString(std::vector<uint8_t>& data, const char* str, size_
     if (maxLen == 0) return false;
     size_t len = 0;
     if (str) {
-        const void* terminator = std::memchr(str, '\\0', maxLen);
+        const void* terminator = std::memchr(str, '\0', maxLen);
         if (!terminator) return false; // Reject unterminated fixed-width fields.
         len = static_cast<const char*>(terminator) - str;
     }

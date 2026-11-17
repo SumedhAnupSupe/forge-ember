@@ -103,7 +103,13 @@ void IndexManager::onRecipientCreated(const Recipient& recipient) {
 
 void IndexManager::onMessageDeleted(uint32_t messageId) {
     std::lock_guard<std::mutex> lock(mutex_);
-    // Index entry remains but we handle deletion in queries
+    const std::string key = std::to_string(messageId);
+    messagesIdIndex_->remove(key, messageId);
+    std::vector<uint32_t> recipientIds;
+    if (recipientsMessageIndex_->find(key, recipientIds)) {
+        for (const uint32_t userId : recipientIds)
+            recipientsMessageIndex_->remove(key, userId);
+    }
 }
 
 } // namespace forge

@@ -34,11 +34,11 @@ jobs:
       - name: Configure
         run: cmake -S forge -B build/forge -DCMAKE_BUILD_TYPE=Release
       - name: Build
-        run: cmake --build build/forge --clean-first --parallel 2
+        run: timeout 180s cmake --build build/forge --clean-first --parallel 2
       - name: Test
-        run: ctest --test-dir build/forge --output-on-failure
+        run: ctest --test-dir build/forge --output-on-failure --verbose --timeout 30
       - name: API smoke test
-        run: bash forge/tests/api_smoke.sh
+        run: timeout 120s bash forge/tests/api_smoke.sh
 
   ember:
     name: EMBER lint and tests

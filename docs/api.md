@@ -40,6 +40,5 @@ EMBER uses FORGE's authenticated REST API for users, messages, recipient lookup,
 
 ## Known contract gaps
 
-- Mailbox state is still message-level and therefore not independent per user.
 - Draft, reply-all, forwarding, and thread APIs are not implemented.
-- The permanent-delete route does not yet guarantee physical erasure.
+- Permanent delete removes the caller's copy; shared physical compaction after the last participant removes their copy is still outstanding.

@@ -166,6 +166,7 @@ std::vector<Message> MessageService::getMessagesForUser(uint32_t userId, bool in
 
         Message message;
         if (getMessageById(recipient.message_id, message, includeDeleted) &&
+            (message.is_deleted == 0 || message.sender_id == userId) &&
             applyMailboxState(message)) {
             result.push_back(message);
             includedIds.insert(message.id);

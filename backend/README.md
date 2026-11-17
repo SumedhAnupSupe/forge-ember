@@ -10,7 +10,7 @@
 
 The Vite frontend runs on port 3000 and uses `VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1`.
 
-FORGE remains the source of truth; FastAPI does not open FORGE storage files directly. Attachments, tags, and wax-seal metadata are not persisted by the current FORGE message schema.
+FORGE login sessions expire after 24 hours and failed login attempts are throttled per normalized email and remote address. FORGE remains the source of truth; FastAPI does not open FORGE storage files directly. Attachments, tags, and wax-seal metadata are not persisted by the current FORGE message schema.
 
 ## Known FORGE storage constraints
 

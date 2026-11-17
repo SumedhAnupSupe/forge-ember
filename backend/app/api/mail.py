@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Header, HTTPException, Query
+
 from app.clients.forge_client import forge
-from app.schemas import MessageOut, RecipientOut, SendMailRequest, SenderOut, StateUpdate
+from app.schemas import MessageOut, RecipientOut, SenderOut, SendMailRequest, StateUpdate
 
 router = APIRouter(prefix="/mail", tags=["mail"])
 

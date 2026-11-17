@@ -98,7 +98,7 @@ int test_services() {
                                 !senderAfterTrash[0].is_deleted && bobAfterTrash[0].is_deleted)
                                 std::cout << "  Independent per-user trash state OK" << std::endl;
                             else { std::cout << "  Independent per-user trash state FAILED" << std::endl; failures++; }
-                            if (storage->removeMailboxState(sent.id, u2.id)) {
+                            if (messages.removeMailboxCopy(sent.id, u2.id)) {
                                 const auto senderAfterPurge = messages.getMessagesForUser(u1.id);
                                 const auto bobAfterPurge = messages.getMessagesForUser(u2.id);
                                 if (senderAfterPurge.size() == 1 && bobAfterPurge.empty())
@@ -109,16 +109,23 @@ int test_services() {
                                 failures++;
                             }
 
-                            if (messages.deleteMessage(sent.id)) {
+                            if (messages.removeMailboxCopy(sent.id, u1.id)) {
+                                Message purgedMessage{};
+                                std::vector<Recipient> purgedRecipients;
                                 std::vector<uint32_t> staleRecipients;
-                                const bool messageIndexCleared = !im->hasMessageId(sent.id);
-                                const bool recipientIndexCleared = !im->findRecipientsByMessage(sent.id, staleRecipients);
-                                if (messageIndexCleared && recipientIndexCleared &&
-                                    messages.getMessagesForUser(u1.id).empty())
-                                    std::cout << "  Global delete clears message and recipient indexes OK" << std::endl;
-                                else { std::cout << "  Global delete index cleanup FAILED" << std::endl; failures++; }
+                                const bool bodyPurged = !storage->readMessage(sent.id, purgedMessage);
+                                const bool recipientsPurged =
+                                    !storage->readRecipientsByMessage(sent.id, purgedRecipients, true) ||
+                                    purgedRecipients.empty();
+                                const bool indexesCleared = !im->hasMessageId(sent.id) &&
+                                    !im->findRecipientsByMessage(sent.id, staleRecipients);
+                                if (bodyPurged && recipientsPurged && indexesCleared &&
+                                    messages.getMessagesForUser(u1.id).empty() &&
+                                    messages.getMessagesForUser(u2.id).empty())
+                                    std::cout << "  Last participant removal physically purges shared records and indexes OK" << std::endl;
+                                else { std::cout << "  Last participant purge FAILED" << std::endl; failures++; }
                             } else {
-                                std::cout << "  Global delete failed" << std::endl;
+                                std::cout << "  Last participant purge failed" << std::endl;
                                 failures++;
                             }
                         }

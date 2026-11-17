@@ -9,17 +9,17 @@ Order follows the master spec. Each task lists affected files, dependencies, and
 ## Phase 2 - FORGE reliability
 | ID | Task | Files | Depends on | Tests |
 |---|---|---|---|---|
-| P2-1 | Storage manifest v2, legacy adoption, bounded fixed-width string validation, per-user state migration | `storage.cpp`, `codec.cpp`, tests | - | corruption, truncation, malformed strings, restart |
-| P2-2 | ID counter restore, no wraparound | `storage.cpp` | P2-1 | ID allocation |
-| P2-3 | Index update/delete correctness, collision tests, benchmark | `hash_table.cpp`, `indexes.cpp`, `benchmark.cpp` | - | collisions, rebuild, restart |
-| P2-4 | Write-ahead log for message creation | `storage.cpp`, `message_service.cpp` | P2-1 | crash-between-writes recovery |
-| P2-5 | Locking (reader/writer) around storage, indexes, sessions | `server.cpp`, services | P2-4 | concurrent create / ID uniqueness |
-| P2-6 | Server lifecycle: startup validation, graceful shutdown, real health check | `server.cpp`, `main_server.cpp` | P2-1 | lifecycle, health |
-| P2-7 | Query engine edge-case tests; CLI exit codes and help | `query.cpp`, `cli.cpp` | - | per spec 3.7 / 3.8 |
+| P2-1 | Versioned storage manifest v2, legacy adoption, bounded fixed-width string validation, per-user state migration, incomplete-tail recovery | `storage.cpp`, `codec.cpp`, tests | - | corruption, truncation, malformed strings, restart |
+| P2-2 | ID counter restore and no wraparound | `storage.cpp`, tests | P2-1 | restart ID scan and `uint32` exhaustion |
+| P2-3 | Index update/delete correctness and collision-chain behavior | `hash_table.cpp`, `indexes.cpp`, tests | - | collision lookup, deduplication, deletion, rebuild |
+| P2-4 | Versioned, checksummed write-ahead journal for message + recipient creation; idempotent replay and incomplete-tail repair | `storage.cpp`, `message_service.cpp`, tests | P2-1 | partial-write recovery, replay idempotency |
+| P2-5 | Synchronization across storage, indexes, and sessions | `storage.cpp`, `indexes.cpp`, auth | P2-4 | concurrent create / ID uniqueness |
+| P2-6 | Startup validation, health endpoint, and process shutdown/restart smoke coverage | `server.cpp`, `main_server.cpp`, CI | P2-1 | API smoke startup, health, restart |
+| P2-7 | Query-engine visibility/edge-case tests | `query.cpp`, tests | - | sender, recipient, BCC, unrelated user |
 
 ## Phase 3 - Data model and security (highest priority)
 
-Progress: P3-1 and P3-2 are implemented but not run: MailboxState record, version 2 migration, per-user list/state operations, and state-row removal. P3-3 BCC filtering and focused tests are implemented but not run. P3-4 is partial: only the caller's mailbox-state row is removed; shared message/recipient physical purge after the last participant is outstanding. P3-5 remains outstanding.
+Progress: P3-1/P3-2 are implemented and tested: MailboxState record, v2 migration, independent per-user list/read/star/trash state, and permanent removal of one mailbox-state row. P3-3 is implemented and covered by the four-user API smoke test plus SQL visibility tests. P3-4 is partial: caller-copy removal is verified and does not affect other participants; physical purge of the shared message/recipient records after the final participant removes their copy remains outstanding. P3-5 is partial: 24-hour session expiry and auth error handling exist; login rate limiting and further error-hygiene tests remain.
 | ID | Task | Files | Depends on | Tests |
 |---|---|---|---|---|
 | P3-1 | `MailboxState` record (message_id, user_id, read, starred, deleted) + v2 migration from per-message flags | `records.*`, `codec.*`, `storage.*`, `message_service.cpp` | P2-1 | independent state per user, migration |
@@ -29,13 +29,13 @@ Progress: P3-1 and P3-2 are implemented but not run: MailboxState record, versio
 | P3-5 | Auth hardening: rate limit, expiry, error hygiene | `auth.py`, FORGE auth | - | auth negative tests |
 
 ## Phase 4 - EMBER features
-Progress: bounded offset pagination, server-side search/sort, and POSTO load-more are wired (not verified). FORGE now includes sender and viewer-scoped recipients in message responses, removing EMBER's per-recipient HTTP lookup chain. Still required: pagination tests, drafts (P4-2), reply/reply-all/forward with in_reply_to threading field (P4-3), and performance tests/request-level state caching (P4-4). Depends on P3.
+Progress: bounded offset pagination, server-side search/sort, POSTO load-more, and batched sender/recipient envelopes are implemented. The per-recipient HTTP lookup chain is removed. Still required: broader pagination/search tests, drafts (P4-2), reply/reply-all/forward with an `in_reply_to` threading field (P4-3), and measured performance/request-level state caching (P4-4). Depends on P3.
 
 ## Phase 5 - POSTO
-Progress: removed default demo credentials/one-click demo accounts; mutation errors are surfaced; backend search and load-more pagination are wired. Still required: split App.tsx, session-expiry UX, draft persistence, reply-all/threading, loading/empty/error coverage, and frontend tests. CC/BCC compose controls are now wired; unsupported tag/attachment controls were removed. Depends on P3, P4.
+Progress: removed default demo credentials/one-click demo accounts; mutation errors are surfaced; CC/BCC compose controls, search, load-more pagination, and production TypeScript build are verified. Unsupported tag/attachment affordances were removed. Still required: split App.tsx, session-expiry UX, draft persistence, reply-all/threading, fuller loading/empty/error coverage, and frontend component tests. Depends on P3, P4.
 
 ## Phase 6-8
-Progress: added a full-stack CI workflow (FORGE, EMBER, POSTO jobs) and Dockerfiles/Compose/environment template. These have not been built or run. Still required: three-user end-to-end tests and failure scenarios; obtain passing CI runs; validate Docker Compose; benchmarks with measured environment/results; reproducible demo; screenshots; final report. Root, FORGE, and EMBER READMEs plus architecture/API/database/testing docs have been added or updated.
+Progress: four CI jobs pass (FORGE build/unit/API smoke, EMBER lint/tests, POSTO typecheck/build, Docker Compose config and image builds). API smoke covers sender, TO, BCC, unrelated user, mailbox state isolation, permanent per-user removal, global deletion, and restart. Still required: additional failure-injection/concurrency scenarios; measured benchmarks; reproducible demo and screenshots; final report. Root, FORGE, and EMBER READMEs plus architecture/API/database/testing docs are maintained.
 
 ## Scope note
-Phases 2-8 remain in progress. Implemented changes are not marked complete until their tests and integration checks pass.
+Phases 2-8 remain in progress. P2-1 through P2-4 and P3-1 through P3-3 have passing automated coverage. Remaining items above are deliberately not marked complete until implemented and verified.

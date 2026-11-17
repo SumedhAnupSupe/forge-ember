@@ -44,5 +44,22 @@ int test_auth() {
     if (!auth.verifyPassword("pass", "$argon2id$bad")) {
         std::cout << "  Malformed hash rejected OK" << std::endl;
     }
+    const std::string rateKey = "alice@example.com|127.0.0.1";
+    bool attemptsAccepted = true;
+    for (int attempt = 0; attempt < 5; ++attempt) {
+        attemptsAccepted = attemptsAccepted && auth.allowLoginAttempt(rateKey);
+        auth.recordFailedLogin(rateKey);
+    }
+    if (attemptsAccepted && !auth.allowLoginAttempt(rateKey))
+        std::cout << "  Failed-login rate limit OK" << std::endl;
+    else { std::cout << "  Failed-login rate limit FAILED" << std::endl; failures++; }
+    if (!auth.allowLoginAttempt("bob@example.com|127.0.0.1")) {
+        std::cout << "  Per-account rate-limit isolation FAILED" << std::endl; failures++;
+    } else {
+        auth.clearFailedLogins(rateKey);
+        if (auth.allowLoginAttempt(rateKey))
+            std::cout << "  Successful-login reset OK" << std::endl;
+        else { std::cout << "  Successful-login reset FAILED" << std::endl; failures++; }
+    }
     return failures;
 }

@@ -185,7 +185,7 @@ bool Storage::repairTrailingPartialRecord(const std::string& filename, size_t re
 
 bool Storage::applyMessageTransaction(const Message& message,
                                       const std::vector<Recipient>& recipients) {
-    if (!isOpen_ || message.id == 0 || recipients.empty()) return false;
+    if (!isOpen_ || message.id == 0 || message.sender_id == 0 || recipients.empty()) return false;
     const auto expectedMessage = BinaryCodec::serializeMessage(message);
     Message existingMessage{};
     if (readMessage(message.id, existingMessage)) {
@@ -221,7 +221,9 @@ bool Storage::createMessageWithRecipients(const Message& message,
     const auto journalPath = std::filesystem::path(dataDir_) / "message.txn";
     const auto temporaryPath = std::filesystem::path(dataDir_) / "message.txn.tmp";
     std::error_code ec;
-    if (std::filesystem::exists(journalPath, ec) || ec) return false;
+    const bool journalExists = std::filesystem::exists(journalPath, ec);
+    if (ec) return false;
+    if (journalExists && !recoverPendingMessageTransaction()) return false;
 
     std::vector<uint8_t> payload = BinaryCodec::serializeMessage(message);
     std::set<uint32_t> uniqueUsers;

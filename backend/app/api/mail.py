@@ -15,14 +15,21 @@ async def query_user(token: str, user_id: int) -> dict:
     return await forge.lookup_user_id(token, user_id)
 
 
-async def enrich(token: str, raw: dict) -> MessageOut:
+async def enrich(token: str, raw: dict, viewer_id: int) -> MessageOut:
     sender = await query_user(token, int(raw["sender_id"]))
     recs = await forge.query(token, f"SELECT message_id, user_id, type FROM recipients WHERE message_id = {int(raw['id'])} LIMIT 100")
     recipients = []
     for rec in recs:
-        person = await query_user(token, int(rec["user_id"]))
+        recipient_id = int(rec["user_id"])
+        recipient_type = str(rec.get("type", "TO")).upper()
+        # The sender may see the complete envelope. Other recipients see TO/CC
+        # entries and only their own BCC entry; hidden BCC identities never
+        # enter the response model or search corpus.
+        if viewer_id != int(raw["sender_id"]) and recipient_type == "BCC" and recipient_id != viewer_id:
+            continue
+        person = await query_user(token, recipient_id)
         recipients.append(RecipientOut(id=int(person["id"]), name=str(person["name"]),
-                                       email=str(person["email"]), type=str(rec.get("type", "TO")).upper()))
+                                       email=str(person["email"]), type=recipient_type))
     return MessageOut(id=int(raw["id"]),
         sender=SenderOut(id=int(sender["id"]), name=str(sender["name"]), email=str(sender["email"])),
         recipients=recipients, subject=str(raw.get("subject", "")), body=str(raw.get("body", "")),
@@ -41,7 +48,7 @@ async def list_mail(folder: str, authorization: str | None = Header(default=None
     rows = await forge.messages(token, include_deleted=(folder == "trash"))
     result = []
     for row in rows:
-        message = await enrich(token, row)
+        message = await enrich(token, row, int(me["id"]))
         sender = message.sender.id == int(me["id"])
         recipient = any(r.id == int(me["id"]) for r in message.recipients)
         if folder == "inbox" and (sender or not recipient or message.is_deleted): continue
@@ -61,7 +68,7 @@ async def list_mail(folder: str, authorization: str | None = Header(default=None
 async def get_mail(message_id: int, authorization: str | None = Header(default=None)) -> MessageOut:
     token = require_token(authorization)
     me = await forge.me(token)
-    message = await enrich(token, await forge.message(token, message_id))
+    message = await enrich(token, await forge.message(token, message_id), int(me["id"]))
     if message.sender.id != int(me["id"]) and all(r.id != int(me["id"]) for r in message.recipients):
         raise HTTPException(status_code=404, detail="Message not found")
     return message

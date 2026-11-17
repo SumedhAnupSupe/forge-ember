@@ -87,6 +87,28 @@ int test_services() {
                         if (senderStillUnread && recipientRead)
                             std::cout << "  Independent per-user read state OK" << std::endl;
                         else { std::cout << "  Independent per-user read state FAILED" << std::endl; failures++; }
+                        bobState.is_deleted = 1;
+                        if (!storage->updateMailboxState(bobState)) {
+                            std::cout << "  Per-user trash update FAILED" << std::endl;
+                            failures++;
+                        } else {
+                            const auto senderAfterTrash = messages.getMessagesForUser(u1.id);
+                            const auto bobAfterTrash = messages.getMessagesForUser(u2.id);
+                            if (senderAfterTrash.size() == 1 && bobAfterTrash.size() == 1 &&
+                                !senderAfterTrash[0].is_deleted && bobAfterTrash[0].is_deleted)
+                                std::cout << "  Independent per-user trash state OK" << std::endl;
+                            else { std::cout << "  Independent per-user trash state FAILED" << std::endl; failures++; }
+                            if (storage->removeMailboxState(sent.id, u2.id)) {
+                                const auto senderAfterPurge = messages.getMessagesForUser(u1.id);
+                                const auto bobAfterPurge = messages.getMessagesForUser(u2.id);
+                                if (senderAfterPurge.size() == 1 && bobAfterPurge.empty())
+                                    std::cout << "  Per-user permanent mailbox removal OK" << std::endl;
+                                else { std::cout << "  Per-user permanent mailbox removal FAILED" << std::endl; failures++; }
+                            } else {
+                                std::cout << "  Per-user permanent mailbox removal FAILED" << std::endl;
+                                failures++;
+                            }
+                        }
                     } else {
                         std::cout << "  Mailbox state update FAILED" << std::endl;
                         failures++;

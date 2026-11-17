@@ -128,7 +128,7 @@ code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/query" -H "Authorization: 
 assert_code 400 "$code"
 
 # Create a message from Alice to Bob; both sender and recipient can list/read it.
-code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/messages" -H "Authorization: Bearer $ALICE_TOKEN" -H 'Content-Type: application/json' -d "{\"subject\":\"Smoke subject\",\"body\":\"Smoke body\",\"recipients\":[{\"user_id\":$BOB_ID,\"type\":\"TO\"}]}")
+code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/messages" -H "Authorization: Bearer $ALICE_TOKEN" -H 'Content-Type: application/json' -d "{\"subject\":\"Smoke subject\",\"body\":\"Smoke body\",\"recipients\":[{\"user_id\":$BOB_ID,\"type\":\"TO\"},{\"user_id\":$CAROL_ID,\"type\":\"BCC\"}]}")
 assert_code 201 "$code"
 MESSAGE_ID="$(json_value id)"
 

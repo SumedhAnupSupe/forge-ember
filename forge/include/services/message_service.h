@@ -19,6 +19,7 @@ public:
     bool getMessageById(uint32_t id, Message& message, bool includeDeleted = false);
     std::vector<Message> getMessagesForUser(uint32_t userId, bool includeDeleted = false);
     bool deleteMessage(uint32_t id); // soft delete
+    bool removeMailboxCopy(uint32_t messageId, uint32_t userId);
     bool updateMessage(const Message& message);
     
 private:

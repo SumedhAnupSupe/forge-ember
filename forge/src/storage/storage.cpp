@@ -5,10 +5,12 @@
 #include <cstring>
 #include <fstream>
 #include <sstream>
+#include <set>
+#include <unordered_map>
 
 namespace {
 
-constexpr unsigned int kStorageFormatVersion = 1;
+constexpr unsigned int kStorageFormatVersion = 2;
 
 bool validateStorageFormat(const std::string& dataDir) {
     const auto path = std::filesystem::path(dataDir) / "format.meta";
@@ -24,23 +26,42 @@ bool validateStorageFormat(const std::string& dataDir) {
     size_t userRecordSize = 0;
     size_t messageRecordSize = 0;
     size_t recipientRecordSize = 0;
+    size_t mailboxStateRecordSize = 0;
     std::string extra;
     if (!(input >> magic >> version >> userRecordSize >> messageRecordSize >> recipientRecordSize))
         return false;
+    if (version == 2) {
+        if (!(input >> mailboxStateRecordSize)) return false;
+    } else if (version != 1) {
+        return false;
+    }
     if (input >> extra) return false;
 
-    return magic == "FORGE_STORAGE" &&
-           version == kStorageFormatVersion &&
-           userRecordSize == forge::User::ENCODED_RECORD_SIZE &&
-           messageRecordSize == forge::Message::ENCODED_RECORD_SIZE &&
-           recipientRecordSize == forge::Recipient::ENCODED_RECORD_SIZE;
+    const bool baseLayoutMatches =
+        magic == "FORGE_STORAGE" &&
+        userRecordSize == forge::User::ENCODED_RECORD_SIZE &&
+        messageRecordSize == forge::Message::ENCODED_RECORD_SIZE &&
+        recipientRecordSize == forge::Recipient::ENCODED_RECORD_SIZE;
+    return baseLayoutMatches &&
+           (version == 1 || mailboxStateRecordSize == forge::MailboxState::ENCODED_RECORD_SIZE);
 }
 
 bool initializeStorageFormat(const std::string& dataDir) {
     const auto path = std::filesystem::path(dataDir) / "format.meta";
     std::error_code ec;
-    if (std::filesystem::exists(path, ec)) return !ec && validateStorageFormat(dataDir);
     if (ec) return false;
+    if (std::filesystem::exists(path, ec) && !ec) {
+        std::ifstream current(path);
+        std::string magic;
+        unsigned int version = 0;
+        size_t userSize = 0, messageSize = 0, recipientSize = 0, stateSize = 0;
+        if (!(current >> magic >> version >> userSize >> messageSize >> recipientSize)) return false;
+        if (version == 2) return validateStorageFormat(dataDir);
+        if (version != 1 || magic != "FORGE_STORAGE" ||
+            userSize != forge::User::ENCODED_RECORD_SIZE ||
+            messageSize != forge::Message::ENCODED_RECORD_SIZE ||
+            recipientSize != forge::Recipient::ENCODED_RECORD_SIZE) return false;
+    }
 
     const auto temporaryPath = path.string() + ".tmp";
     {
@@ -49,7 +70,8 @@ bool initializeStorageFormat(const std::string& dataDir) {
         output << "FORGE_STORAGE\n" << kStorageFormatVersion << "\n"
                << forge::User::ENCODED_RECORD_SIZE << " "
                << forge::Message::ENCODED_RECORD_SIZE << " "
-               << forge::Recipient::ENCODED_RECORD_SIZE << "\n";
+               << forge::Recipient::ENCODED_RECORD_SIZE << " "
+               << forge::MailboxState::ENCODED_RECORD_SIZE << "\n";
         output.flush();
         if (!output.good()) {
             output.close();
@@ -108,11 +130,12 @@ bool Storage::open() {
         closeFiles();
         return false;
     }
-    if (!initializeStorageFormat(dataDir_)) {
+    isOpen_ = true;
+    if (!migrateMailboxStates() || !initializeStorageFormat(dataDir_)) {
+        isOpen_ = false;
         closeFiles();
         return false;
     }
-    isOpen_ = true;
     return true;
 }
 
@@ -235,6 +258,40 @@ bool Storage::scanForMaxIds() {
         if (mailboxStatesFile_.gcount() != static_cast<std::streamsize>(buffer.size())) return false;
         MailboxState state{};
         if (!BinaryCodec::deserializeMailboxState(buffer, 0, state)) return false;
+    }
+    return true;
+}
+
+bool Storage::migrateMailboxStates() {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (!isOpen_) return false;
+    const auto messages = getAllMessages(true);
+    const auto recipients = getAllRecipients(false);
+    std::unordered_map<uint32_t, std::set<uint32_t>> participants;
+    for (const auto& message : messages) {
+        if (message.sender_id != 0) participants[message.id].insert(message.sender_id);
+    }
+    for (const auto& recipient : recipients) {
+        if (recipient.message_id != 0 && recipient.user_id != 0 && recipient.is_deleted == 0)
+            participants[recipient.message_id].insert(recipient.user_id);
+    }
+
+    for (const auto& message : messages) {
+        const auto found = participants.find(message.id);
+        if (found == participants.end()) continue;
+        for (const uint32_t userId : found->second) {
+            MailboxState state{};
+            if (readMailboxState(message.id, userId, state)) continue;
+            state.message_id = message.id;
+            state.user_id = userId;
+            state.is_read = message.is_read;
+            state.is_starred = message.is_starred;
+            state.is_deleted = message.is_deleted;
+            if (!createMailboxState(state)) {
+                // A concurrent process may have inserted the same row.
+                if (!readMailboxState(message.id, userId, state)) return false;
+            }
+        }
     }
     return true;
 }

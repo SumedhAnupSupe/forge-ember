@@ -54,8 +54,8 @@ async def list_mail(folder: str, authorization: str | None = Header(default=None
         sender = message.sender.id == int(me["id"])
         recipient = any(r.id == int(me["id"]) for r in message.recipients)
         if folder == "inbox" and (sender or not recipient or message.is_deleted): continue
-        if folder == "sent" and not sender: continue
-        if folder == "starred" and not message.is_starred: continue
+        if folder == "sent" and (not sender or message.is_deleted): continue
+        if folder == "starred" and (not message.is_starred or message.is_deleted): continue
         if folder == "trash" and not message.is_deleted: continue
         if q:
             haystack = " ".join([message.subject, message.body, message.sender.name, message.sender.email,

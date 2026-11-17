@@ -47,6 +47,18 @@ struct Recipient {
     static const size_t RECORD_SIZE = ENCODED_RECORD_SIZE;
 };
 
+// Per-user mailbox flags are stored separately from the shared message body.
+struct MailboxState {
+    uint32_t message_id;
+    uint32_t user_id;
+    uint8_t is_read;
+    uint8_t is_starred;
+    uint8_t is_deleted;
+
+    static const size_t ENCODED_RECORD_SIZE = 4 + 4 + 1 + 1 + 1; // 11 bytes
+    static const size_t RECORD_SIZE = ENCODED_RECORD_SIZE;
+};
+
 enum class RecipientType {
     TO,
     CC,

@@ -27,13 +27,14 @@ MESSAGE = {
 
 
 def test_sender_sees_all_recipients_including_bcc(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def lookup_user(_token: str, user_id: int) -> dict:
+    async def lookup_user_id(_token: str, user_id: int, message_id: int) -> dict:
+        assert message_id == 42
         return USERS[user_id]
 
     async def query(_token: str, _sql: str) -> list[dict]:
         return RECIPIENTS
 
-    monkeypatch.setattr(forge, "lookup_user_id", lookup_user)
+    monkeypatch.setattr(forge, "lookup_user_id", lookup_user_id)
     monkeypatch.setattr(forge, "query", query)
 
     message = asyncio.run(enrich("sender-token", MESSAGE, viewer_id=1))

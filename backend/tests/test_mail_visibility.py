@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import pytest
 
 from app.api.mail import enrich
@@ -25,8 +26,7 @@ MESSAGE = {
 }
 
 
-@pytest.mark.asyncio
-async def test_sender_sees_all_recipients_including_bcc(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_sender_sees_all_recipients_including_bcc(monkeypatch: pytest.MonkeyPatch) -> None:
     async def lookup_user(_token: str, user_id: int) -> dict:
         return USERS[user_id]
 
@@ -36,12 +36,11 @@ async def test_sender_sees_all_recipients_including_bcc(monkeypatch: pytest.Monk
     monkeypatch.setattr(forge, "lookup_user_id", lookup_user)
     monkeypatch.setattr(forge, "query", query)
 
-    message = await enrich("sender-token", MESSAGE, viewer_id=1)
+    message = asyncio.run(enrich("sender-token", MESSAGE, viewer_id=1))
     assert [recipient.id for recipient in message.recipients] == [2, 3, 4, 5]
 
 
-@pytest.mark.asyncio
-async def test_visible_recipient_cannot_see_other_bcc_identities(
+def test_visible_recipient_cannot_see_other_bcc_identities(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     async def lookup_user(_token: str, user_id: int) -> dict:
@@ -53,13 +52,12 @@ async def test_visible_recipient_cannot_see_other_bcc_identities(
     monkeypatch.setattr(forge, "lookup_user_id", lookup_user)
     monkeypatch.setattr(forge, "query", query)
 
-    message = await enrich("recipient-token", MESSAGE, viewer_id=2)
+    message = await enrich("recipient-token", MESSAGE, viewer_id=2))
     assert [recipient.id for recipient in message.recipients] == [2, 3]
     assert all(recipient.id not in {4, 5} for recipient in message.recipients)
 
 
-@pytest.mark.asyncio
-async def test_bcc_recipient_sees_only_own_bcc_identity(
+def test_bcc_recipient_sees_only_own_bcc_identity(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     async def lookup_user(_token: str, user_id: int) -> dict:
@@ -71,6 +69,6 @@ async def test_bcc_recipient_sees_only_own_bcc_identity(
     monkeypatch.setattr(forge, "lookup_user_id", lookup_user)
     monkeypatch.setattr(forge, "query", query)
 
-    message = await enrich("bcc-token", MESSAGE, viewer_id=4)
+    message = await enrich("bcc-token", MESSAGE, viewer_id=4))
     assert [recipient.id for recipient in message.recipients] == [2, 3, 4]
     assert 5 not in {recipient.id for recipient in message.recipients}

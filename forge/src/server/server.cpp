@@ -167,10 +167,41 @@ bool ForgeServer::startInBackground() {
         }
         User user{};
         bool found = false;
-        if (req.has_param("email")) found = userService_->getUserByEmail(req.get_param_value("email"), user);
-        else if (req.has_param("id")) {
-            try { found = userService_->getUserById(static_cast<uint32_t>(std::stoul(req.get_param_value("id"))), user); }
-            catch (...) { found = false; }
+        if (req.has_param("email")) {
+            found = userService_->getUserByEmail(req.get_param_value("email"), user);
+        } else if (req.has_param("id")) {
+            try {
+                const uint32_t targetId = static_cast<uint32_t>(std::stoul(req.get_param_value("id")));
+                found = userService_->getUserById(targetId, user);
+                if (found && targetId != uid) {
+                    // Numeric account lookup is only permitted in the context of
+                    // a mailbox the caller can access. This prevents using the
+                    // enrichment endpoint to enumerate hidden BCC identities.
+                    if (!req.has_param("message_id")) {
+                        found = false;
+                    } else {
+                        const uint32_t messageId = static_cast<uint32_t>(
+                            std::stoul(req.get_param_value("message_id")));
+                        Message message{};
+                        MailboxState viewerState{};
+                        if (!messageService_->getMessageById(messageId, message, true) ||
+                            !storage_->readMailboxState(messageId, uid, viewerState)) {
+                            found = false;
+                        } else if (message.sender_id != uid && targetId != message.sender_id) {
+                            std::vector<Recipient> recipients;
+                            bool targetIsVisible = false;
+                            if (storage_->readRecipientsByMessage(messageId, recipients, false)) {
+                                for (const auto& recipient : recipients) {
+                                    if (recipient.user_id != targetId) continue;
+                                    if (recipient.type[0] != 'B' || targetId == uid)
+                                        targetIsVisible = true;
+                                }
+                            }
+                            found = targetIsVisible;
+                        }
+                    }
+                }
+            } catch (...) { found = false; }
         } else {
             res.status = 400; res.set_content(R"({"error":"email or id query parameter required"})", "application/json"); return;
         }

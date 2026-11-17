@@ -13,3 +13,14 @@ CTestTestfile.cmake
 Testing/
 *.dat
 *.db
+
+# IDE, backups, runtime (added in feature/full-stack-improvements)
+.idea/
+.vscode/
+*.bak
+*.log
+.run-logs/
+node_modules/
+dist/
+.env
+!.env.example

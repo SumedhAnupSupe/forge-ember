@@ -65,7 +65,7 @@ Per-user mailbox state requires a new FORGE record type and a migration for exis
 
 ## Verified implementation progress
 
-Latest verified CI run: [run 145](https://github.com/SumedhAnupSupe/forge-ember/actions/runs/43996583436). All four jobs passed:
+Latest verified CI run: [run 198](https://github.com/SumedhAnupSupe/forge-ember/actions/runs/43998419763). All four jobs passed:
 
 | Job | Verification |
 |---|---|
@@ -92,7 +92,7 @@ Latest verified CI run: [run 145](https://github.com/SumedhAnupSupe/forge-ember/
 
 - **P2-5:** concurrency stress tests and a deeper locking review across storage, indexes, and sessions.
 - **P2-6/P2-7:** dedicated lifecycle/health tests and additional CLI behavior/exit-code coverage.
-- **P3-4:** final-participant physical purge is implemented with a replayable purge journal; its unit and API smoke coverage is awaiting the next CI run.
+- **P3-4:** final-participant physical purge is implemented with a replayable purge journal; unit tests and the multi-user API smoke test pass.
 - **P3-5:** backend login throttling and session expiry are implemented and tested. Remaining: frontend session-expiry UX and further security/error-hygiene review.
 - **P4:** drafts, reply/reply-all/forward, threading, broader pagination/search tests, and performance benchmarks for batch retrieval.
 - **P5:** split the large App component, add draft/thread UI, complete session-expiry and loading/empty/error UX, and add frontend component tests.

@@ -1,5 +1,300 @@
-INFO:     Started server process [210927]
+INFO:     Started server process [27851]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-INFO:     127.0.0.1:44222 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43968 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43978 - "OPTIONS /api/v1/mail/inbox?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43978 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:60088 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60088 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:36110 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36110 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:36126 - "OPTIONS /api/v1/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36132 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36132 - "OPTIONS /api/v1/mail/inbox?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36126 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36132 - "OPTIONS /api/v1/mail/starred?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36144 - "OPTIONS /api/v1/mail/sent?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36160 - "OPTIONS /api/v1/mail/trash?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36126 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36168 - "GET /api/v1/mail/starred?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36132 - "GET /api/v1/mail/sent?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36144 - "GET /api/v1/mail/trash?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53492 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53492 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60502 - "OPTIONS /api/v1/mail HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60516 - "POST /api/v1/mail HTTP/1.1" 201 Created
+INFO:     127.0.0.1:60516 - "OPTIONS /api/v1/mail/item/6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60502 - "GET /api/v1/mail/item/6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60502 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60502 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60516 - "GET /api/v1/mail/starred?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60530 - "GET /api/v1/mail/sent?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60536 - "GET /api/v1/mail/trash?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60536 - "GET /api/v1/mail/sent?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60536 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60530 - "GET /api/v1/mail/starred?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60516 - "GET /api/v1/mail/sent?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60502 - "GET /api/v1/mail/trash?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36342 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:36342 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:36342 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:36342 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:36342 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:34048 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34048 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:41216 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:33810 - "OPTIONS /api/v1/mail/6/read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33824 - "PATCH /api/v1/mail/6/read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50582 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50582 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:42288 - "POST /api/v1/mail HTTP/1.1" 201 Created
+INFO:     127.0.0.1:42288 - "OPTIONS /api/v1/mail/item/7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42292 - "GET /api/v1/mail/item/7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42292 - "GET /api/v1/mail/sent?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42292 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42288 - "GET /api/v1/mail/starred?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42302 - "GET /api/v1/mail/trash?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42300 - "GET /api/v1/mail/sent?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42304 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42304 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:37492 - "OPTIONS /api/v1/mail/starred?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37492 - "GET /api/v1/mail/starred?sort=newest HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:37492 - "OPTIONS /api/v1/mail/sent?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37492 - "GET /api/v1/mail/sent?sort=newest HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:37492 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:56758 - "OPTIONS /api/v1/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56758 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56758 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56786 - "OPTIONS /api/v1/mail/trash?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56758 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56772 - "GET /api/v1/mail/starred?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56778 - "GET /api/v1/mail/sent?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56786 - "GET /api/v1/mail/trash?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56778 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56778 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56758 - "GET /api/v1/mail/starred?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56772 - "GET /api/v1/mail/sent?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56786 - "GET /api/v1/mail/trash?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56778 - "OPTIONS /api/v1/auth/logout HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56772 - "POST /api/v1/auth/logout HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55928 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55928 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:46030 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46030 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46030 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46042 - "GET /api/v1/mail/starred?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46046 - "GET /api/v1/mail/sent?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46048 - "GET /api/v1/mail/trash?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47090 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47090 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60588 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60588 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:40246 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40246 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59370 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59370 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55580 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55580 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51804 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51804 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:46518 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46518 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:47644 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47644 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59360 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59360 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55536 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55536 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:36076 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36076 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:48500 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48500 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50448 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50448 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50834 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50834 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:39886 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39886 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50032 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50032 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:33646 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33646 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:44430 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44430 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:36608 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36608 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:44954 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44954 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60730 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60730 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:36404 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36404 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:45036 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45036 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:36006 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36006 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:33886 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33886 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:48100 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48100 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:43752 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43752 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52452 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52452 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59254 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59254 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:37714 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37714 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:34284 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34284 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54886 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54886 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:47528 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47528 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:34026 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34026 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:36226 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36226 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:45012 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45012 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:46710 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46710 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:43364 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43364 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:36774 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36774 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:47800 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47800 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:36802 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36802 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:42056 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42056 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59838 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59838 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51080 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51080 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54056 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54056 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50168 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50168 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59842 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59842 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58350 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58350 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53718 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53718 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:43654 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43654 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:36328 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36328 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60456 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60456 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60470 - "OPTIONS /api/v1/mail/inbox?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60474 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60470 - "OPTIONS /api/v1/mail/starred?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60480 - "OPTIONS /api/v1/mail/sent?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60492 - "OPTIONS /api/v1/mail/trash?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60474 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60470 - "GET /api/v1/mail/sent?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60480 - "GET /api/v1/mail/trash?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60500 - "GET /api/v1/mail/starred?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35938 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35938 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51308 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51308 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57354 - "GET /docs?utm_source=chatgpt.com HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57354 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45408 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45408 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:41660 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41660 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:44882 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44882 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:34768 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34768 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:42518 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42518 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:38078 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38078 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:37274 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37290 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37290 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54642 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54642 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49016 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49016 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52112 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52112 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:39256 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39256 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:48540 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48540 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:44974 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44974 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51636 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51636 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59972 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59972 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:39360 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39360 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:38096 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38096 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:41648 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41648 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58420 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58420 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50406 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50406 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:40098 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40098 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54086 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54086 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:33564 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33564 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:35020 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35020 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:39340 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39340 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:45936 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45936 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59630 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59630 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52600 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52600 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:42888 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42888 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60460 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60460 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60454 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60454 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:42134 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42134 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:45836 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45836 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49872 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49872 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54432 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54432 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53444 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53444 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:43944 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43944 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:37622 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37622 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:34868 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34868 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50524 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50524 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:37380 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37380 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:37410 - "OPTIONS /api/v1/mail/inbox?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37416 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37410 - "OPTIONS /api/v1/mail/starred?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37430 - "OPTIONS /api/v1/mail/sent?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37436 - "OPTIONS /api/v1/mail/trash?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37416 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37410 - "GET /api/v1/mail/sent?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37430 - "GET /api/v1/mail/trash?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37446 - "GET /api/v1/mail/starred?sort=newest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42930 - "GET /api/v1/mail/inbox?sort=newest HTTP/1.1" 401 Unauthorized

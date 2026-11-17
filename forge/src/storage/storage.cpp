@@ -535,18 +535,6 @@ bool Storage::recoverPendingPurgeTransaction() {
 }
 
 
-bool Storage::purgeOrphanedMessages() {
-    const auto messages = getAllMessages(true);
-    const auto states = getAllMailboxStates();
-    std::unordered_set<uint32_t> retainedMessageIds;
-    for (const auto& state : states) retainedMessageIds.insert(state.message_id);
-    for (const auto& message : messages) {
-        if (retainedMessageIds.find(message.id) == retainedMessageIds.end() &&
-            !purgeMessageRecords(message.id)) return false;
-    }
-    return true;
-}
-
 bool Storage::open() {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (isOpen_) return true;
@@ -573,7 +561,6 @@ bool Storage::open() {
         !recoverPendingPurgeTransaction() ||
         !scanForMaxIds() ||
         !migrateMailboxStates() ||
-        !purgeOrphanedMessages() ||
         !initializeStorageFormat(dataDir_)) {
         isOpen_ = false;
         closeFiles();

@@ -91,6 +91,17 @@ int test_query() {
         std::filesystem::remove_all(dir);
         return failures + 1;
     }
+    for (const uint32_t userId : {1U, 2U, 3U, 4U}) {
+        MailboxState state{};
+        state.message_id = 10;
+        state.user_id = userId;
+        if (!storage->createMailboxState(state)) {
+            std::cerr << "  Could not create test mailbox state" << std::endl;
+            storage->close();
+            std::filesystem::remove_all(dir);
+            return failures + 1;
+        }
+    }
 
     QueryExecutor executor(storage);
     const auto ownUsers = executor.execute("SELECT ID, EMAIL FROM USERS;", 1);

@@ -1,4 +1,6 @@
 #include <iostream>
+#include <algorithm>
+#include <stdexcept>
 #include <cstring>
 #include <vector>
 #include "utils/codec.h"

@@ -52,38 +52,22 @@ bool MessageService::createMessage(uint32_t senderId, const std::string& subject
     message.is_starred = 0;
     message.is_deleted = 0;
     
-    if (!storage_->createMessage(message)) {
-        return false;
-    }
-    
     std::vector<Recipient> createdRecipients;
-    bool allRecipientsCreated = true;
+    createdRecipients.reserve(recipients.size());
     for (const auto& [recipientId, type] : recipients) {
-        Recipient recipient;
-        memset(&recipient, 0, sizeof(recipient));
+        Recipient recipient{};
         recipient.message_id = message.id;
         recipient.user_id = recipientId;
-        std::string typeStr = recipientTypeToString(type);
-        strncpy(recipient.type, typeStr.c_str(), 3);
-        recipient.type[3] = '\0';
+        const std::string typeStr = recipientTypeToString(type);
+        strncpy(recipient.type, typeStr.c_str(), sizeof(recipient.type) - 1);
+        recipient.type[sizeof(recipient.type) - 1] = '\0';
         recipient.is_deleted = 0;
-        if (storage_->createRecipient(recipient)) {
-            createdRecipients.push_back(recipient);
-        } else {
-            allRecipientsCreated = false;
-            break;
-        }
+        createdRecipients.push_back(recipient);
     }
-    
-    if (!allRecipientsCreated) {
-        const bool messageRolledBack = storage_->deleteMessage(message.id);
-        const bool recipientsRolledBack = storage_->deleteRecipientsByMessage(message.id);
-        if (!messageRolledBack || !recipientsRolledBack) {
-            std::cerr << "Message creation rollback was incomplete for message "
-                      << message.id << std::endl;
-        }
-        return false;
-    }
+
+    // FORGE journals the message and complete recipient envelope before
+    // appending either file. A pending transaction is replayed on next open.
+    if (!storage_->createMessageWithRecipients(message, createdRecipients)) return false;
 
     // Every participant receives an independent mailbox-state row. The sender
     // is included even when they are not also listed as a recipient.

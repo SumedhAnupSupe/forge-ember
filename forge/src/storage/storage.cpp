@@ -49,8 +49,9 @@ bool validateStorageFormat(const std::string& dataDir) {
 bool initializeStorageFormat(const std::string& dataDir) {
     const auto path = std::filesystem::path(dataDir) / "format.meta";
     std::error_code ec;
+    const bool manifestExists = std::filesystem::exists(path, ec);
     if (ec) return false;
-    if (std::filesystem::exists(path, ec) && !ec) {
+    if (manifestExists) {
         std::ifstream current(path);
         std::string magic;
         unsigned int version = 0;

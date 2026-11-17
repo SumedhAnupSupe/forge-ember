@@ -229,6 +229,67 @@ int test_storage() {
     }
     std::filesystem::remove_all(legacyDataDir);
 
+    const auto idScanDir = std::filesystem::temp_directory_path() /
+        ("forge_id_scan_test_" + std::to_string(time(nullptr)));
+    std::filesystem::create_directories(idScanDir);
+    {
+        Storage idStorage(idScanDir.string());
+        User user{};
+        user.id = 7;
+        std::strcpy(user.name, "ID Scan");
+        std::strcpy(user.email, "id-scan@example.com");
+        std::strcpy(user.password_hash, "hash");
+        Message message{};
+        message.id = 9;
+        message.sender_id = 7;
+        std::strcpy(message.subject, "ID scan");
+        std::strcpy(message.body, "restart");
+        if (!idStorage.open() || !idStorage.createUser(user) || !idStorage.createMessage(message)) {
+            std::cout << "  ID scan fixture setup FAILED" << std::endl;
+            failures++;
+        } else {
+            idStorage.close();
+            if (!idStorage.open() || idStorage.getNextUserId() != 8 ||
+                idStorage.getNextMessageId() != 10) {
+                std::cout << "  Restart ID scan FAILED" << std::endl;
+                failures++;
+            } else std::cout << "  Restart ID scan restores next IDs OK" << std::endl;
+        }
+        idStorage.close();
+    }
+    std::filesystem::remove_all(idScanDir);
+
+    const auto overflowDir = std::filesystem::temp_directory_path() /
+        ("forge_id_overflow_test_" + std::to_string(time(nullptr)));
+    std::filesystem::create_directories(overflowDir);
+    {
+        Storage overflowStorage(overflowDir.string());
+        User user{};
+        user.id = UINT32_MAX;
+        std::strcpy(user.name, "Maximum ID");
+        std::strcpy(user.email, "max-id@example.com");
+        std::strcpy(user.password_hash, "hash");
+        Message message{};
+        message.id = UINT32_MAX;
+        message.sender_id = UINT32_MAX;
+        std::strcpy(message.subject, "Maximum ID");
+        std::strcpy(message.body, "overflow");
+        if (!overflowStorage.open() || !overflowStorage.createUser(user) ||
+            !overflowStorage.createMessage(message)) {
+            std::cout << "  ID overflow fixture setup FAILED" << std::endl;
+            failures++;
+        } else {
+            overflowStorage.close();
+            if (!overflowStorage.open() || overflowStorage.getNextUserId() != 0 ||
+                overflowStorage.getNextMessageId() != 0) {
+                std::cout << "  ID exhaustion guard FAILED" << std::endl;
+                failures++;
+            } else std::cout << "  ID exhaustion guard OK" << std::endl;
+        }
+        overflowStorage.close();
+    }
+    std::filesystem::remove_all(overflowDir);
+
     const auto invalidManifestDir = std::filesystem::temp_directory_path() /
         ("forge_invalid_manifest_test_" + std::to_string(time(nullptr)));
     std::filesystem::create_directories(invalidManifestDir);

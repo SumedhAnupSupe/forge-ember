@@ -53,7 +53,8 @@ int test_query() {
     if (!addUser(1, "Alice", "alice@example.com") ||
         !addUser(2, "Bob", "bob@example.com") ||
         !addUser(3, "Carol", "carol@example.com") ||
-        !addUser(4, "Dave", "dave@example.com")) {
+        !addUser(4, "Dave", "dave@example.com") ||
+        !addUser(5, "Eve", "eve@example.com")) {
         std::cerr << "  Could not create test users" << std::endl;
         storage->close();
         std::filesystem::remove_all(dir);
@@ -82,7 +83,7 @@ int test_query() {
     std::strncpy(carol.type, "CC", sizeof(carol.type) - 1);
     Recipient dave{};
     dave.message_id = 10;
-    dave.user_id = 4;
+    dave.user_id = 5;
     std::strncpy(dave.type, "BCC", sizeof(dave.type) - 1);
     if (!storage->createRecipient(bob) || !storage->createRecipient(carol) ||
         !storage->createRecipient(dave)) {
@@ -91,7 +92,7 @@ int test_query() {
         std::filesystem::remove_all(dir);
         return failures + 1;
     }
-    for (const uint32_t userId : {1U, 2U, 3U, 4U}) {
+    for (const uint32_t userId : {1U, 2U, 3U, 5U}) {
         MailboxState state{};
         state.message_id = 10;
         state.user_id = userId;
@@ -147,10 +148,10 @@ int test_query() {
         std::cout << "  TO/CC visibility with BCC identity hidden OK" << std::endl;
     else { std::cerr << "  BCC recipient privacy failed" << std::endl; failures++; }
 
-    const auto bccRecipientView = executor.execute("SELECT user_id FROM recipients;", 4);
+    const auto bccRecipientView = executor.execute("SELECT user_id FROM recipients;", 5);
     std::set<std::string> daveVisibleRecipients;
     for (const auto& row : bccRecipientView.rows) daveVisibleRecipients.insert(row.at("user_id"));
-    if (bccRecipientView.success && daveVisibleRecipients == std::set<std::string>{"2", "3", "4"})
+    if (bccRecipientView.success && daveVisibleRecipients == std::set<std::string>{"2", "3", "5"})
         std::cout << "  BCC recipient sees own identity and TO/CC only OK" << std::endl;
     else { std::cerr << "  BCC recipient visibility failed" << std::endl; failures++; }
 
@@ -188,8 +189,8 @@ int test_query() {
 
     const auto sortedUsers = executor.execute("SELECT id FROM users ORDER BY id DESC LIMIT 2;", 0);
     if (sortedUsers.success && sortedUsers.rows.size() == 2 &&
-        sortedUsers.rows[0].at("id") == "4" &&
-        sortedUsers.rows[1].at("id") == "3")
+        sortedUsers.rows[0].at("id") == "5" &&
+        sortedUsers.rows[1].at("id") == "4")
         std::cout << "  Descending ORDER BY and LIMIT work OK" << std::endl;
     else { std::cerr << "  ORDER BY/LIMIT behavior failed" << std::endl; failures++; }
 

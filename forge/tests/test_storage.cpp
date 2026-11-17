@@ -131,10 +131,10 @@ int test_storage() {
     }
     {
         std::ofstream manifest(versionOneDir / "format.meta");
-        manifest << "FORGE_STORAGE\\n1\\n"
+        manifest << "FORGE_STORAGE\n1\n"
                  << User::ENCODED_RECORD_SIZE << " "
                  << Message::ENCODED_RECORD_SIZE << " "
-                 << Recipient::ENCODED_RECORD_SIZE << "\\n";
+                 << Recipient::ENCODED_RECORD_SIZE << "\n";
     }
     {
         Storage versionOneStorage(versionOneDir.string());

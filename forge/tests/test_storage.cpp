@@ -153,6 +153,17 @@ int test_storage() {
             failures++;
         }
     }
+    std::filesystem::remove(versionOneDir / "mailbox_states.dat");
+    {
+        Storage missingStateStorage(versionOneDir.string());
+        if (!missingStateStorage.open()) {
+            std::cout << "  Missing v2 mailbox-state file rejected OK" << std::endl;
+        } else {
+            std::cout << "  Missing v2 mailbox-state file recreated FAILED" << std::endl;
+            failures++;
+            missingStateStorage.close();
+        }
+    }
     std::filesystem::remove_all(versionOneDir);
 
     // Existing message-level flags are copied to the sender and each active

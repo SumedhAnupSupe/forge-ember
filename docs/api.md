@@ -28,7 +28,7 @@ EMBER is the browser-facing API. OpenAPI is available at `/docs` when the backen
 - `limit`: 1-100, default 50.
 - `offset`: 0-1,000,000, default 0.
 
-The response remains a JSON list for compatibility. POSTO requests pages using offset/limit.
+The response remains a JSON list for compatibility. Each FORGE message object includes a sender object and a viewer-scoped recipients array. POSTO requests pages using offset/limit.
 
 ## BCC response policy
 

@@ -535,10 +535,21 @@ bool ForgeServer::startInBackground() {
             if (!authorized) {
                 res.status = 404; res.set_content(R"({"error":"Message not found"})", "application/json"); return;
             }
-            if (field == "is_read") message.is_read = body[field].get<bool>() ? 1 : 0;
-            else message.is_starred = body[field].get<bool>() ? 1 : 0;
-            if (!messageService_->updateMessage(message)) {
-                res.status = 500; res.set_content(R"({"error":"Could not update message state"})", "application/json"); return;
+            MailboxState state{};
+            if (!storage_->readMailboxState(id, uid, state)) {
+                state.message_id = id;
+                state.user_id = uid;
+                state.is_read = message.is_read;
+                state.is_starred = message.is_starred;
+                state.is_deleted = message.is_deleted;
+                if (!storage_->createMailboxState(state)) {
+                    res.status = 500; res.set_content(R"({"error":"Could not initialize mailbox state"})", "application/json"); return;
+                }
+            }
+            if (field == "is_read") state.is_read = body[field].get<bool>() ? 1 : 0;
+            else state.is_starred = body[field].get<bool>() ? 1 : 0;
+            if (!storage_->updateMailboxState(state)) {
+                res.status = 500; res.set_content(R"({"error":"Could not update mailbox state"})", "application/json"); return;
             }
             res.set_content(R"({"status":"ok"})", "application/json");
         } catch (...) {
@@ -570,8 +581,19 @@ bool ForgeServer::startInBackground() {
             if (!authorized) {
                 res.status = 404; res.set_content(R"({"error":"Message not found"})", "application/json"); return;
             }
-            message.is_deleted = body["is_deleted"].get<bool>() ? 1 : 0;
-            if (!messageService_->updateMessage(message)) {
+            MailboxState state{};
+            if (!storage_->readMailboxState(id, uid, state)) {
+                state.message_id = id;
+                state.user_id = uid;
+                state.is_read = message.is_read;
+                state.is_starred = message.is_starred;
+                state.is_deleted = message.is_deleted;
+                if (!storage_->createMailboxState(state)) {
+                    res.status = 500; res.set_content(R"({"error":"Could not initialize mailbox state"})", "application/json"); return;
+                }
+            }
+            state.is_deleted = body["is_deleted"].get<bool>() ? 1 : 0;
+            if (!storage_->updateMailboxState(state)) {
                 res.status = 500; res.set_content(R"({"error":"Could not update mailbox state"})", "application/json"); return;
             }
             res.set_content(R"({"status":"ok"})", "application/json");

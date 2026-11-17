@@ -148,10 +148,12 @@ bool Storage::openFiles() {
     const std::string usersPath = dataDir_ + "/users.dat";
     const std::string messagesPath = dataDir_ + "/messages.dat";
     const std::string recipientsPath = dataDir_ + "/recipients.dat";
+    const std::string mailboxStatesPath = dataDir_ + "/mailbox_states.dat";
 
     if (!openDataFile(usersFile_, usersPath)) return false;
     if (!openDataFile(messagesFile_, messagesPath)) return false;
     if (!openDataFile(recipientsFile_, recipientsPath)) return false;
+    if (!openDataFile(mailboxStatesFile_, mailboxStatesPath)) return false;
     return true;
 }
 
@@ -159,6 +161,7 @@ void Storage::closeFiles() {
     if (usersFile_.is_open()) usersFile_.close();
     if (messagesFile_.is_open()) messagesFile_.close();
     if (recipientsFile_.is_open()) recipientsFile_.close();
+    if (mailboxStatesFile_.is_open()) mailboxStatesFile_.close();
 }
 
 bool Storage::scanForMaxIds() {
@@ -218,6 +221,20 @@ bool Storage::scanForMaxIds() {
         if (recipientsFile_.gcount() != (std::streamsize)Recipient::ENCODED_RECORD_SIZE) return false;
         Recipient rec;
         if (!BinaryCodec::deserializeRecipient(buffer, 0, rec)) return false;
+    }
+    mailboxStatesFile_.seekg(0, std::ios::end);
+    fsize = mailboxStatesFile_.tellg();
+    if (fsize == std::streampos(-1) ||
+        fsize % static_cast<std::streampos>(MailboxState::ENCODED_RECORD_SIZE) != 0) return false;
+    mailboxStatesFile_.seekg(0, std::ios::beg);
+    for (size_t offset = 0; offset < static_cast<size_t>(fsize);
+         offset += MailboxState::ENCODED_RECORD_SIZE) {
+        std::vector<uint8_t> buffer(MailboxState::ENCODED_RECORD_SIZE);
+        mailboxStatesFile_.seekg(static_cast<std::streamoff>(offset));
+        mailboxStatesFile_.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+        if (mailboxStatesFile_.gcount() != static_cast<std::streamsize>(buffer.size())) return false;
+        MailboxState state{};
+        if (!BinaryCodec::deserializeMailboxState(buffer, 0, state)) return false;
     }
     return true;
 }
@@ -556,6 +573,115 @@ std::vector<Recipient> Storage::getAllRecipients(bool includeDeleted) {
         }
     }
     return recipients;
+}
+
+
+bool Storage::createMailboxState(const MailboxState& state) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (!isOpen_ || state.message_id == 0 || state.user_id == 0) return false;
+    MailboxState existing{};
+    if (readMailboxState(state.message_id, state.user_id, existing)) return false;
+    const auto data = BinaryCodec::serializeMailboxState(state);
+    mailboxStatesFile_.clear();
+    mailboxStatesFile_.seekp(0, std::ios::end);
+    if (!mailboxStatesFile_.good()) return false;
+    mailboxStatesFile_.write(reinterpret_cast<const char*>(data.data()),
+                             static_cast<std::streamsize>(data.size()));
+    mailboxStatesFile_.flush();
+    return mailboxStatesFile_.good();
+}
+
+bool Storage::readMailboxState(uint32_t messageId, uint32_t userId, MailboxState& state) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (!isOpen_ || messageId == 0 || userId == 0) return false;
+    mailboxStatesFile_.clear();
+    mailboxStatesFile_.seekg(0, std::ios::end);
+    const std::streampos fileSize = mailboxStatesFile_.tellg();
+    if (fileSize == std::streampos(-1) ||
+        fileSize % static_cast<std::streampos>(MailboxState::ENCODED_RECORD_SIZE) != 0) return false;
+    mailboxStatesFile_.seekg(0, std::ios::beg);
+    for (size_t offset = 0; offset < static_cast<size_t>(fileSize);
+         offset += MailboxState::ENCODED_RECORD_SIZE) {
+        std::vector<uint8_t> buffer(MailboxState::ENCODED_RECORD_SIZE);
+        mailboxStatesFile_.seekg(static_cast<std::streamoff>(offset));
+        mailboxStatesFile_.read(reinterpret_cast<char*>(buffer.data()),
+                                static_cast<std::streamsize>(buffer.size()));
+        if (mailboxStatesFile_.gcount() != static_cast<std::streamsize>(buffer.size())) return false;
+        MailboxState candidate{};
+        if (!BinaryCodec::deserializeMailboxState(buffer, 0, candidate)) return false;
+        if (candidate.message_id == messageId && candidate.user_id == userId) {
+            state = candidate;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Storage::updateMailboxState(const MailboxState& state) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (!isOpen_ || state.message_id == 0 || state.user_id == 0) return false;
+    const auto data = BinaryCodec::serializeMailboxState(state);
+    mailboxStatesFile_.clear();
+    mailboxStatesFile_.seekg(0, std::ios::end);
+    const std::streampos fileSize = mailboxStatesFile_.tellg();
+    if (fileSize == std::streampos(-1) ||
+        fileSize % static_cast<std::streampos>(MailboxState::ENCODED_RECORD_SIZE) != 0) return false;
+    mailboxStatesFile_.seekg(0, std::ios::beg);
+    for (size_t offset = 0; offset < static_cast<size_t>(fileSize);
+         offset += MailboxState::ENCODED_RECORD_SIZE) {
+        std::vector<uint8_t> buffer(MailboxState::ENCODED_RECORD_SIZE);
+        mailboxStatesFile_.seekg(static_cast<std::streamoff>(offset));
+        mailboxStatesFile_.read(reinterpret_cast<char*>(buffer.data()),
+                                static_cast<std::streamsize>(buffer.size()));
+        if (mailboxStatesFile_.gcount() != static_cast<std::streamsize>(buffer.size())) return false;
+        MailboxState candidate{};
+        if (!BinaryCodec::deserializeMailboxState(buffer, 0, candidate)) return false;
+        if (candidate.message_id == state.message_id && candidate.user_id == state.user_id) {
+            mailboxStatesFile_.clear();
+            mailboxStatesFile_.seekp(static_cast<std::streamoff>(offset));
+            mailboxStatesFile_.write(reinterpret_cast<const char*>(data.data()),
+                                     static_cast<std::streamsize>(data.size()));
+            mailboxStatesFile_.flush();
+            return mailboxStatesFile_.good();
+        }
+    }
+    return false;
+}
+
+std::vector<MailboxState> Storage::getAllMailboxStates() {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::vector<MailboxState> states;
+    if (!isOpen_) return states;
+    mailboxStatesFile_.clear();
+    mailboxStatesFile_.seekg(0, std::ios::end);
+    const std::streampos fileSize = mailboxStatesFile_.tellg();
+    if (fileSize == std::streampos(-1) ||
+        fileSize % static_cast<std::streampos>(MailboxState::ENCODED_RECORD_SIZE) != 0) return states;
+    mailboxStatesFile_.seekg(0, std::ios::beg);
+    for (size_t offset = 0; offset < static_cast<size_t>(fileSize);
+         offset += MailboxState::ENCODED_RECORD_SIZE) {
+        std::vector<uint8_t> buffer(MailboxState::ENCODED_RECORD_SIZE);
+        mailboxStatesFile_.seekg(static_cast<std::streamoff>(offset));
+        mailboxStatesFile_.read(reinterpret_cast<char*>(buffer.data()),
+                                static_cast<std::streamsize>(buffer.size()));
+        if (mailboxStatesFile_.gcount() != static_cast<std::streamsize>(buffer.size())) break;
+        MailboxState state{};
+        if (BinaryCodec::deserializeMailboxState(buffer, 0, state)) states.push_back(state);
+    }
+    return states;
+}
+
+bool Storage::deleteMailboxStatesByMessage(uint32_t messageId) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (!isOpen_ || messageId == 0) return false;
+    bool found = false;
+    for (auto state : getAllMailboxStates()) {
+        if (state.message_id != messageId || state.is_deleted != 0) continue;
+        state.is_deleted = 1;
+        if (!updateMailboxState(state)) return false;
+        found = true;
+    }
+    return found;
 }
 
 } // namespace forge

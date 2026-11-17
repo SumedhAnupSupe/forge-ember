@@ -12,7 +12,7 @@ Order follows the master spec. Each task lists affected files, dependencies, and
 | P2-1 | Versioned storage manifest v2, legacy adoption, bounded fixed-width string validation, per-user state migration, incomplete-tail recovery | `storage.cpp`, `codec.cpp`, tests | - | corruption, truncation, malformed strings, restart |
 | P2-2 | ID counter restore and no wraparound | `storage.cpp`, tests | P2-1 | restart ID scan and `uint32` exhaustion |
 | P2-3 | Index update/delete correctness and collision-chain behavior | `hash_table.cpp`, `indexes.cpp`, tests | - | collision lookup, deduplication, deletion, rebuild |
-| P2-4 | Versioned, checksummed write-ahead journal for message + recipient creation; idempotent replay and incomplete-tail repair | `storage.cpp`, `message_service.cpp`, tests | P2-1 | partial-write recovery, replay idempotency |
+| P2-4 | Versioned, checksummed write-ahead journal for message, recipient, and participant-state creation; idempotent replay and incomplete-tail repair | `storage.cpp`, `message_service.cpp`, tests | P2-1 | partial-write recovery, replay idempotency |
 | P2-5 | Synchronization across storage, indexes, and sessions | `storage.cpp`, `indexes.cpp`, auth, tests | P2-4 | 8-thread concurrent create and unique ID test |
 | P2-6 | Startup validation, health endpoint, and process shutdown/restart smoke coverage | `server.cpp`, `main_server.cpp`, CI | P2-1 | API smoke startup, health, restart |
 | P2-7 | Query-engine visibility/edge-case tests | `query.cpp`, tests | - | sender, recipient, BCC, unrelated user |
@@ -38,4 +38,4 @@ Progress: removed default demo credentials/one-click demo accounts; mutation err
 Progress: four CI jobs pass (FORGE build/unit/API smoke, EMBER lint/tests, POSTO typecheck/build, Docker Compose config and image builds). API smoke covers sender, TO, BCC, unrelated user, mailbox state isolation, permanent per-user removal, global deletion, and restart. Still required: additional failure-injection/concurrency scenarios; measured benchmarks; reproducible demo and screenshots; final report. Root, FORGE, and EMBER READMEs plus architecture/API/database/testing docs are maintained.
 
 ## Scope note
-Phases 2-8 remain in progress. P2-1 through P2-4 and P3-1 through P3-3 have passing automated coverage. Remaining items above are deliberately not marked complete until implemented and verified.
+Phases 2-8 remain in progress. P2-1 through P2-5 and P3-1 through P3-5 have passing automated coverage. Remaining items above are deliberately not marked complete until implemented and verified.

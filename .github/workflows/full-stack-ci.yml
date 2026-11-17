@@ -78,3 +78,13 @@ jobs:
         run: npm run lint
       - name: Production build
         run: npm run build
+
+  docker:
+    name: Docker Compose validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose configuration
+        run: docker compose -f docker-compose.yml config > /tmp/forge-ember-compose.yml
+      - name: Build all service images
+        run: docker compose -f docker-compose.yml build --parallel

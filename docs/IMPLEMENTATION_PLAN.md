@@ -29,7 +29,7 @@ Progress: P3-1 and P3-2 are implemented but not run: MailboxState record, versio
 | P3-5 | Auth hardening: rate limit, expiry, error hygiene | `auth.py`, FORGE auth | - | auth negative tests |
 
 ## Phase 4 - EMBER features
-Progress: bounded offset pagination and server-side search/sort are wired through EMBER and POSTO (not verified). Still required: robust filtering, drafts (P4-2), reply/reply-all/forward with in_reply_to threading field (P4-3), and batch retrieval to remove N+1 FORGE calls (P4-4). Depends on P3.
+Progress: bounded offset pagination and server-side search/sort are wired through EMBER and POSTO (not verified). Still required: robust filtering, drafts (P4-2), reply/reply-all/forward with in_reply_to threading field (P4-3), and batch retrieval to remove N+1 FORGE calls (P4-4). Progress: FORGE now includes sender and viewer-scoped recipients in message responses, removing EMBER's per-recipient HTTP lookup chain; still needs performance tests and request-level state caching. Depends on P3.
 
 ## Phase 5 - POSTO
 Progress: removed default demo credentials/one-click demo accounts; mutation errors are surfaced; backend search and load-more pagination are wired. Still required: split App.tsx, session-expiry UX, CC/BCC compose controls, drafts, reply-all/threading, remove unsupported attachment/tag/wax-seal affordances, loading/error coverage, and frontend tests. Depends on P3, P4.

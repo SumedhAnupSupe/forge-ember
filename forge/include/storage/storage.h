@@ -70,6 +70,7 @@ private:
     bool openFiles();
     void closeFiles();
     bool scanForMaxIds();
+    bool migrateMailboxStates();
 };
 
 } // namespace forge

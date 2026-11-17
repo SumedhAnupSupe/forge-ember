@@ -71,7 +71,7 @@ bool initializeStorageFormat(const std::string& dataDir) {
         std::ifstream current(path);
         std::string magic;
         unsigned int version = 0;
-        size_t userSize = 0, messageSize = 0, recipientSize = 0, stateSize = 0;
+        size_t userSize = 0, messageSize = 0, recipientSize = 0;
         if (!(current >> magic >> version >> userSize >> messageSize >> recipientSize)) return false;
         if (version == 2) return validateStorageFormat(dataDir);
         if (version != 1 || magic != "FORGE_STORAGE" ||

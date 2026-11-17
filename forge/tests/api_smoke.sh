@@ -9,11 +9,20 @@ LOG="$DATA_DIR/server.log"
 PID=""
 
 cleanup() {
+  local status=$?
+  if [[ "$status" -ne 0 && -f "$LOG" ]]; then
+    echo "FORGE smoke-test server log:" >&2
+    cat "$LOG" >&2
+  fi
   if [[ -n "$PID" ]]; then
     kill "$PID" 2>/dev/null || true
     wait "$PID" 2>/dev/null || true
   fi
-  rm -rf "$DATA_DIR"
+  if [[ "${KEEP_FORGE_SMOKE_DATA:-0}" == "1" ]]; then
+    echo "Preserved FORGE smoke-test data at $DATA_DIR" >&2
+  else
+    rm -rf "$DATA_DIR"
+  fi
 }
 trap cleanup EXIT
 

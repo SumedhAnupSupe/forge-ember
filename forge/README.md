@@ -31,7 +31,7 @@ ctest --test-dir build/forge --output-on-failure
 ./build/forge/forge-server --host 127.0.0.1 --port 8080 --data-dir ./forge/data
 ```
 
-Data is stored in `.dat` files under the data directory: `users.dat`, `messages.dat`, `recipients.dat`. Existing files are not migrated or overwritten silently.
+Data is stored in fixed-size `.dat` files under the data directory: `users.dat`, `messages.dat`, `recipients.dat`, and `mailbox_states.dat`. `format.meta` records the storage format version and record sizes. Version 1 stores are upgraded to version 2 by creating independent mailbox-state rows from existing message flags; record files are scanned before migration and are not intentionally rewritten by this metadata upgrade.
 
 ## Run CLI
 
@@ -102,11 +102,13 @@ Status codes: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `500`. Errors do 
 
 ## Storage
 
-- Files: `users.dat`, `messages.dat`, `recipients.dat`
-- Record sizes (verified): User 461 bytes, Message 659 bytes, Recipient 13 bytes
+- Files: `users.dat`, `messages.dat`, `recipients.dat`, `mailbox_states.dat`
+- Record sizes: User 461 bytes, Message 659 bytes, Recipient 13 bytes, MailboxState 11 bytes
 - Field-by-field binary serialization (no raw struct writes)
 - Storage errors distinguished from empty results where possible
 - Shared binary file access is serialized with a recursive mutex
+- Per-user read/star/trash state is stored in `mailbox_states.dat`; migration seeds each sender/recipient from the legacy message-level flags
+- Permanent mailbox removal currently removes that participant's mailbox-state row; shared message-body compaction after the last participant removes their copy remains outstanding
 - Multi-record message writes use validation and best-effort rollback on failure (documented as best-effort, not full ACID)
 - ID counters fail closed on exhaustion instead of wrapping to zero
 - IDs allocated safely; indexes updated only after successful storage operations
@@ -123,5 +125,5 @@ Tests use temporary directories where appropriate; corruption tests must not run
 
 - Best-effort rollback only (no write-ahead log/crash-safe transactions)
 - Unrestricted SQL is disabled; authenticated users can run only the documented, restricted read-only `SELECT` subset
-- Per-user message deletion design depends on schema; current schema uses soft deletion at record level
+- Physical compaction/purge of orphaned message and recipient records after the final participant permanently removes their mailbox copy is still outstanding
 - CLI keeps tokens in memory only (not written to disk)

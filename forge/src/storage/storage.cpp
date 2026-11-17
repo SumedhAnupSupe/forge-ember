@@ -369,7 +369,15 @@ bool Storage::applyMessagePurge(uint32_t messageId) {
         std::vector<uint8_t> buffer(recordSize);
         while (input.read(reinterpret_cast<char*>(buffer.data()),
                           static_cast<std::streamsize>(buffer.size()))) {
-            if (shouldKeep(buffer)) {
+            bool validRecord = false;
+            const bool keepRecord = shouldKeep(buffer, validRecord);
+            if (!validRecord) {
+                input.close();
+                output.close();
+                std::filesystem::remove(temporary, ec);
+                return false;
+            }
+            if (keepRecord) {
                 output.write(reinterpret_cast<const char*>(buffer.data()),
                              static_cast<std::streamsize>(buffer.size()));
                 if (!output.good()) break;
@@ -384,23 +392,24 @@ bool Storage::applyMessagePurge(uint32_t messageId) {
     };
 
     const bool messagesReady = compact(messagesPath, messagesTemp, Message::ENCODED_RECORD_SIZE,
-        [&](const std::vector<uint8_t>& bytes) {
+        [&](const std::vector<uint8_t>& bytes, bool& valid) {
             Message message{};
-            return BinaryCodec::deserializeMessage(bytes, 0, message) && message.id != messageId;
+            valid = BinaryCodec::deserializeMessage(bytes, 0, message);
+            return valid && message.id != messageId;
         });
     const bool recipientsReady = messagesReady &&
         compact(recipientsPath, recipientsTemp, Recipient::ENCODED_RECORD_SIZE,
-        [&](const std::vector<uint8_t>& bytes) {
+        [&](const std::vector<uint8_t>& bytes, bool& valid) {
             Recipient recipient{};
-            return BinaryCodec::deserializeRecipient(bytes, 0, recipient) &&
-                   recipient.message_id != messageId;
+            valid = BinaryCodec::deserializeRecipient(bytes, 0, recipient);
+            return valid && recipient.message_id != messageId;
         });
     const bool statesReady = recipientsReady &&
         compact(statesPath, statesTemp, MailboxState::ENCODED_RECORD_SIZE,
-        [&](const std::vector<uint8_t>& bytes) {
+        [&](const std::vector<uint8_t>& bytes, bool& valid) {
             MailboxState state{};
-            return BinaryCodec::deserializeMailboxState(bytes, 0, state) &&
-                   state.message_id != messageId;
+            valid = BinaryCodec::deserializeMailboxState(bytes, 0, state);
+            return valid && state.message_id != messageId;
         });
     if (!messagesReady || !recipientsReady || !statesReady) {
         std::error_code cleanupError;

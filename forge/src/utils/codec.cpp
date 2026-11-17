@@ -44,10 +44,9 @@ bool BinaryCodec::writeString(std::vector<uint8_t>& data, const char* str, size_
     if (maxLen == 0) return false;
     size_t len = 0;
     if (str) {
-        len = strlen(str);
-        if (len > maxLen - 1) {
-            return false; // Do not silently truncate
-        }
+        const void* terminator = std::memchr(str, '\\0', maxLen);
+        if (!terminator) return false; // Reject unterminated fixed-width fields.
+        len = static_cast<const char*>(terminator) - str;
     }
     for (size_t i = 0; i < len; ++i) {
         data.push_back((uint8_t)str[i]);
@@ -60,8 +59,11 @@ bool BinaryCodec::writeString(std::vector<uint8_t>& data, const char* str, size_
 
 bool BinaryCodec::readString(const std::vector<uint8_t>& data, size_t& offset, char* str, size_t maxLen) {
     if (maxLen == 0) return false;
-    if (offset + maxLen > data.size()) return false;
-    memcpy(str, &data[offset], maxLen);
+    if (offset > data.size() || maxLen > data.size() - offset) return false;
+    const auto begin = data.begin() + static_cast<std::ptrdiff_t>(offset);
+    const auto terminator = std::find(begin, begin + static_cast<std::ptrdiff_t>(maxLen), 0);
+    if (terminator == begin + static_cast<std::ptrdiff_t>(maxLen)) return false;
+    memcpy(str, data.data() + offset, maxLen);
     str[maxLen - 1] = '\0';
     offset += maxLen;
     return true;

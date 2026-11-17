@@ -104,12 +104,13 @@ int test_storage() {
             std::ifstream input(manifest);
             std::string magic;
             unsigned int version = 0;
-            size_t userSize = 0, messageSize = 0, recipientSize = 0;
-            if (input >> magic >> version >> userSize >> messageSize >> recipientSize &&
-                magic == "FORGE_STORAGE" && version == 1 &&
+            size_t userSize = 0, messageSize = 0, recipientSize = 0, stateSize = 0;
+            if (input >> magic >> version >> userSize >> messageSize >> recipientSize >> stateSize &&
+                magic == "FORGE_STORAGE" && version == 2 &&
                 userSize == User::ENCODED_RECORD_SIZE &&
                 messageSize == Message::ENCODED_RECORD_SIZE &&
-                recipientSize == Recipient::ENCODED_RECORD_SIZE) {
+                recipientSize == Recipient::ENCODED_RECORD_SIZE &&
+                stateSize == MailboxState::ENCODED_RECORD_SIZE) {
                 std::cout << "  Legacy storage metadata migration OK" << std::endl;
             } else {
                 std::cout << "  Legacy storage metadata migration FAILED" << std::endl;

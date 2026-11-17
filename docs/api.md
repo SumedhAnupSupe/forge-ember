@@ -7,7 +7,7 @@ EMBER is the browser-facing API. OpenAPI is available at `/docs` when the backen
 | Method | Route | Purpose |
 |---|---|---|
 | POST | `/api/v1/auth/register` | Register a user through FORGE and establish a session |
-| POST | `/api/v1/auth/login` | Authenticate and return user/session |
+| POST | `/api/v1/auth/login` | Authenticate and return user/session; throttles after five failed attempts per 15-minute window |
 | POST | `/api/v1/auth/logout` | End the FORGE session |
 | GET | `/api/v1/auth/me` | Return the current authenticated user |
 | GET | `/api/v1/mail/{folder}` | List inbox, sent, starred, or trash |

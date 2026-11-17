@@ -20,12 +20,17 @@ Records are serialized field-by-field in little-endian numeric format. The imple
 - `recipients.dat`: fixed-width recipient records.
 - `mailbox_states.dat`: fixed-width mailbox state records keyed by message and user.
 - `format.meta`: storage manifest containing magic, format version, and expected record sizes.
+- `message.txn`: temporary write-ahead journal for a message and its complete recipient envelope; removed after commit/replay.
 
 ## Storage compatibility
 
 Manifest version 1 recorded the original three record sizes. Version 2 adds the mailbox-state record size. On startup, version 1 and manifest-less stores are validated and upgraded: each existing message gets a state row for its sender and each active recipient, initialized from the legacy shared flags. The migration is idempotent by `(message_id, user_id)` and only tags the store as version 2 after migration succeeds. An unknown version, magic value, or record-size layout is rejected.
 
 The legacy-adoption path is not a general schema migration framework. Future record changes require a new version and an explicit migration strategy.
+
+## Message transaction recovery
+
+Message creation writes a versioned `message.txn` journal containing the encoded message and all recipient records, with a checksum, before appending either data file. Startup validates and replays a pending journal idempotently. If the final fixed-size record append was interrupted, recovery truncates only the incomplete tail and writes the complete record from the journal. The sender and active recipients' mailbox-state rows are then created; startup migration repairs missing rows if the process stops before that step. The journal uses stream flush and same-directory rename; it does not currently issue an OS-level `fsync`, so it is not a guarantee against sudden power loss or storage-controller cache loss.
 
 ## Indexes
 
@@ -35,5 +40,5 @@ FORGE uses a separate-chaining hash table with FNV-1a 32-bit hashing. Indexes ar
 
 - New and migrated records use independent mailbox-state rows. Message still contains legacy flags for compatibility; new service operations read/write the per-user row.
 - Permanent removal currently removes the participant's mailbox-state row. Shared message/recipient record compaction after the last participant removes their copy is still outstanding.
-- Message plus recipient creation uses best-effort rollback; there is no crash-safe WAL yet.
+- The WAL covers message and recipient creation, not every state update or every storage mutation.
 - The engine does not provide general SQL transactions, joins, or arbitrary write queries.

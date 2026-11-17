@@ -511,13 +511,19 @@ bool ForgeServer::startInBackground() {
                 res.set_content(err.dump(), "application/json");
                 return;
             }
-            if (m.sender_id != uid) {
-                res.status = 403;
-                json err; err["error"] = "Forbidden";
+            bool authorized = m.sender_id == uid;
+            std::vector<Recipient> recipients;
+            if (storage_->readRecipientsByMessage(mid, recipients, true)) {
+                for (const auto& recipient : recipients)
+                    if (recipient.user_id == uid) authorized = true;
+            }
+            if (!authorized) {
+                res.status = 404;
+                json err; err["error"] = "Not found";
                 res.set_content(err.dump(), "application/json");
                 return;
             }
-            if (messageService_->deleteMessage(mid)) {
+            if (messageService_->removeMailboxCopy(mid, uid)) {
                 json r; r["status"] = "ok";
                 res.set_content(r.dump(), "application/json");
             } else {
@@ -695,7 +701,7 @@ bool ForgeServer::startInBackground() {
             if (!authorized) {
                 res.status = 404; res.set_content(R"({"error":"Message not found"})", "application/json"); return;
             }
-            if (!storage_->removeMailboxState(id, uid)) {
+            if (!messageService_->removeMailboxCopy(id, uid)) {
                 res.status = 404; res.set_content(R"({"error":"Mailbox copy not found"})", "application/json"); return;
             }
             res.set_content(R"({"status":"ok"})", "application/json");

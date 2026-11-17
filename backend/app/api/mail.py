@@ -40,7 +40,9 @@ async def enrich(token: str, raw: dict, viewer_id: int) -> MessageOut:
 @router.get("/{folder}", response_model=list[MessageOut])
 async def list_mail(folder: str, authorization: str | None = Header(default=None),
                     q: str | None = Query(default=None, max_length=200),
-                    sort: str = Query(default="newest", pattern="^(newest|oldest)$")) -> list[MessageOut]:
+                    sort: str = Query(default="newest", pattern="^(newest|oldest)$"),
+                    limit: int = Query(default=50, ge=1, le=100),
+                    offset: int = Query(default=0, ge=0, le=1_000_000)) -> list[MessageOut]:
     if folder not in {"inbox", "sent", "starred", "trash"}:
         raise HTTPException(status_code=404, detail="Unknown mailbox")
     token = require_token(authorization)
@@ -61,7 +63,9 @@ async def list_mail(folder: str, authorization: str | None = Header(default=None
             if q.casefold() not in haystack: continue
         result.append(message)
     result.sort(key=lambda item: item.created_at, reverse=sort == "newest")
-    return result
+    # Keep the response as a list for existing clients while supporting stable,
+    # bounded offset pagination. Clients request subsequent pages by offset.
+    return result[offset:offset + limit]
 
 
 @router.get("/item/{message_id}", response_model=MessageOut)

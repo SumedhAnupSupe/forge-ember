@@ -84,7 +84,7 @@ npm run lint
 npm run build
 ```
 
-The full-stack GitHub Actions workflow in `.github/workflows/full-stack-ci.yml` verifies FORGE build/unit/API smoke, EMBER lint/tests, POSTO typecheck/build, and Docker Compose config/image builds. Latest verified run: [run 198](https://github.com/SumedhAnupSupe/forge-ember/actions/runs/43998419763).
+The full-stack GitHub Actions workflow in `.github/workflows/full-stack-ci.yml` verifies FORGE build/unit/API smoke, EMBER lint/tests, POSTO typecheck/build, and Docker Compose config/image builds. Latest verified run: [run 203](https://github.com/SumedhAnupSupe/forge-ember/actions/runs/43998708385).
 
 ## Current functionality
 

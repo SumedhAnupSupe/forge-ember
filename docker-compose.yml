@@ -1,0 +1,41 @@
+services:
+  forge:
+    build:
+      context: .
+      dockerfile: forge/Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - forge-data:/var/lib/forge
+    restart: unless-stopped
+
+  ember:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      FORGE_BASE_URL: http://forge:8080
+      FRONTEND_ORIGINS: ${FRONTEND_ORIGINS:-http://localhost:3000}
+      REQUEST_TIMEOUT_SECONDS: ${REQUEST_TIMEOUT_SECONDS:-5}
+    ports:
+      - "8000:8000"
+    depends_on:
+      forge:
+        condition: service_healthy
+    restart: unless-stopped
+
+  posto:
+    build:
+      context: ember/posto-—-elegant-mail-client
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000/api/v1}
+    ports:
+      - "3000:80"
+    depends_on:
+      ember:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  forge-data:

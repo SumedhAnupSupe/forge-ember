@@ -741,4 +741,62 @@ bool Storage::deleteMailboxStatesByMessage(uint32_t messageId) {
     return found;
 }
 
+
+bool Storage::removeMailboxState(uint32_t messageId, uint32_t userId) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (!isOpen_ || messageId == 0 || userId == 0) return false;
+
+    const auto sourcePath = std::filesystem::path(dataDir_) / "mailbox_states.dat";
+    const auto temporaryPath = std::filesystem::path(dataDir_) / "mailbox_states.dat.tmp";
+    std::ifstream input(sourcePath, std::ios::binary);
+    if (!input.is_open()) return false;
+    std::ofstream output(temporaryPath, std::ios::binary | std::ios::trunc);
+    if (!output.is_open()) return false;
+
+    bool removed = false;
+    std::vector<uint8_t> buffer(MailboxState::ENCODED_RECORD_SIZE);
+    while (input.read(reinterpret_cast<char*>(buffer.data()),
+                      static_cast<std::streamsize>(buffer.size()))) {
+        MailboxState state{};
+        if (!BinaryCodec::deserializeMailboxState(buffer, 0, state)) {
+            output.close();
+            input.close();
+            std::error_code cleanupError;
+            std::filesystem::remove(temporaryPath, cleanupError);
+            return false;
+        }
+        if (state.message_id == messageId && state.user_id == userId) {
+            removed = true;
+            continue;
+        }
+        output.write(reinterpret_cast<const char*>(buffer.data()),
+                     static_cast<std::streamsize>(buffer.size()));
+        if (!output.good()) break;
+    }
+    const bool inputComplete = input.eof() && input.gcount() == 0;
+    output.flush();
+    const bool outputComplete = output.good();
+    input.close();
+    output.close();
+    if (!inputComplete || !outputComplete || !removed) {
+        std::error_code cleanupError;
+        std::filesystem::remove(temporaryPath, cleanupError);
+        return false;
+    }
+
+    mailboxStatesFile_.close();
+    std::error_code renameError;
+    std::filesystem::rename(temporaryPath, sourcePath, renameError);
+    if (renameError) {
+        mailboxStatesFile_.clear();
+        mailboxStatesFile_.open(sourcePath, std::ios::binary | std::ios::in | std::ios::out);
+        std::error_code cleanupError;
+        std::filesystem::remove(temporaryPath, cleanupError);
+        return false;
+    }
+    mailboxStatesFile_.clear();
+    mailboxStatesFile_.open(sourcePath, std::ios::binary | std::ios::in | std::ios::out);
+    return mailboxStatesFile_.is_open();
+}
+
 } // namespace forge

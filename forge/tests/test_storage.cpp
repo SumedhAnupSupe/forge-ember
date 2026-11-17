@@ -127,7 +127,7 @@ int test_storage() {
     std::filesystem::create_directories(invalidManifestDir);
     {
         std::ofstream manifest(invalidManifestDir / "format.meta");
-        manifest << "NOT_FORGE 99 1 1 1\\n";
+        manifest << "NOT_FORGE 99 1 1 1\n";
     }
     {
         Storage invalidManifestStorage(invalidManifestDir.string());

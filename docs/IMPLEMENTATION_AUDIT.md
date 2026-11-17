@@ -46,8 +46,8 @@ Legend: **W** working (verified), **I** implemented, not verified, **P** partial
 | FORGE | CI | P | Workflow triggers only on `main` and one fix branch; no EMBER/POSTO jobs |
 | EMBER | Register/login/logout/me | I | Routes exist in `backend/app/api/auth.py` |
 | EMBER | Mail folders, send, read/star/trash/restore, permanent delete | I | Routes exist in `mail.py`; tests cover little |
-| EMBER | Per-user mailbox state | **A** | Still stored on the message record; requires a new FORGE record type and data migration. Not implemented yet |
-| EMBER | BCC privacy | I - not yet verified | mail.py now filters BCC identities for non-senders and exposes only a BCC viewer's own address; three focused tests added, not run |
+| FORGE/EMBER | Per-user mailbox state | I - not yet verified | Added MailboxState records in format v2, migration from legacy message flags, state-aware listing/mutations, and tests; not run |
+| EMBER | BCC privacy | I - not yet verified | mail.py filters BCC identities for non-senders and exposes only a BCC viewer's own address; three focused tests added, not run |
 | EMBER | Pagination / server-side search | I - not yet verified | Bounded limit/offset, backend query/sort, and POSTO load-more wired; pagination is still offset-based and tests are pending |
 | EMBER | Drafts | M | No draft routes |
 | EMBER | Reply / reply-all / forward, threading | M | No routes or thread fields |
@@ -67,12 +67,13 @@ Per-user mailbox state requires a new FORGE record type and a migration for exis
 
 The following changes have been committed to this branch after the Phase 1 baseline. They are **implemented but unverified** because this session could not obtain a local repository checkout or execute the build/test commands.
 
-- FORGE storage manifest (format.meta, version 1) validates record sizes and rejects unknown/incompatible manifests. Existing manifest-less stores are scanned first and then tagged; existing .dat files are not rewritten.
-- FORGE codec now bounds fixed-width string scans and rejects unterminated fields on serialize/deserialize. Tests were added for malformed fields and legacy/corrupt manifests.
+- FORGE storage manifest format v2 validates record sizes, adds mailbox-state size, and upgrades v1/manifest-less stores after validating the existing record files.
+- Added MailboxState (11-byte record) and mailbox_states.dat, migration of sender/recipient flags, per-user read/star/trash mutations, and per-user mailbox-row removal. Tests were added for codec, migration, state isolation, and removal.
+- FORGE codec now bounds fixed-width string scans and rejects unterminated fields on serialize/deserialize. Tests cover malformed fields and legacy/corrupt manifests.
 - Fixed a malformed null-terminator literal in UserService::updateUser.
 - EMBER recipient enrichment now filters BCC identities according to the viewer; focused sender/TO/BCC visibility tests were added.
 - EMBER mailbox listing accepts bounded limit and offset.
 - POSTO passes search/sort/pagination parameters to EMBER, supports loading additional pages, no longer pre-fills demo credentials or exposes one-click test accounts, and reports failed mailbox mutations rather than showing success.
 - Added a full-stack CI workflow and Docker/Compose assets.
 
-Not implemented yet: per-user mailbox state, physical message purge, write-ahead recovery, drafts, reply-all/threading, efficient batch retrieval, end-to-end three-user tests, complete frontend test suite, and final documentation/benchmark/demo deliverables. No new build, test, Docker, or CI success is claimed.
+Not implemented yet: physical compaction/purge of shared message and recipient records after the last participant removes their mailbox copy, write-ahead recovery, drafts, reply-all/threading, efficient batch retrieval, end-to-end three-user tests, complete frontend test suite, measured benchmarks, reproducible demo, and final implementation report. No new build, test, Docker, or CI success is claimed.

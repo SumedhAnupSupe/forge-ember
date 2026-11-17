@@ -7,6 +7,7 @@
 #include <memory>
 #include <chrono>
 #include <mutex>
+#include <vector>
 
 namespace forge {
 
@@ -30,9 +31,15 @@ public:
     bool validateSession(const std::string& token, uint32_t& userId);
     void invalidateSession(const std::string& token);
     void logout(const std::string& token);
+
+    // Five failed attempts per normalized email + remote address in 15 minutes.
+    bool allowLoginAttempt(const std::string& key);
+    void recordFailedLogin(const std::string& key);
+    void clearFailedLogins(const std::string& key);
     
 private:
     std::map<std::string, Session> sessions_;
+    std::map<std::string, std::vector<std::chrono::steady_clock::time_point>> failedLoginAttempts_;
     std::mutex mutex_;
     std::string generateToken();
 };

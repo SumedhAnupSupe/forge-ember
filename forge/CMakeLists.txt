@@ -59,5 +59,9 @@ target_link_libraries(forge-cli PRIVATE Threads::Threads)
 add_executable(forge src/main.cpp)
 target_link_libraries(forge PRIVATE forge_core)
 
+# Reproducible storage/index benchmark (opt-in; not part of the production server).
+add_executable(forge-benchmarks benchmarks/benchmark_main.cpp)
+target_link_libraries(forge-benchmarks PRIVATE forge_core)
+
 enable_testing()
 add_subdirectory(tests)

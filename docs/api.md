@@ -17,7 +17,7 @@ EMBER is the browser-facing API. OpenAPI is available at `/docs` when the backen
 | PATCH | `/api/v1/mail/{message_id}/star` | Change starred state |
 | DELETE | `/api/v1/mail/{message_id}` | Move message to trash |
 | POST | `/api/v1/mail/{message_id}/restore` | Restore message from trash |
-| DELETE | `/api/v1/mail/{message_id}/permanent` | Current route delegates to FORGE delete; physical purge is not yet implemented |
+| DELETE | `/api/v1/mail/{message_id}/permanent` | Remove the caller's mailbox-state row; shared message/recipient record compaction after the last participant removes their copy is not yet implemented |
 
 ## Mailbox query parameters
 

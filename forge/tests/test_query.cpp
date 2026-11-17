@@ -215,6 +215,15 @@ int test_query() {
         std::cout << "  Sender recipient-list visibility and isolation OK" << std::endl;
     else { std::cerr << "  Sender recipient-list isolation failed" << std::endl; failures++; }
 
+    if (storage->removeMailboxState(10, 2)) {
+        const auto removedMailboxMessages = executor.execute("SELECT id FROM messages;", 2);
+        const auto removedMailboxRecipients = executor.execute("SELECT user_id FROM recipients;", 2);
+        if (removedMailboxMessages.success && removedMailboxMessages.rows.empty() &&
+            removedMailboxRecipients.success && removedMailboxRecipients.rows.empty())
+            std::cout << "  Permanently removed mailbox copy hidden from query API OK" << std::endl;
+        else { std::cerr << "  Removed mailbox copy remained query-visible" << std::endl; failures++; }
+    } else { std::cerr << "  Could not remove mailbox state for query test" << std::endl; failures++; }
+
     storage->close();
     std::filesystem::remove_all(dir);
     return failures;

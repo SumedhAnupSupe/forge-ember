@@ -58,7 +58,7 @@ bool ForgeServer::startInBackground() {
                 });
             }
         }
-        item["recipients"] = std::move(visibleRecipients);
+        item["recipients"] = visibleRecipients;
     };
     
     std::cout << "FORGE Server starting on " << host_ << ":" << port_ << std::endl;

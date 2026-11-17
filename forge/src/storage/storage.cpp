@@ -46,6 +46,22 @@ bool validateStorageFormat(const std::string& dataDir) {
            (version == 1 || mailboxStateRecordSize == forge::MailboxState::ENCODED_RECORD_SIZE);
 }
 
+bool hasRequiredMailboxStateFile(const std::string& dataDir) {
+    const auto manifestPath = std::filesystem::path(dataDir) / "format.meta";
+    std::error_code ec;
+    if (!std::filesystem::exists(manifestPath, ec)) return !ec;
+    if (ec) return false;
+    std::ifstream manifest(manifestPath);
+    std::string magic;
+    unsigned int version = 0;
+    if (!(manifest >> magic >> version)) return false;
+    if (magic != "FORGE_STORAGE") return false;
+    if (version < 2) return true;
+    const auto statePath = std::filesystem::path(dataDir) / "mailbox_states.dat";
+    const bool exists = std::filesystem::exists(statePath, ec);
+    return exists && !ec;
+}
+
 bool initializeStorageFormat(const std::string& dataDir) {
     const auto path = std::filesystem::path(dataDir) / "format.meta";
     std::error_code ec;
@@ -116,6 +132,7 @@ bool Storage::open() {
     } catch (...) {
         return false;
     }
+    if (!hasRequiredMailboxStateFile(dataDir_)) return false;
     if (!openFiles()) {
         closeFiles();
         return false;

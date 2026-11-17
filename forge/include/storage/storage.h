@@ -45,6 +45,7 @@ public:
     bool updateMailboxState(const MailboxState& state);
     std::vector<MailboxState> getAllMailboxStates();
     bool deleteMailboxStatesByMessage(uint32_t messageId);
+    bool removeMailboxState(uint32_t messageId, uint32_t userId);
     
     // ID management
     uint32_t getNextUserId();

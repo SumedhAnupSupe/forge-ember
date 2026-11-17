@@ -129,7 +129,7 @@ export default function App() {
         list = list.filter(m => !m.is_read);
       } else if (activeCategory === 'starred') {
         list = list.filter(m => m.is_starred);
-
+      }
 
       setMessages(list);
 

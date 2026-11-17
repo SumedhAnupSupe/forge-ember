@@ -260,7 +260,7 @@ bool ForgeServer::startInBackground() {
             }
             uint32_t mid = (uint32_t)std::stoul(req.matches[1]);
             Message m;
-            if (!messageService_->getMessageById(mid, m, false)) {
+            if (!messageService_->getMessageById(mid, m, true)) {
                 res.status = 404;
                 json err; err["error"] = "Not found";
                 res.set_content(err.dump(), "application/json");

@@ -82,6 +82,7 @@ Latest verified CI run: [run 145](https://github.com/SumedhAnupSupe/forge-ember/
 - Hash collision-chain lookup, deduplication, removal, and global-delete index cleanup.
 - Independent read/star/trash state per \`(message_id, user_id)\`.
 - BCC visibility enforced in FORGE response envelopes and restricted SQL query results, with a second EMBER filter.
+- Authentication uses 24-hour sessions, generic invalid-credential responses, and a bounded failed-login throttle (5 failures per 15 minutes per normalized email + remote address); expired sessions and stale attempt windows are cleaned up.
 - Sender/recipient message envelopes are returned in the FORGE response, removing EMBER's per-recipient HTTP lookup chain.
 - Four-user API smoke coverage: sender, TO recipient, BCC recipient, unrelated user; mailbox-state isolation; per-user permanent removal; global deletion; restart.
 - EMBER bounded pagination/search/sort and POSTO load-more; CC/BCC compose controls; removal of unsupported tag/attachment affordances and default demo credentials.
@@ -92,7 +93,7 @@ Latest verified CI run: [run 145](https://github.com/SumedhAnupSupe/forge-ember/
 - **P2-5:** concurrency stress tests and a deeper locking review across storage, indexes, and sessions.
 - **P2-6/P2-7:** dedicated lifecycle/health tests and additional CLI behavior/exit-code coverage.
 - **P3-4:** physical compaction of shared message and recipient records after the final participant permanently removes their mailbox copy.
-- **P3-5:** login rate limiting and further authentication/error-hygiene tests. Session expiry exists, but UI session-expiry handling is incomplete.
+- **P3-5:** backend login throttling and session expiry are implemented and tested. Remaining: frontend session-expiry UX and further security/error-hygiene review.
 - **P4:** drafts, reply/reply-all/forward, threading, broader pagination/search tests, and performance benchmarks for batch retrieval.
 - **P5:** split the large App component, add draft/thread UI, complete session-expiry and loading/empty/error UX, and add frontend component tests.
 - **P6:** more failure-injection and concurrent multi-user integration scenarios.

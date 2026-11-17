@@ -107,11 +107,17 @@ export default function App() {
     if (!currentUser) return;
     setIsLoading(true);
     try {
+      const mailboxQuery = {
+        q: searchQuery.trim() || undefined,
+        sort: sortOrder,
+        limit: 50,
+        offset: 0,
+      };
       let list: Message[] = [];
-      if (activeFolder === 'inbox') list = await mailService.getInbox();
-      else if (activeFolder === 'sent') list = await mailService.getSent();
-      else if (activeFolder === 'starred') list = await mailService.getStarred();
-      else if (activeFolder === 'trash') list = await mailService.getTrash();
+      if (activeFolder === 'inbox') list = await mailService.getInbox(mailboxQuery);
+      else if (activeFolder === 'sent') list = await mailService.getSent(mailboxQuery);
+      else if (activeFolder === 'starred') list = await mailService.getStarred(mailboxQuery);
+      else if (activeFolder === 'trash') list = await mailService.getTrash(mailboxQuery);
 
       // Category Filter
       if (activeCategory === 'unread') {
@@ -121,23 +127,6 @@ export default function App() {
       } else if (activeCategory === 'attachments') {
         list = list.filter(m => !!m.attachment);
       }
-
-      // Search Filter
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        list = list.filter(m => 
-          m.subject.toLowerCase().includes(q) ||
-          m.body.toLowerCase().includes(q) ||
-          m.sender.name.toLowerCase().includes(q) ||
-          m.sender.email.toLowerCase().includes(q) ||
-          (m.tag && m.tag.toLowerCase().includes(q))
-        );
-      }
-
-      // Sort Order
-      list.sort((a, b) => {
-        return sortOrder === 'newest' ? b.created_at - a.created_at : a.created_at - b.created_at;
-      });
 
       setMessages(list);
 

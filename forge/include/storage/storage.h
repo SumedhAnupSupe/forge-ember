@@ -77,6 +77,7 @@ private:
     bool recoverPendingPurgeTransaction();
     bool purgeMessageRecords(uint32_t messageId);
     bool applyMessagePurge(uint32_t messageId);
+    bool purgeOrphanedMessages();
     bool applyMessageTransaction(const Message& message, const std::vector<Recipient>& recipients);
     bool repairTrailingPartialRecord(const std::string& filename, size_t recordSize);
 };

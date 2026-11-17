@@ -171,11 +171,15 @@ std::vector<Message> MessageService::getMessagesForUser(uint32_t userId, bool in
 
 bool MessageService::deleteMessage(uint32_t id) {
     if (!storage_) return false;
-    bool res = storage_->deleteMessage(id);
-    if (res) {
-        storage_->deleteRecipientsByMessage(id);
+    const bool deleted = storage_->deleteMessage(id);
+    if (deleted) {
+        const bool recipientsDeleted = storage_->deleteRecipientsByMessage(id);
+        const bool mailboxStatesDeleted = storage_->deleteMailboxStatesByMessage(id);
+        if (!recipientsDeleted || !mailboxStatesDeleted) {
+            std::cerr << "Message deletion cleanup was incomplete for message " << id << std::endl;
+        }
     }
-    return res;
+    return deleted;
 }
 
 bool MessageService::updateMessage(const Message& message) {

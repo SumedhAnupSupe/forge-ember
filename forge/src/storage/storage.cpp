@@ -3,6 +3,77 @@
 #include <iostream>
 #include <sys/stat.h>
 #include <cstring>
+#include <fstream>
+#include <sstream>
+
+namespace {
+
+constexpr unsigned int kStorageFormatVersion = 1;
+
+bool validateStorageFormat(const std::string& dataDir) {
+    const auto path = std::filesystem::path(dataDir) / "format.meta";
+    std::error_code ec;
+    if (!std::filesystem::exists(path, ec)) return !ec;
+    if (ec) return false;
+
+    std::ifstream input(path);
+    if (!input.is_open()) return false;
+
+    std::string magic;
+    unsigned int version = 0;
+    size_t userRecordSize = 0;
+    size_t messageRecordSize = 0;
+    size_t recipientRecordSize = 0;
+    std::string extra;
+    if (!(input >> magic >> version >> userRecordSize >> messageRecordSize >> recipientRecordSize))
+        return false;
+    if (input >> extra) return false;
+
+    return magic == "FORGE_STORAGE" &&
+           version == kStorageFormatVersion &&
+           userRecordSize == forge::User::ENCODED_RECORD_SIZE &&
+           messageRecordSize == forge::Message::ENCODED_RECORD_SIZE &&
+           recipientRecordSize == forge::Recipient::ENCODED_RECORD_SIZE;
+}
+
+bool initializeStorageFormat(const std::string& dataDir) {
+    const auto path = std::filesystem::path(dataDir) / "format.meta";
+    std::error_code ec;
+    if (std::filesystem::exists(path, ec)) return !ec && validateStorageFormat(dataDir);
+    if (ec) return false;
+
+    const auto temporaryPath = path.string() + ".tmp";
+    {
+        std::ofstream output(temporaryPath, std::ios::binary | std::ios::trunc);
+        if (!output.is_open()) return false;
+        output << "FORGE_STORAGE\\n" << kStorageFormatVersion << "\\n"
+               << forge::User::ENCODED_RECORD_SIZE << " "
+               << forge::Message::ENCODED_RECORD_SIZE << " "
+               << forge::Recipient::ENCODED_RECORD_SIZE << "\\n";
+        output.flush();
+        if (!output.good()) {
+            output.close();
+            std::filesystem::remove(temporaryPath, ec);
+            return false;
+        }
+        output.close();
+        if (output.fail()) {
+            std::filesystem::remove(temporaryPath, ec);
+            return false;
+        }
+    }
+
+    std::filesystem::rename(temporaryPath, path, ec);
+    if (!ec) return true;
+
+    // Another process may have initialized the same directory concurrently.
+    std::error_code existsError;
+    const bool targetExists = std::filesystem::exists(path, existsError);
+    std::filesystem::remove(temporaryPath, existsError);
+    return targetExists && !existsError && validateStorageFormat(dataDir);
+}
+
+} // namespace
 
 namespace forge {
 
@@ -26,7 +97,18 @@ bool Storage::open() {
         closeFiles();
         return false;
     }
+    // Validate an existing manifest before interpreting record bytes. Legacy
+    // directories without a manifest are scanned first and tagged only after
+    // every existing record has passed validation.
+    if (!validateStorageFormat(dataDir_)) {
+        closeFiles();
+        return false;
+    }
     if (!scanForMaxIds()) {
+        closeFiles();
+        return false;
+    }
+    if (!initializeStorageFormat(dataDir_)) {
         closeFiles();
         return false;
     }
@@ -87,6 +169,7 @@ bool Storage::scanForMaxIds() {
     // Scan users
     usersFile_.seekg(0, std::ios::end);
     std::streampos fsize = usersFile_.tellg();
+    if (fsize == std::streampos(-1)) return false;
     usersFile_.seekg(0, std::ios::beg);
     if (fsize % (std::streampos)User::ENCODED_RECORD_SIZE != 0) {
         // Corrupted/truncated - report error
@@ -105,6 +188,7 @@ bool Storage::scanForMaxIds() {
     // Scan messages
     messagesFile_.seekg(0, std::ios::end);
     fsize = messagesFile_.tellg();
+    if (fsize == std::streampos(-1)) return false;
     messagesFile_.seekg(0, std::ios::beg);
     if (fsize % (std::streampos)Message::ENCODED_RECORD_SIZE != 0) {
         return false;
@@ -122,6 +206,7 @@ bool Storage::scanForMaxIds() {
     // Recipients - validate but no ID counter needed
     recipientsFile_.seekg(0, std::ios::end);
     fsize = recipientsFile_.tellg();
+    if (fsize == std::streampos(-1)) return false;
     recipientsFile_.seekg(0, std::ios::beg);
     if (fsize % (std::streampos)Recipient::ENCODED_RECORD_SIZE != 0) {
         return false;

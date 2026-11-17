@@ -287,6 +287,16 @@ bool ForgeServer::startInBackground() {
             }
             json item;
             item["id"] = m.id; item["sender_id"] = m.sender_id; item["subject"] = m.subject; item["body"] = m.body; item["created_at"] = m.created_at;
+            MailboxState mailboxState{};
+            if (storage_->readMailboxState(mid, uid, mailboxState)) {
+                item["is_read"] = mailboxState.is_read != 0;
+                item["is_starred"] = mailboxState.is_starred != 0;
+                item["is_deleted"] = mailboxState.is_deleted != 0;
+            } else {
+                item["is_read"] = m.is_read != 0;
+                item["is_starred"] = m.is_starred != 0;
+                item["is_deleted"] = m.is_deleted != 0;
+            }
             res.set_content(item.dump(), "application/json");
         } catch (...) {
             res.status = 404;

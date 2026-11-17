@@ -44,13 +44,14 @@ def test_sender_sees_all_recipients_including_bcc(monkeypatch: pytest.MonkeyPatc
 def test_visible_recipient_cannot_see_other_bcc_identities(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    async def lookup_user(_token: str, user_id: int) -> dict:
+    async def lookup_user_id(_token: str, user_id: int, message_id: int) -> dict:
+        assert message_id == 42
         return USERS[user_id]
 
     async def query(_token: str, _sql: str) -> list[dict]:
         return RECIPIENTS
 
-    monkeypatch.setattr(forge, "lookup_user_id", lookup_user)
+    monkeypatch.setattr(forge, "lookup_user_id", lookup_user_id)
     monkeypatch.setattr(forge, "query", query)
 
     message = asyncio.run(enrich("recipient-token", MESSAGE, viewer_id=2))
@@ -61,13 +62,14 @@ def test_visible_recipient_cannot_see_other_bcc_identities(
 def test_bcc_recipient_sees_only_own_bcc_identity(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    async def lookup_user(_token: str, user_id: int) -> dict:
+    async def lookup_user_id(_token: str, user_id: int, message_id: int) -> dict:
+        assert message_id == 42
         return USERS[user_id]
 
     async def query(_token: str, _sql: str) -> list[dict]:
         return RECIPIENTS
 
-    monkeypatch.setattr(forge, "lookup_user_id", lookup_user)
+    monkeypatch.setattr(forge, "lookup_user_id", lookup_user_id)
     monkeypatch.setattr(forge, "query", query)
 
     message = asyncio.run(enrich("bcc-token", MESSAGE, viewer_id=4))

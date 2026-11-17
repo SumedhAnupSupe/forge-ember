@@ -79,6 +79,14 @@ CAROL_ID="$(json_value id)"
 code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/users" -H 'Content-Type: application/json' -d '{"name":"Dave Smoke","email":"dave-smoke@example.test","password":"SmokePass123!"}')
 assert_code 201 "$code"
 
+# Five failed attempts are accepted; the sixth is throttled.
+for attempt in 1 2 3 4 5; do
+  code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/auth/login" -H 'Content-Type: application/json' -d '{"email":"rate-limit@example.test","password":"WrongPassword123!"}')
+  assert_code 401 "$code"
+done
+code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/auth/login" -H 'Content-Type: application/json' -d '{"email":"rate-limit@example.test","password":"WrongPassword123!"}')
+assert_code 429 "$code"
+
 code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/auth/login" -H 'Content-Type: application/json' -d '{"email":"alice-smoke@example.test","password":"SmokePass123!"}')
 assert_code 200 "$code"
 ALICE_TOKEN="$(json_value token)"

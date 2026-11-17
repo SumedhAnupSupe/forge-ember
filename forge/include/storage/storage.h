@@ -38,6 +38,13 @@ public:
     bool readRecipientsByMessage(uint32_t messageId, std::vector<Recipient>& recipients, bool includeDeleted = false);
     bool deleteRecipientsByMessage(uint32_t messageId);
     std::vector<Recipient> getAllRecipients(bool includeDeleted = false);
+
+    // Per-user mailbox state operations
+    bool createMailboxState(const MailboxState& state);
+    bool readMailboxState(uint32_t messageId, uint32_t userId, MailboxState& state);
+    bool updateMailboxState(const MailboxState& state);
+    std::vector<MailboxState> getAllMailboxStates();
+    bool deleteMailboxStatesByMessage(uint32_t messageId);
     
     // ID management
     uint32_t getNextUserId();
@@ -50,6 +57,7 @@ private:
     std::fstream usersFile_;
     std::fstream messagesFile_;
     std::fstream recipientsFile_;
+    std::fstream mailboxStatesFile_;
     bool isOpen_;
     // The stream-backed storage is shared by HTTP worker threads.
     mutable std::recursive_mutex mutex_;

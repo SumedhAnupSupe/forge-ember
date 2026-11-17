@@ -576,14 +576,26 @@ QueryResult QueryExecutor::execute(const std::string& query, uint32_t authentica
         }
         auto all = storage_->getAllRecipients(false);
         std::unordered_map<uint32_t, uint32_t> messageSenders;
+        std::unordered_set<uint32_t> visibleMessageIds;
         if (authenticatedUserId != 0) {
             for (const auto& message : storage_->getAllMessages(false))
                 messageSenders[message.id] = message.sender_id;
+            for (const auto& recipient : all) {
+                if (recipient.user_id == authenticatedUserId)
+                    visibleMessageIds.insert(recipient.message_id);
+            }
         }
         for (const auto& r : all) {
-            if (authenticatedUserId != 0 && r.user_id != authenticatedUserId) {
+            if (authenticatedUserId != 0) {
                 const auto parent = messageSenders.find(r.message_id);
-                if (parent == messageSenders.end() || parent->second != authenticatedUserId) continue;
+                if (parent == messageSenders.end()) continue;
+                const bool isSender = parent->second == authenticatedUserId;
+                if (!isSender && visibleMessageIds.find(r.message_id) == visibleMessageIds.end())
+                    continue;
+                // Participants may see TO/CC entries, but BCC identities are
+                // visible only to the sender and to the BCC recipient themself.
+                if (!isSender && std::string(r.type) == "BCC" &&
+                    r.user_id != authenticatedUserId) continue;
             }
             if (!node.whereColumn.empty()) {
                 bool matches = false;

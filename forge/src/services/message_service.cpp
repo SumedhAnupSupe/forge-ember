@@ -159,6 +159,14 @@ std::vector<Message> MessageService::getMessagesForUser(uint32_t userId, bool in
     return result;
 }
 
+bool MessageService::removeMailboxCopy(uint32_t messageId, uint32_t userId) {
+    if (!storage_ || !storage_->removeMailboxState(messageId, userId)) return false;
+    Message remaining{};
+    if (!storage_->readMessage(messageId, remaining) && indexManager_)
+        indexManager_->onMessageDeleted(messageId);
+    return true;
+}
+
 bool MessageService::deleteMessage(uint32_t id) {
     if (!storage_) return false;
     const bool deleted = storage_->deleteMessage(id);

@@ -101,7 +101,7 @@ The full-stack GitHub Actions workflow in `.github/workflows/full-stack-ci.yml` 
 
 - Permanent deletion removes the requesting user's mailbox-state row. Physical compaction of shared message and recipient records after the final participant removes their copy is still outstanding.
 - Message plus recipient creation uses a checksummed, replayable write-ahead journal. It uses stream flush and atomic rename but does not call OS-level `fsync`, and the journal does not cover every update/delete operation.
-- Login rate limiting and complete session-expiry UX are not implemented.
+- FORGE enforces 24-hour sessions and a five-failure/15-minute login throttle per normalized email + remote address. POSTO still needs clearer session-expiry UX.
 - Draft persistence, reply/reply-all/forward, and thread APIs/UI remain outstanding.
 - More concurrency/failure-injection tests, frontend component tests, measured benchmarks, and a reproducible demo/report remain outstanding.
 - Attachments and tag/wax-seal metadata are not persisted by the current FORGE schema; unsupported UI affordances were removed.

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <set>
 #include <filesystem>
 #include <cstring>
 #include <chrono>
@@ -79,7 +80,12 @@ int test_query() {
     carol.message_id = 10;
     carol.user_id = 3;
     std::strncpy(carol.type, "CC", sizeof(carol.type) - 1);
-    if (!storage->createRecipient(bob) || !storage->createRecipient(carol)) {
+    Recipient dave{};
+    dave.message_id = 10;
+    dave.user_id = 4;
+    std::strncpy(dave.type, "BCC", sizeof(dave.type) - 1);
+    if (!storage->createRecipient(bob) || !storage->createRecipient(carol) ||
+        !storage->createRecipient(dave)) {
         std::cerr << "  Could not create test recipients" << std::endl;
         storage->close();
         std::filesystem::remove_all(dir);
@@ -124,10 +130,18 @@ int test_query() {
     else { std::cerr << "  Recipient message access failed" << std::endl; failures++; }
 
     const auto hiddenRecipient = executor.execute("SELECT user_id FROM recipients;", 2);
-    if (hiddenRecipient.success && hiddenRecipient.rows.size() == 1 &&
-        hiddenRecipient.rows[0].at("user_id") == "2")
-        std::cout << "  Recipient rows are scoped to account OK" << std::endl;
-    else { std::cerr << "  Recipient-row isolation failed" << std::endl; failures++; }
+    std::set<std::string> bobVisibleRecipients;
+    for (const auto& row : hiddenRecipient.rows) bobVisibleRecipients.insert(row.at("user_id"));
+    if (hiddenRecipient.success && bobVisibleRecipients == std::set<std::string>{"2", "3"})
+        std::cout << "  TO/CC visibility with BCC identity hidden OK" << std::endl;
+    else { std::cerr << "  BCC recipient privacy failed" << std::endl; failures++; }
+
+    const auto bccRecipientView = executor.execute("SELECT user_id FROM recipients;", 4);
+    std::set<std::string> daveVisibleRecipients;
+    for (const auto& row : bccRecipientView.rows) daveVisibleRecipients.insert(row.at("user_id"));
+    if (bccRecipientView.success && daveVisibleRecipients == std::set<std::string>{"2", "3", "4"})
+        std::cout << "  BCC recipient sees own identity and TO/CC only OK" << std::endl;
+    else { std::cerr << "  BCC recipient visibility failed" << std::endl; failures++; }
 
     if (!executor.execute("SELECT * FROM users; SELECT * FROM messages;", 1).success)
         std::cout << "  Multiple statements rejected OK" << std::endl;
@@ -184,7 +198,7 @@ int test_query() {
 
     const auto senderRecipients = executor.execute("SELECT user_id FROM recipients;", 1);
     const auto unrelatedRecipients = executor.execute("SELECT user_id FROM recipients;", 4);
-    if (senderRecipients.success && senderRecipients.rows.size() == 2 &&
+    if (senderRecipients.success && senderRecipients.rows.size() == 3 &&
         unrelatedRecipients.success && unrelatedRecipients.rows.empty())
         std::cout << "  Sender recipient-list visibility and isolation OK" << std::endl;
     else { std::cerr << "  Sender recipient-list isolation failed" << std::endl; failures++; }

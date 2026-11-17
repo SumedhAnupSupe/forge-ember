@@ -84,7 +84,7 @@ npm run lint
 npm run build
 ```
 
-The full-stack GitHub Actions workflow in `.github/workflows/full-stack-ci.yml` verifies FORGE build/unit/API smoke, EMBER lint/tests, POSTO typecheck/build, and Docker Compose config/image builds. Latest verified run: [run 145](https://github.com/SumedhAnupSupe/forge-ember/actions/runs/43996583436).
+The full-stack GitHub Actions workflow in `.github/workflows/full-stack-ci.yml` verifies FORGE build/unit/API smoke, EMBER lint/tests, POSTO typecheck/build, and Docker Compose config/image builds. Latest verified run: [run 198](https://github.com/SumedhAnupSupe/forge-ember/actions/runs/43998419763).
 
 ## Current functionality
 
@@ -100,7 +100,7 @@ The full-stack GitHub Actions workflow in `.github/workflows/full-stack-ci.yml` 
 ## Known limitations under active implementation
 
 - Permanent deletion removes only the requesting user's mailbox-state row. The final participant's removal triggers a replayable physical purge of the shared message and recipient records.
-- Message plus recipient creation uses a checksummed, replayable write-ahead journal. It uses stream flush and atomic rename but does not call OS-level `fsync`, and the journal does not cover every update/delete operation.
+- Message, recipient, and participant mailbox-state creation uses a checksummed, replayable write-ahead journal. Final-participant deletion uses a separate replayable purge journal. Both use stream flush and atomic rename but do not call OS-level `fsync`, and neither covers every storage mutation.
 - FORGE enforces 24-hour sessions and a five-failure/15-minute login throttle per normalized email + remote address. POSTO still needs clearer session-expiry UX.
 - Draft persistence, reply/reply-all/forward, and thread APIs/UI remain outstanding.
 - More concurrency/failure-injection tests, frontend component tests, measured benchmarks, and a reproducible demo/report remain outstanding.

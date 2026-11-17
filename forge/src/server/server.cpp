@@ -1,5 +1,7 @@
 #include "forge/server/server.h"
 #include <iostream>
+#include <algorithm>
+#include <cctype>
 #include <unordered_set>
 #include <httplib.h>
 #include <json.hpp>
@@ -138,22 +140,36 @@ bool ForgeServer::startInBackground() {
             }
             std::string email = j["email"].get<std::string>();
             std::string password = j["password"].get<std::string>();
+            std::string normalizedEmail = email;
+            std::transform(normalizedEmail.begin(), normalizedEmail.end(), normalizedEmail.begin(),
+                [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+            const std::string rateKey = normalizedEmail + "|" + req.remote_addr;
+            if (!authManager_->allowLoginAttempt(rateKey)) {
+                res.status = 429;
+                res.set_header("Retry-After", "900");
+                json err; err["error"] = "Too many failed login attempts";
+                res.set_content(err.dump(), "application/json");
+                return;
+            }
             User u;
-            if (userService_->getUserByEmail(email, u)) {
+            if (userService_->getUserByEmail(normalizedEmail, u)) {
                 try {
                     if (authManager_->verifyPassword(password, u.password_hash)) {
+                        authManager_->clearFailedLogins(rateKey);
                         std::string token = authManager_->createSession(u.id);
                         json r; r["token"] = token; r["user_id"] = u.id;
                         res.set_content(r.dump(), "application/json");
                         return;
                     }
                 } catch (...) {
+                    authManager_->recordFailedLogin(rateKey);
                     res.status = 401;
                     json err; err["error"] = "Invalid credentials";
                     res.set_content(err.dump(), "application/json");
                     return;
                 }
             }
+            authManager_->recordFailedLogin(rateKey);
             res.status = 401;
             json err; err["error"] = "Invalid credentials";
             res.set_content(err.dump(), "application/json");

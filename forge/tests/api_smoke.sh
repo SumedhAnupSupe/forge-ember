@@ -245,18 +245,26 @@ assert r["row_count"] == 2
 assert [(x["user_id"], x["type"]) for x in r["rows"]] == [("2", "TO"), ("3", "BCC")]
 PY
 
-# A non-participant cannot read or delete the message.
+# An unrelated user cannot read or delete the message.
 code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $DAVE_TOKEN")
 assert_code 404 "$code"
 code=$(request -X DELETE "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $BOB_TOKEN")
-assert_code 403 "$code"
+assert_code 404 "$code"
 
-# Only the sender can delete the message.
+# Deleting the sender's copy leaves Carol's BCC copy intact.
 code=$(request -X DELETE "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $ALICE_TOKEN")
 assert_code 200 "$code"
-code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $BOB_TOKEN")
+code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $ALICE_TOKEN")
 assert_code 404 "$code"
 code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $CAROL_TOKEN")
+assert_code 200 "$code"
+
+# Removing Carol's final copy physically purges the shared records.
+code=$(request -X DELETE "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $CAROL_TOKEN")
+assert_code 200 "$code"
+code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $CAROL_TOKEN")
+assert_code 404 "$code"
+code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $BOB_TOKEN")
 assert_code 404 "$code"
 
 # Logout invalidates the token.

@@ -140,18 +140,15 @@ std::vector<Message> MessageService::getMessagesForUser(uint32_t userId, bool in
     std::set<uint32_t> includedIds;
     const auto applyMailboxState = [&](Message& message) {
         MailboxState state{};
-        if (storage_->readMailboxState(message.id, userId, state)) {
-            message.is_read = state.is_read;
-            message.is_starred = state.is_starred;
-            message.is_deleted = state.is_deleted;
-        }
-        // If no row exists, retain message-level flags for pre-migration legacy
-        // records. New sends always create state rows for all participants.
+        if (!storage_->readMailboxState(message.id, userId, state)) return false;
+        message.is_read = state.is_read;
+        message.is_starred = state.is_starred;
+        message.is_deleted = state.is_deleted;
+        return true;
     };
     const auto allMessages = storage_->getAllMessages(includeDeleted);
     for (auto message : allMessages) {
-        if (message.sender_id == userId) {
-            applyMailboxState(message);
+        if (message.sender_id == userId && applyMailboxState(message)) {
             result.push_back(message);
             includedIds.insert(message.id);
         }
@@ -163,8 +160,8 @@ std::vector<Message> MessageService::getMessagesForUser(uint32_t userId, bool in
         if (includedIds.find(recipient.message_id) != includedIds.end()) continue;
 
         Message message;
-        if (getMessageById(recipient.message_id, message, includeDeleted)) {
-            applyMailboxState(message);
+        if (getMessageById(recipient.message_id, message, includeDeleted) &&
+            applyMailboxState(message)) {
             result.push_back(message);
             includedIds.insert(message.id);
         }

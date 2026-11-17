@@ -34,7 +34,7 @@ bool ForgeServer::startInBackground() {
 
     // Build a viewer-scoped message envelope in one FORGE response. This
     // avoids EMBER issuing N+1 user lookups and centralizes BCC visibility.
-    auto appendEnvelope = [&](json& item, const Message& message, uint32_t viewerId) {
+    auto appendEnvelope = [this](json& item, const Message& message, uint32_t viewerId) {
         User sender{};
         if (userService_->getUserById(message.sender_id, sender)) {
             item["sender"] = {{"id", sender.id}, {"name", sender.name}, {"email", sender.email}};
@@ -324,7 +324,7 @@ bool ForgeServer::startInBackground() {
             }
             uint32_t mid = (uint32_t)std::stoul(req.matches[1]);
             Message m;
-            if (!messageService_->getMessageById(mid, m, true)) {
+            if (!messageService_->getMessageById(mid, m, false)) {
                 res.status = 404;
                 json err; err["error"] = "Not found";
                 res.set_content(err.dump(), "application/json");

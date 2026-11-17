@@ -33,12 +33,6 @@ export interface Message {
   is_read: boolean;
   is_starred: boolean;
   is_deleted: boolean;
-  tag?: string;
-  attachment?: {
-    name: string;
-    size: string;
-  };
-  wax_seal?: 'monogram' | 'oak' | 'crest' | 'star';
 }
 
 export interface ApiError {

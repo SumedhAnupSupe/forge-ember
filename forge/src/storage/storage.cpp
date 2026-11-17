@@ -352,12 +352,12 @@ bool Storage::open() {
         closeFiles();
         return false;
     }
-    if (!scanForMaxIds()) {
-        closeFiles();
-        return false;
-    }
     isOpen_ = true;
-    if (!migrateMailboxStates() || !initializeStorageFormat(dataDir_)) {
+    if (!recoverPendingMessageTransaction() ||
+        !repairTrailingPartialRecord("mailbox_states.dat", MailboxState::ENCODED_RECORD_SIZE) ||
+        !scanForMaxIds() ||
+        !migrateMailboxStates() ||
+        !initializeStorageFormat(dataDir_)) {
         isOpen_ = false;
         closeFiles();
         return false;

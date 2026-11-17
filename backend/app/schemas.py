@@ -1,5 +1,6 @@
 from typing import Literal
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 RecipientType = Literal["TO", "CC", "BCC"]
 

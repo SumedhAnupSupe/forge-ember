@@ -58,6 +58,9 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const [hasMore, setHasMore] = useState<boolean>(false);
+  const [pageOffset, setPageOffset] = useState<number>(0);
 
   // Quick Reply
   const [replyText, setReplyText] = useState<string>('');
@@ -118,6 +121,9 @@ export default function App() {
       else if (activeFolder === 'sent') list = await mailService.getSent(mailboxQuery);
       else if (activeFolder === 'starred') list = await mailService.getStarred(mailboxQuery);
       else if (activeFolder === 'trash') list = await mailService.getTrash(mailboxQuery);
+      const fetchedCount = list.length;
+      setHasMore(fetchedCount === 50);
+      setPageOffset(fetchedCount);
 
       // Category Filter
       if (activeCategory === 'unread') {
@@ -149,10 +155,40 @@ export default function App() {
         sent: sentMsgs.length,
         trash: trashMsgs.length,
       });
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not load mailbox');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadMoreMessages = async () => {
+    if (!currentUser || isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    try {
+      const query = {
+        q: searchQuery.trim() || undefined,
+        sort: sortOrder,
+        limit: 50,
+        offset: pageOffset,
+      };
+      let nextPage: Message[] = [];
+      if (activeFolder === 'inbox') nextPage = await mailService.getInbox(query);
+      else if (activeFolder === 'sent') nextPage = await mailService.getSent(query);
+      else if (activeFolder === 'starred') nextPage = await mailService.getStarred(query);
+      else if (activeFolder === 'trash') nextPage = await mailService.getTrash(query);
+      const fetchedCount = nextPage.length;
+      setPageOffset(pageOffset + fetchedCount);
+      setHasMore(fetchedCount === 50);
+
+      if (activeCategory === 'unread') nextPage = nextPage.filter(message => !message.is_read);
+      else if (activeCategory === 'starred') nextPage = nextPage.filter(message => message.is_starred);
+      else if (activeCategory === 'attachments') nextPage = nextPage.filter(message => !!message.attachment);
+      setMessages(previous => [...previous, ...nextPage]);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not load more messages');
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -786,6 +822,18 @@ export default function App() {
                       </div>
                     );
                   })}
+                </div>
+              )}
+              {hasMore && (
+                <div className="p-3 flex justify-center border-t border-[#EAE0D0]">
+                  <button
+                    type="button"
+                    onClick={loadMoreMessages}
+                    disabled={isLoadingMore}
+                    className="px-4 py-2 rounded-xl border border-[#D5C1A6] bg-white text-xs font-semibold text-[#6D5039] hover:bg-[#EFE3D0] disabled:opacity-50"
+                  >
+                    {isLoadingMore ? 'Loading…' : 'Load more messages'}
+                  </button>
                 </div>
               )}
 

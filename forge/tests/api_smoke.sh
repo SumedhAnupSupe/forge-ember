@@ -205,7 +205,7 @@ r = json.load(open(sys.argv[1]))
 assert r["row_count"] == 1
 assert str(r["rows"][0]["id"]) == sys.argv[2]
 PY
-code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/query" -H "Authorization: Bearer $CAROL_TOKEN" -H 'Content-Type: application/json' -d '{"query":"SELECT id FROM messages;"}')
+code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/query" -H "Authorization: Bearer $DAVE_TOKEN" -H 'Content-Type: application/json' -d '{"query":"SELECT id FROM messages;"}')
 assert_code 200 "$code"
 python3 - "$RESPONSE" <<'PY'
 import json, sys
@@ -223,7 +223,7 @@ assert r["rows"][0]["type"] == "TO"
 PY
 
 # A non-participant cannot read or delete the message.
-code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $CAROL_TOKEN")
+code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $DAVE_TOKEN")
 assert_code 404 "$code"
 code=$(request -X DELETE "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $BOB_TOKEN")
 assert_code 403 "$code"
@@ -232,6 +232,8 @@ assert_code 403 "$code"
 code=$(request -X DELETE "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $ALICE_TOKEN")
 assert_code 200 "$code"
 code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $BOB_TOKEN")
+assert_code 404 "$code"
+code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $CAROL_TOKEN")
 assert_code 404 "$code"
 
 # Logout invalidates the token.

@@ -52,7 +52,7 @@ def test_visible_recipient_cannot_see_other_bcc_identities(
     monkeypatch.setattr(forge, "lookup_user_id", lookup_user)
     monkeypatch.setattr(forge, "query", query)
 
-    message = await enrich("recipient-token", MESSAGE, viewer_id=2))
+    message = asyncio.run(enrich("recipient-token", MESSAGE, viewer_id=2))
     assert [recipient.id for recipient in message.recipients] == [2, 3]
     assert all(recipient.id not in {4, 5} for recipient in message.recipients)
 
@@ -69,6 +69,6 @@ def test_bcc_recipient_sees_only_own_bcc_identity(
     monkeypatch.setattr(forge, "lookup_user_id", lookup_user)
     monkeypatch.setattr(forge, "query", query)
 
-    message = await enrich("bcc-token", MESSAGE, viewer_id=4))
+    message = asyncio.run(enrich("bcc-token", MESSAGE, viewer_id=4))
     assert [recipient.id for recipient in message.recipients] == [2, 3, 4]
     assert 5 not in {recipient.id for recipient in message.recipients}

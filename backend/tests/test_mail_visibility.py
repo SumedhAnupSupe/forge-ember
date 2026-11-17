@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from app.api.mail import enrich
 
-
 USERS = {
     1: {"id": 1, "name": "Alice", "email": "alice@example.com"},
     2: {"id": 2, "name": "Bob", "email": "bob@example.com"},

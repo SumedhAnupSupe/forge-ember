@@ -568,9 +568,9 @@ bool Storage::open() {
         return false;
     }
     isOpen_ = true;
-    if (!recoverPendingMessageTransaction() ||
+    if (!repairTrailingPartialRecord("mailbox_states.dat", MailboxState::ENCODED_RECORD_SIZE) ||
+        !recoverPendingMessageTransaction() ||
         !recoverPendingPurgeTransaction() ||
-        !repairTrailingPartialRecord("mailbox_states.dat", MailboxState::ENCODED_RECORD_SIZE) ||
         !scanForMaxIds() ||
         !migrateMailboxStates() ||
         !purgeOrphanedMessages() ||

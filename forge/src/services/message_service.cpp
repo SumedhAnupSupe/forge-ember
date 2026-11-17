@@ -88,7 +88,7 @@ bool MessageService::createMessage(uint32_t senderId, const std::string& subject
     // Every participant receives an independent mailbox-state row. The sender
     // is included even when they are not also listed as a recipient.
     std::set<uint32_t> mailboxUsers{senderId};
-    for (const auto& recipient : recipients) mailboxUsers.insert(recipient.user_id);
+    for (const auto& recipient : recipients) mailboxUsers.insert(recipient.first);
     bool allStatesCreated = true;
     for (const uint32_t userId : mailboxUsers) {
         MailboxState state{};

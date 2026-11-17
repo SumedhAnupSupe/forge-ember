@@ -187,14 +187,14 @@ bool ForgeServer::startInBackground() {
                         if (!messageService_->getMessageById(messageId, message, true) ||
                             !storage_->readMailboxState(messageId, uid, viewerState)) {
                             found = false;
-                        } else if (message.sender_id != uid && targetId != message.sender_id) {
+                        } else {
+                            bool targetIsVisible = targetId == message.sender_id;
                             std::vector<Recipient> recipients;
-                            bool targetIsVisible = false;
                             if (storage_->readRecipientsByMessage(messageId, recipients, false)) {
                                 for (const auto& recipient : recipients) {
                                     if (recipient.user_id != targetId) continue;
-                                    if (recipient.type[0] != 'B' || targetId == uid)
-                                        targetIsVisible = true;
+                                    if (message.sender_id == uid || recipient.type[0] != 'B' ||
+                                        targetId == uid) targetIsVisible = true;
                                 }
                             }
                             found = targetIsVisible;

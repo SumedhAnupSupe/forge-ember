@@ -34,7 +34,7 @@ flowchart TD
 
 - FORGE remains the source of truth; EMBER must not duplicate user/message persistence.
 - The authenticated user ID is derived from the FORGE session, never accepted from POSTO as authority.
-- BCC recipient identities are filtered in EMBER response shaping: senders can see the full envelope, ordinary recipients see TO/CC, and each BCC recipient sees only their own BCC entry.
+- FORGE returns a viewer-scoped sender/recipient envelope with each message: senders see the full envelope, ordinary recipients see TO/CC, and each BCC recipient sees only their own BCC entry. EMBER applies a second BCC filter as defense in depth.
 - Per-user read/star/trash state is still outstanding. Current message-level flags are shared across participants.
 - Permanent physical deletion and crash-safe multi-record transactions are still outstanding.
 

@@ -5,6 +5,10 @@
 #include "services/message_service.h"
 #include "index/indexes.h"
 #include <filesystem>
+#include <thread>
+#include <mutex>
+#include <atomic>
+#include <set>
 
 using namespace forge;
 
@@ -149,6 +153,60 @@ int test_services() {
         }
     } else { failures++; }
     storage->close();
+
+    // Concurrent message creation exercises ID allocation, journal commits,
+    // mailbox-state creation, and index updates under competing callers.
+    const std::string concurrentDir = tmpdir + "_concurrent";
+    auto concurrentStorage = std::make_shared<Storage>(concurrentDir);
+    if (!concurrentStorage->open()) {
+        std::cout << "  Concurrent storage startup FAILED" << std::endl;
+        failures++;
+    } else {
+        auto concurrentIndexes = std::make_shared<IndexManager>(concurrentStorage);
+        concurrentIndexes->buildIndexes();
+        auto concurrentUsers = std::make_shared<UserService>(concurrentStorage, concurrentIndexes);
+        User sender{}, recipient{};
+        if (!concurrentUsers->createUser("Concurrent Sender", "sender-concurrent@example.test", "hash", sender) ||
+            !concurrentUsers->createUser("Concurrent Recipient", "recipient-concurrent@example.test", "hash", recipient)) {
+            std::cout << "  Concurrent user setup FAILED" << std::endl;
+            failures++;
+        } else {
+            MessageService concurrentMessages(concurrentStorage, concurrentIndexes);
+            std::atomic<int> createFailures{0};
+            std::mutex idsMutex;
+            std::vector<uint32_t> createdIds;
+            std::vector<std::thread> workers;
+            constexpr int threadCount = 8;
+            constexpr int messagesPerThread = 10;
+            for (int threadId = 0; threadId < threadCount; ++threadId) {
+                workers.emplace_back([&, threadId]() {
+                    for (int sequence = 0; sequence < messagesPerThread; ++sequence) {
+                        Message created{};
+                        const std::string subject = "parallel-" + std::to_string(threadId) +
+                                                    "-" + std::to_string(sequence);
+                        if (!concurrentMessages.createMessage(sender.id, subject, "concurrent body",
+                                {{recipient.id, RecipientType::TO}}, created)) {
+                            ++createFailures;
+                            continue;
+                        }
+                        std::lock_guard<std::mutex> lock(idsMutex);
+                        createdIds.push_back(created.id);
+                    }
+                });
+            }
+            for (auto& worker : workers) worker.join();
+            const std::set<uint32_t> uniqueIds(createdIds.begin(), createdIds.end());
+            const auto allMessages = concurrentStorage->getAllMessages();
+            if (createFailures.load() == 0 &&
+                createdIds.size() == threadCount * messagesPerThread &&
+                uniqueIds.size() == createdIds.size() &&
+                allMessages.size() == createdIds.size())
+                std::cout << "  Concurrent message creation and unique IDs OK" << std::endl;
+            else { std::cout << "  Concurrent message creation FAILED" << std::endl; failures++; }
+        }
+        concurrentStorage->close();
+    }
+    std::filesystem::remove_all(concurrentDir);
     std::filesystem::remove_all(tmpdir);
     return failures;
 }

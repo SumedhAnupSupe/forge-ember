@@ -51,7 +51,7 @@ CLI connects over HTTP only; it does not read/write `.dat` files directly.
 
 ## Query API status
 
-The authenticated HTTP query endpoint executes a restricted, read-only SQL subset. Row visibility is scoped by the authenticated user: `users` returns only the caller's record; `messages` returns messages sent by or addressed to the caller; `recipients` returns the caller's recipient rows and recipient rows for messages sent by the caller. The CLI sends queries to this endpoint and never accesses `.dat` files directly.
+The authenticated HTTP query endpoint executes a restricted, read-only SQL subset. Row visibility is scoped by the authenticated user: `users` returns only the caller's record; `messages` returns messages sent by or addressed to the caller; `recipients` returns TO/CC rows for messages the caller participates in, the caller's own BCC row, and all recipient rows for messages sent by the caller. The CLI sends queries to this endpoint and never accesses `.dat` files directly.
 
 ```sql
 SELECT * FROM users;

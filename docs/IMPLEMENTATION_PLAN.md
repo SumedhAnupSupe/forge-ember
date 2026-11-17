@@ -9,7 +9,7 @@ Order follows the master spec. Each task lists affected files, dependencies, and
 ## Phase 2 - FORGE reliability
 | ID | Task | Files | Depends on | Tests |
 |---|---|---|---|---|
-| P2-1 | Storage manifest v1, legacy adoption, bounded fixed-width string validation | `storage.cpp`, `codec.cpp`, tests | - | corruption, truncation, malformed strings, restart |
+| P2-1 | Storage manifest v2, legacy adoption, bounded fixed-width string validation, per-user state migration | `storage.cpp`, `codec.cpp`, tests | - | corruption, truncation, malformed strings, restart |
 | P2-2 | ID counter restore, no wraparound | `storage.cpp` | P2-1 | ID allocation |
 | P2-3 | Index update/delete correctness, collision tests, benchmark | `hash_table.cpp`, `indexes.cpp`, `benchmark.cpp` | - | collisions, rebuild, restart |
 | P2-4 | Write-ahead log for message creation | `storage.cpp`, `message_service.cpp` | P2-1 | crash-between-writes recovery |
@@ -29,13 +29,13 @@ Progress: P3-1 and P3-2 are implemented but not run: MailboxState record, versio
 | P3-5 | Auth hardening: rate limit, expiry, error hygiene | `auth.py`, FORGE auth | - | auth negative tests |
 
 ## Phase 4 - EMBER features
-Progress: bounded offset pagination and server-side search/sort are wired through EMBER and POSTO (not verified). Still required: robust filtering, drafts (P4-2), reply/reply-all/forward with in_reply_to threading field (P4-3), and batch retrieval to remove N+1 FORGE calls (P4-4). Progress: FORGE now includes sender and viewer-scoped recipients in message responses, removing EMBER's per-recipient HTTP lookup chain; still needs performance tests and request-level state caching. Depends on P3.
+Progress: bounded offset pagination, server-side search/sort, and POSTO load-more are wired (not verified). FORGE now includes sender and viewer-scoped recipients in message responses, removing EMBER's per-recipient HTTP lookup chain. Still required: pagination tests, drafts (P4-2), reply/reply-all/forward with in_reply_to threading field (P4-3), and performance tests/request-level state caching (P4-4). Depends on P3.
 
 ## Phase 5 - POSTO
-Progress: removed default demo credentials/one-click demo accounts; mutation errors are surfaced; backend search and load-more pagination are wired. Still required: split App.tsx, session-expiry UX, CC/BCC compose controls, drafts, reply-all/threading, remove unsupported attachment/tag/wax-seal affordances, loading/error coverage, and frontend tests. Depends on P3, P4.
+Progress: removed default demo credentials/one-click demo accounts; mutation errors are surfaced; backend search and load-more pagination are wired. Still required: split App.tsx, session-expiry UX, draft persistence, reply-all/threading, loading/empty/error coverage, and frontend tests. CC/BCC compose controls are now wired; unsupported tag/attachment controls were removed. Depends on P3, P4.
 
 ## Phase 6-8
-Progress: added a full-stack CI workflow (FORGE, EMBER, POSTO jobs) and Dockerfiles/Compose/environment template. These have not been built or run. Still required: three-user end-to-end tests and failure scenarios; validate CI; validate Docker Compose; update all READMEs; architecture/API/database docs; benchmarks with measured environment/results; reproducible demo; screenshots; final report.
+Progress: added a full-stack CI workflow (FORGE, EMBER, POSTO jobs) and Dockerfiles/Compose/environment template. These have not been built or run. Still required: three-user end-to-end tests and failure scenarios; obtain passing CI runs; validate Docker Compose; benchmarks with measured environment/results; reproducible demo; screenshots; final report. Root, FORGE, and EMBER READMEs plus architecture/API/database/testing docs have been added or updated.
 
 ## Scope note
-Phases 2-8 are several days of work. They will be delivered as separate commits on this branch, one phase at a time, each with tests run and results reported.
+Phases 2-8 remain in progress. Implemented changes are not marked complete until their tests and integration checks pass.

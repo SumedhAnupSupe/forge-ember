@@ -52,5 +52,30 @@ int test_codec() {
         std::cout << "  Truncated detection OK" << std::endl;
     }
     
+    // Fixed-width string fields must contain a terminator. This protects
+    // serialization from reading beyond malformed record buffers.
+    User unterminated;
+    memset(&unterminated, 0, sizeof(unterminated));
+    unterminated.id = 2;
+    memset(unterminated.name, 'A', sizeof(unterminated.name));
+    try {
+        (void)BinaryCodec::serializeUser(unterminated);
+        std::cout << "  Unterminated field serialization FAILED" << std::endl;
+        failures++;
+    } catch (const std::runtime_error&) {
+        std::cout << "  Unterminated field serialization rejected OK" << std::endl;
+    }
+
+    auto malformed = BinaryCodec::serializeUser(user);
+    std::fill(malformed.begin() + 4, malformed.begin() + 4 + sizeof(user.name), 'A');
+    User decoded;
+    memset(&decoded, 0, sizeof(decoded));
+    if (BinaryCodec::deserializeUser(malformed, 0, decoded)) {
+        std::cout << "  Unterminated field deserialization FAILED" << std::endl;
+        failures++;
+    } else {
+        std::cout << "  Unterminated field deserialization rejected OK" << std::endl;
+    }
+
     return failures;
 }

@@ -97,11 +97,11 @@ A full-stack GitHub Actions workflow is defined in `.github/workflows/full-stack
 
 ## Known limitations under active implementation
 
-- Read/star/trash flags are still stored on the shared FORGE message record. Independent per-user mailbox state is not yet implemented.
-- The current FORGE message deletion service is soft-delete; the permanent-delete API still needs a real physical purge.
+- Per-user read/star/trash state is now stored in FORGE format version 2, with a startup migration from legacy message-level flags. This change and its tests are committed but have not yet been run in this environment.
+- Permanent deletion currently removes the requesting user's mailbox-state row. Physical compaction of shared message/recipient records after the final participant deletes their copy is still outstanding.
 - Multi-record message creation currently uses best-effort rollback, not a crash-safe write-ahead log.
 - Draft persistence, reply-all/threading, batch message enrichment, and full end-to-end coverage remain outstanding.
 - Attachments and tag/wax-seal metadata are not persisted by the current FORGE schema.
-- Newly added format validation, BCC, pagination, CI, and Docker changes have not yet been verified by running their test/build workflows in this environment.
+- Newly added format migration, per-user state, BCC, pagination, CI, and Docker changes have not yet been verified by running their test/build workflows in this environment.
 
 See [the implementation audit](docs/IMPLEMENTATION_AUDIT.md) and [implementation plan](docs/IMPLEMENTATION_PLAN.md) for the current status. This project is a compact educational database/application stack, not a production email service.

@@ -12,23 +12,13 @@ def test_mailbox_search_sort_and_offset_pagination(monkeypatch) -> None:
 
     async def messages(_token: str, include_deleted: bool = False) -> list[dict]:
         return [
-            {"id": 10, "sender_id": 1, "subject": "alpha first", "body": "one", "created_at": 30},
-            {"id": 11, "sender_id": 1, "subject": "beta", "body": "two", "created_at": 20},
-            {"id": 12, "sender_id": 1, "subject": "alpha second", "body": "three", "created_at": 10},
+            {"id": 10, "sender_id": 1, "subject": "alpha first", "body": "one", "created_at": 30, "sender": {"id": 1, "name": "Alice", "email": "alice@example.com"}, "recipients": []},
+            {"id": 11, "sender_id": 1, "subject": "beta", "body": "two", "created_at": 20, "sender": {"id": 1, "name": "Alice", "email": "alice@example.com"}, "recipients": []},
+            {"id": 12, "sender_id": 1, "subject": "alpha second", "body": "three", "created_at": 10, "sender": {"id": 1, "name": "Alice", "email": "alice@example.com"}, "recipients": []},
         ]
-
-    async def lookup_user_id(_token: str, user_id: int, message_id: int) -> dict:
-        assert user_id == 1
-        assert message_id in {10, 11, 12}
-        return {"id": 1, "name": "Alice", "email": "alice@example.com"}
-
-    async def query(_token: str, _sql: str) -> list[dict]:
-        return []
 
     monkeypatch.setattr(forge, "me", me)
     monkeypatch.setattr(forge, "messages", messages)
-    monkeypatch.setattr(forge, "lookup_user_id", lookup_user_id)
-    monkeypatch.setattr(forge, "query", query)
 
     result = asyncio.run(list_mail(
         "sent", authorization="Bearer test", q="alpha", sort="newest", limit=1, offset=1

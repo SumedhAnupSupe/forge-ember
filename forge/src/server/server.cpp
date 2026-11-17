@@ -547,14 +547,7 @@ bool ForgeServer::startInBackground() {
             }
             MailboxState state{};
             if (!storage_->readMailboxState(id, uid, state)) {
-                state.message_id = id;
-                state.user_id = uid;
-                state.is_read = message.is_read;
-                state.is_starred = message.is_starred;
-                state.is_deleted = message.is_deleted;
-                if (!storage_->createMailboxState(state)) {
-                    res.status = 500; res.set_content(R"({"error":"Could not initialize mailbox state"})", "application/json"); return;
-                }
+                res.status = 404; res.set_content(R"({"error":"Mailbox copy not found"})", "application/json"); return;
             }
             if (field == "is_read") state.is_read = body[field].get<bool>() ? 1 : 0;
             else state.is_starred = body[field].get<bool>() ? 1 : 0;
@@ -593,14 +586,7 @@ bool ForgeServer::startInBackground() {
             }
             MailboxState state{};
             if (!storage_->readMailboxState(id, uid, state)) {
-                state.message_id = id;
-                state.user_id = uid;
-                state.is_read = message.is_read;
-                state.is_starred = message.is_starred;
-                state.is_deleted = message.is_deleted;
-                if (!storage_->createMailboxState(state)) {
-                    res.status = 500; res.set_content(R"({"error":"Could not initialize mailbox state"})", "application/json"); return;
-                }
+                res.status = 404; res.set_content(R"({"error":"Mailbox copy not found"})", "application/json"); return;
             }
             state.is_deleted = body["is_deleted"].get<bool>() ? 1 : 0;
             if (!storage_->updateMailboxState(state)) {

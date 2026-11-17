@@ -7,10 +7,42 @@
 #include <sstream>
 #include <set>
 #include <unordered_map>
+#include <limits>
 
 namespace {
 
 constexpr unsigned int kStorageFormatVersion = 2;
+
+constexpr char kMessageTxnMagic[8] = {'F', 'O', 'R', 'G', 'E', 'W', 'A', 'L'};
+constexpr uint32_t kMessageTxnVersion = 1;
+constexpr size_t kMessageTxnHeaderSize = 8 + 6 * sizeof(uint32_t);
+constexpr uint32_t kMaxJournalRecipients = 10000;
+
+void appendUint32LE(std::vector<uint8_t>& output, uint32_t value) {
+    output.push_back(static_cast<uint8_t>(value & 0xff));
+    output.push_back(static_cast<uint8_t>((value >> 8) & 0xff));
+    output.push_back(static_cast<uint8_t>((value >> 16) & 0xff));
+    output.push_back(static_cast<uint8_t>((value >> 24) & 0xff));
+}
+
+bool readUint32LE(const std::vector<uint8_t>& input, size_t& offset, uint32_t& value) {
+    if (offset > input.size() || input.size() - offset < sizeof(uint32_t)) return false;
+    value = static_cast<uint32_t>(input[offset]) |
+            (static_cast<uint32_t>(input[offset + 1]) << 8) |
+            (static_cast<uint32_t>(input[offset + 2]) << 16) |
+            (static_cast<uint32_t>(input[offset + 3]) << 24);
+    offset += sizeof(uint32_t);
+    return true;
+}
+
+uint32_t messageTxnChecksum(const std::vector<uint8_t>& payload) {
+    uint32_t hash = 2166136261u;
+    for (const uint8_t byte : payload) {
+        hash ^= byte;
+        hash *= 16777619u;
+    }
+    return hash;
+}
 
 bool validateStorageFormat(const std::string& dataDir) {
     const auto path = std::filesystem::path(dataDir) / "format.meta";

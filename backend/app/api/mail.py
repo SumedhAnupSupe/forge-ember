@@ -11,12 +11,12 @@ def require_token(authorization: str | None) -> str:
     return authorization[7:].strip()
 
 
-async def query_user(token: str, user_id: int) -> dict:
-    return await forge.lookup_user_id(token, user_id)
+async def query_user(token: str, user_id: int, message_id: int) -> dict:
+    return await forge.lookup_user_id(token, user_id, message_id)
 
 
 async def enrich(token: str, raw: dict, viewer_id: int) -> MessageOut:
-    sender = await query_user(token, int(raw["sender_id"]))
+    sender = await query_user(token, int(raw["sender_id"]), int(raw["id"]))
     recs = await forge.query(token, f"SELECT message_id, user_id, type FROM recipients WHERE message_id = {int(raw['id'])} LIMIT 100")
     recipients = []
     for rec in recs:
@@ -27,7 +27,7 @@ async def enrich(token: str, raw: dict, viewer_id: int) -> MessageOut:
         # enter the response model or search corpus.
         if viewer_id != int(raw["sender_id"]) and recipient_type == "BCC" and recipient_id != viewer_id:
             continue
-        person = await query_user(token, recipient_id)
+        person = await query_user(token, recipient_id, int(raw["id"]))
         recipients.append(RecipientOut(id=int(person["id"]), name=str(person["name"]),
                                        email=str(person["email"]), type=recipient_type))
     return MessageOut(id=int(raw["id"]),

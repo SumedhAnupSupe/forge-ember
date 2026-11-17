@@ -123,6 +123,37 @@ int test_storage() {
     }
     std::filesystem::remove_all(legacyDir);
 
+    const auto versionOneDir = std::filesystem::temp_directory_path() /
+        ("forge_v1_manifest_test_" + std::to_string(time(nullptr)));
+    std::filesystem::create_directories(versionOneDir);
+    for (const char* name : {"users.dat", "messages.dat", "recipients.dat"}) {
+        std::ofstream file(versionOneDir / name, std::ios::binary);
+    }
+    {
+        std::ofstream manifest(versionOneDir / "format.meta");
+        manifest << "FORGE_STORAGE\\n1\\n"
+                 << User::ENCODED_RECORD_SIZE << " "
+                 << Message::ENCODED_RECORD_SIZE << " "
+                 << Recipient::ENCODED_RECORD_SIZE << "\\n";
+    }
+    {
+        Storage versionOneStorage(versionOneDir.string());
+        if (versionOneStorage.open()) {
+            versionOneStorage.close();
+            std::ifstream manifest(versionOneDir / "format.meta");
+            std::string magic;
+            unsigned int version = 0;
+            manifest >> magic >> version;
+            if (magic == "FORGE_STORAGE" && version == 2)
+                std::cout << "  Version 1 to version 2 manifest upgrade OK" << std::endl;
+            else { std::cout << "  Version 1 to version 2 manifest upgrade FAILED" << std::endl; failures++; }
+        } else {
+            std::cout << "  Version 1 to version 2 manifest upgrade FAILED" << std::endl;
+            failures++;
+        }
+    }
+    std::filesystem::remove_all(versionOneDir);
+
     const auto invalidManifestDir = std::filesystem::temp_directory_path() /
         ("forge_invalid_manifest_test_" + std::to_string(time(nullptr)));
     std::filesystem::create_directories(invalidManifestDir);

@@ -84,6 +84,31 @@ bool MessageService::createMessage(uint32_t senderId, const std::string& subject
         return false;
     }
 
+    // Every participant receives an independent mailbox-state row. The sender
+    // is included even when they are not also listed as a recipient.
+    std::set<uint32_t> mailboxUsers{senderId};
+    for (const auto& recipient : recipients) mailboxUsers.insert(recipient.user_id);
+    bool allStatesCreated = true;
+    for (const uint32_t userId : mailboxUsers) {
+        MailboxState state{};
+        state.message_id = message.id;
+        state.user_id = userId;
+        if (!storage_->createMailboxState(state)) {
+            allStatesCreated = false;
+            break;
+        }
+    }
+    if (!allStatesCreated) {
+        storage_->deleteMailboxStatesByMessage(message.id);
+        const bool messageRolledBack = storage_->deleteMessage(message.id);
+        const bool recipientsRolledBack = storage_->deleteRecipientsByMessage(message.id);
+        if (!messageRolledBack || !recipientsRolledBack) {
+            std::cerr << "Message/mailbox-state rollback was incomplete for message "
+                      << message.id << std::endl;
+        }
+        return false;
+    }
+
     // Publish index entries only after every record has been persisted.
     if (indexManager_) {
         indexManager_->onMessageCreated(message);
@@ -113,9 +138,20 @@ std::vector<Message> MessageService::getMessagesForUser(uint32_t userId, bool in
     // Use IDs to avoid returning a message twice when the sender also appears
     // in its recipient list.
     std::set<uint32_t> includedIds;
+    const auto applyMailboxState = [&](Message& message) {
+        MailboxState state{};
+        if (storage_->readMailboxState(message.id, userId, state)) {
+            message.is_read = state.is_read;
+            message.is_starred = state.is_starred;
+            message.is_deleted = state.is_deleted;
+        }
+        // If no row exists, retain message-level flags for pre-migration legacy
+        // records. New sends always create state rows for all participants.
+    };
     const auto allMessages = storage_->getAllMessages(includeDeleted);
-    for (const auto& message : allMessages) {
+    for (auto message : allMessages) {
         if (message.sender_id == userId) {
+            applyMailboxState(message);
             result.push_back(message);
             includedIds.insert(message.id);
         }
@@ -128,6 +164,7 @@ std::vector<Message> MessageService::getMessagesForUser(uint32_t userId, bool in
 
         Message message;
         if (getMessageById(recipient.message_id, message, includeDeleted)) {
+            applyMailboxState(message);
             result.push_back(message);
             includedIds.insert(message.id);
         }

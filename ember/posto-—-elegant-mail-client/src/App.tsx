@@ -41,9 +41,9 @@ export default function App() {
   // Step 2: Authentication State
   const [currentUser, setCurrentUser] = useState<User | null>(mailService.getCurrentUser());
   const [authTab, setAuthTab] = useState<'login' | 'signup'>('login');
-  const [authName, setAuthName] = useState<string>('Alex Morgan');
-  const [authEmail, setAuthEmail] = useState<string>('alex@posto.mail');
-  const [authPassword, setAuthPassword] = useState<string>('secret123');
+  const [authName, setAuthName] = useState<string>('');
+  const [authEmail, setAuthEmail] = useState<string>('');
+  const [authPassword, setAuthPassword] = useState<string>('');
   const [authError, setAuthError] = useState<string | null>(null);
 
   // Screen Controls: Option to close/open sidebar and inbox list
@@ -195,22 +195,6 @@ export default function App() {
       setSelectedMail(null);
     } catch (err: any) {
       setAuthError(err.message || 'Authentication failed');
-    }
-  };
-
-  const handleQuickLogin = async (name: string, email: string) => {
-    try {
-      let user: User;
-      try {
-        user = await mailService.login(email, 'secret123');
-      } catch {
-        user = await mailService.register(name, email, 'secret123');
-      }
-      setCurrentUser(user);
-      setSelectedMail(null);
-      showToast(`Welcome, ${user.name}!`);
-    } catch (err: any) {
-      showToast('Quick login failed: ' + err.message);
     }
   };
 
@@ -441,29 +425,6 @@ export default function App() {
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
-
-            {/* Quick 1-click test profiles */}
-            <div className="mt-6 pt-5 border-t border-[#E8DFC9] w-full">
-              <span className="text-[11px] font-bold text-[#7A5B44] block text-center mb-2">
-                Or sign in with 1-click test profiles:
-              </span>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('Alex Morgan', 'alex@posto.mail')}
-                  className="p-2 rounded-xl bg-[#EDE1D0] hover:bg-[#E5D5C0] border border-[#D5C1A6] text-center font-bold text-[#422616] transition-colors truncate"
-                >
-                  Alex Morgan
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('Sophie Chen', 'sophie@posto.mail')}
-                  className="p-2 rounded-xl bg-[#EDE1D0] hover:bg-[#E5D5C0] border border-[#D5C1A6] text-center font-bold text-[#422616] transition-colors truncate"
-                >
-                  Sophie Chen
-                </button>
-              </div>
-            </div>
 
           </div>
 

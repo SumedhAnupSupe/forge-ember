@@ -63,6 +63,7 @@ code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/auth/logout")
 assert_code 401 "$code"
 
 # Register four isolated users.
+echo "Registering smoke-test users" >&2
 code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/users" -H 'Content-Type: application/json' -d '{"name":"Alice Smoke","email":"alice-smoke@example.test","password":"SmokePass123!"}')
 assert_code 201 "$code"
 ALICE_ID="$(json_value id)"
@@ -197,6 +198,7 @@ code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authoriz
 assert_code 200 "$code"
 
 # SQL message visibility matches the REST authorization rules.
+echo "Checking SQL row visibility" >&2
 code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/query" -H "Authorization: Bearer $BOB_TOKEN" -H 'Content-Type: application/json' -d '{"query":"SELECT id, subject FROM messages;"}')
 assert_code 200 "$code"
 python3 - "$RESPONSE" <<'PY'
@@ -250,6 +252,7 @@ code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authoriz
 assert_code 404 "$code"
 
 # Logout invalidates the token.
+echo "Checking deletion, logout, and restart" >&2
 code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/auth/logout" -H "Authorization: Bearer $ALICE_TOKEN")
 assert_code 200 "$code"
 code=$(request "http://127.0.0.1:$PORT/api/v1/users/me" -H "Authorization: Bearer $ALICE_TOKEN")

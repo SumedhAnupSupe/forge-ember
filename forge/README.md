@@ -31,7 +31,7 @@ ctest --test-dir build/forge --output-on-failure
 ./build/forge/forge-server --host 127.0.0.1 --port 8080 --data-dir ./forge/data
 ```
 
-Data is stored in fixed-size `.dat` files under the data directory: `users.dat`, `messages.dat`, `recipients.dat`, and `mailbox_states.dat`. `format.meta` records the storage format version and record sizes. Version 1 stores are upgraded to version 2 by creating independent mailbox-state rows from existing message flags; record files are scanned before migration and are not intentionally rewritten by this metadata upgrade.
+Data is stored in fixed-size `.dat` files under the data directory: `users.dat`, `messages.dat`, `recipients.dat`, and `mailbox_states.dat`. `format.meta` records the storage format version and record sizes. Version 1 stores are upgraded to version 2 by creating independent mailbox-state rows from existing message flags. Message plus recipient creation uses a checksummed `message.txn` journal that is replayed idempotently on startup; incomplete final record tails are repaired from the journal. The journal is flushed and atomically renamed but does not call OS-level `fsync`.
 
 ## Run CLI
 

@@ -10,10 +10,10 @@ USERS = {
     5: {"id": 5, "name": "Eve", "email": "eve@example.com"},
 }
 RECIPIENTS = [
-    {"message_id": 42, "user_id": 2, "type": "TO"},
-    {"message_id": 42, "user_id": 3, "type": "CC"},
-    {"message_id": 42, "user_id": 4, "type": "BCC"},
-    {"message_id": 42, "user_id": 5, "type": "BCC"},
+    {"id": 2, "name": "Bob", "email": "bob@example.com", "type": "TO"},
+    {"id": 3, "name": "Carol", "email": "carol@example.com", "type": "CC"},
+    {"id": 4, "name": "Dave", "email": "dave@example.com", "type": "BCC"},
+    {"id": 5, "name": "Eve", "email": "eve@example.com", "type": "BCC"},
 ]
 MESSAGE = {
     "id": 42, "sender_id": 1, "subject": "Private envelope", "body": "Hello",

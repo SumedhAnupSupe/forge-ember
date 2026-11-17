@@ -59,6 +59,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    bool writeSuccess = true;
     const double writeMs = measureMilliseconds([&]() {
         for (size_t i = 0; i < messageCount; ++i) {
             Message message{};
@@ -75,12 +76,16 @@ int main(int argc, char** argv) {
             std::strcpy(recipient.type, "TO");
             if (!storage.createMessageWithRecipients(message, {recipient})) {
                 std::cerr << "Message transaction failed at row " << i << "\n";
-                storage.close();
-                std::filesystem::remove_all(dataDir);
-                return 1;
+                writeSuccess = false;
+                break;
             }
         }
     });
+    if (!writeSuccess) {
+        storage.close();
+        std::filesystem::remove_all(dataDir);
+        return 1;
+    }
 
     std::vector<Message> messages;
     std::vector<Recipient> recipients;

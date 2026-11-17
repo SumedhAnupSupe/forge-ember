@@ -111,7 +111,7 @@ bool UserService::updateUser(const User& user) {
 
     User normalizedUser = user;
     std::strncpy(normalizedUser.email, normalizedEmail.c_str(), sizeof(normalizedUser.email) - 1);
-    normalizedUser.email[sizeof(normalizedUser.email) - 1] = '\\0';
+    normalizedUser.email[sizeof(normalizedUser.email) - 1] = '\0';
 
     if (!storage_->updateUser(normalizedUser)) return false;
     if (indexManager_) indexManager_->onUserUpdated(oldUser, normalizedUser);

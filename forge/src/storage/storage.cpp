@@ -536,6 +536,7 @@ bool Storage::open() {
     }
     isOpen_ = true;
     if (!recoverPendingMessageTransaction() ||
+        !recoverPendingPurgeTransaction() ||
         !repairTrailingPartialRecord("mailbox_states.dat", MailboxState::ENCODED_RECORD_SIZE) ||
         !scanForMaxIds() ||
         !migrateMailboxStates() ||

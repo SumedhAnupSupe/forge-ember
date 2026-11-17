@@ -41,4 +41,3 @@ EMBER uses FORGE's authenticated REST API for users, messages, recipient lookup,
 ## Known contract gaps
 
 - Draft, reply-all, forwarding, and thread APIs are not implemented.
-- Draft, reply-all, forwarding, and thread APIs are not implemented.

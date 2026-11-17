@@ -865,11 +865,6 @@ export default function App() {
                       <span>{selectedMail.is_starred ? 'Starred' : 'Star'}</span>
                     </button>
 
-                    {selectedMail.tag && (
-                      <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-[#EDE1D0] text-[#63442C] border border-[#D5C4AF]">
-                        {selectedMail.tag}
-                      </span>
-                    )}
                   </div>
 
                   <div className="flex items-center gap-2">

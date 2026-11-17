@@ -3,10 +3,24 @@
 #include <filesystem>
 #include <fstream>
 #include <cstring>
+#include <vector>
 #include "storage/storage.h"
 #include "utils/codec.h"
 
 using namespace forge;
+
+void appendJournalU32(std::vector<uint8_t>& out, uint32_t value) {
+    out.push_back(static_cast<uint8_t>(value & 0xff));
+    out.push_back(static_cast<uint8_t>((value >> 8) & 0xff));
+    out.push_back(static_cast<uint8_t>((value >> 16) & 0xff));
+    out.push_back(static_cast<uint8_t>((value >> 24) & 0xff));
+}
+
+uint32_t journalTestChecksum(const std::vector<uint8_t>& bytes) {
+    uint32_t hash = 2166136261u;
+    for (uint8_t byte : bytes) { hash ^= byte; hash *= 16777619u; }
+    return hash;
+}
 
 int test_storage() {
     int failures = 0;
@@ -289,6 +303,72 @@ int test_storage() {
         overflowStorage.close();
     }
     std::filesystem::remove_all(overflowDir);
+
+
+    // Simulate a process crash after partial message/recipient appends while
+    // the complete write-ahead journal is durable.
+    const auto journalDir = std::filesystem::temp_directory_path() /
+        ("forge_journal_recovery_test_" + std::to_string(time(nullptr)));
+    std::filesystem::create_directories(journalDir);
+    Message journalMessage{};
+    journalMessage.id = 77;
+    journalMessage.sender_id = 1;
+    std::strcpy(journalMessage.subject, "Journal recovery");
+    std::strcpy(journalMessage.body, "replayed exactly once");
+    Recipient journalRecipient{};
+    journalRecipient.message_id = 77;
+    journalRecipient.user_id = 2;
+    std::strcpy(journalRecipient.type, "TO");
+    const auto journalMessageBytes = BinaryCodec::serializeMessage(journalMessage);
+    const auto journalRecipientBytes = BinaryCodec::serializeRecipient(journalRecipient);
+    std::vector<uint8_t> journalPayload = journalMessageBytes;
+    journalPayload.insert(journalPayload.end(), journalRecipientBytes.begin(), journalRecipientBytes.end());
+    std::vector<uint8_t> journalBytes;
+    const char journalMagic[8] = {'F', 'O', 'R', 'G', 'E', 'W', 'A', 'L'};
+    journalBytes.insert(journalBytes.end(), std::begin(journalMagic), std::end(journalMagic));
+    appendJournalU32(journalBytes, 1);
+    appendJournalU32(journalBytes, static_cast<uint32_t>(Message::ENCODED_RECORD_SIZE));
+    appendJournalU32(journalBytes, static_cast<uint32_t>(Recipient::ENCODED_RECORD_SIZE));
+    appendJournalU32(journalBytes, 1);
+    appendJournalU32(journalBytes, static_cast<uint32_t>(journalPayload.size()));
+    appendJournalU32(journalBytes, journalTestChecksum(journalPayload));
+    journalBytes.insert(journalBytes.end(), journalPayload.begin(), journalPayload.end());
+    {
+        std::ofstream messages(journalDir / "messages.dat", std::ios::binary);
+        messages.write(reinterpret_cast<const char*>(journalMessageBytes.data()),
+                       static_cast<std::streamsize>(journalMessageBytes.size() / 2));
+        std::ofstream recipients(journalDir / "recipients.dat", std::ios::binary);
+        recipients.write(reinterpret_cast<const char*>(journalRecipientBytes.data()),
+                         static_cast<std::streamsize>(journalRecipientBytes.size() / 2));
+        std::ofstream users(journalDir / "users.dat", std::ios::binary);
+        std::ofstream journal(journalDir / "message.txn", std::ios::binary);
+        journal.write(reinterpret_cast<const char*>(journalBytes.data()),
+                      static_cast<std::streamsize>(journalBytes.size()));
+    }
+    {
+        Storage journalStorage(journalDir.string());
+        Message recoveredMessage{};
+        std::vector<Recipient> recoveredRecipients;
+        MailboxState senderState{}, recipientState{};
+        if (journalStorage.open() &&
+            journalStorage.readMessage(77, recoveredMessage) &&
+            journalStorage.readRecipientsByMessage(77, recoveredRecipients, true) &&
+            recoveredRecipients.size() == 1 &&
+            journalStorage.readMailboxState(77, 1, senderState) &&
+            journalStorage.readMailboxState(77, 2, recipientState) &&
+            !std::filesystem::exists(journalDir / "message.txn")) {
+            journalStorage.close();
+            if (journalStorage.open() && journalStorage.getAllMessages(true).size() == 1 &&
+                journalStorage.getAllRecipients(true).size() == 1)
+                std::cout << "  WAL recovery replays partial writes exactly once OK" << std::endl;
+            else { std::cout << "  WAL recovery idempotency FAILED" << std::endl; failures++; }
+        } else {
+            std::cout << "  WAL recovery of partial writes FAILED" << std::endl;
+            failures++;
+        }
+        journalStorage.close();
+    }
+    std::filesystem::remove_all(journalDir);
 
     const auto invalidManifestDir = std::filesystem::temp_directory_path() /
         ("forge_invalid_manifest_test_" + std::to_string(time(nullptr)));

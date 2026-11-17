@@ -3,6 +3,7 @@
 #include <ctime>
 #include <iostream>
 #include <set>
+#include <unordered_map>
 
 namespace forge {
 
@@ -138,12 +139,16 @@ std::vector<Message> MessageService::getMessagesForUser(uint32_t userId, bool in
     // Use IDs to avoid returning a message twice when the sender also appears
     // in its recipient list.
     std::set<uint32_t> includedIds;
+    std::unordered_map<uint32_t, MailboxState> statesByMessage;
+    for (const auto& state : storage_->getAllMailboxStates()) {
+        if (state.user_id == userId) statesByMessage[state.message_id] = state;
+    }
     const auto applyMailboxState = [&](Message& message) {
-        MailboxState state{};
-        if (!storage_->readMailboxState(message.id, userId, state)) return false;
-        message.is_read = state.is_read;
-        message.is_starred = state.is_starred;
-        message.is_deleted = state.is_deleted;
+        const auto found = statesByMessage.find(message.id);
+        if (found == statesByMessage.end()) return false;
+        message.is_read = found->second.is_read;
+        message.is_starred = found->second.is_starred;
+        message.is_deleted = found->second.is_deleted;
         return true;
     };
     const auto allMessages = storage_->getAllMessages(includeDeleted);

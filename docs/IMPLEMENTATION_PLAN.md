@@ -19,11 +19,11 @@ Order follows the master spec. Each task lists affected files, dependencies, and
 
 ## Phase 3 - Data model and security (highest priority)
 
-Progress: P3-3 BCC visibility filtering and focused tests are implemented but not run. P3-1, P3-2, P3-4, and P3-5 remain outstanding.
+Progress: P3-1 and P3-2 are implemented but not run: MailboxState record, version 2 migration, per-user list/state operations, and state-row removal. P3-3 BCC filtering and focused tests are implemented but not run. P3-4 is partial: only the caller's mailbox-state row is removed; shared message/recipient physical purge after the last participant is outstanding. P3-5 remains outstanding.
 | ID | Task | Files | Depends on | Tests |
 |---|---|---|---|---|
-| P3-1 | `MailboxState` record (message_id, user_id, read, starred, deleted, deleted_at) + migration from per-message flags | `records.*`, `storage.cpp`, `message_service.cpp`, `server.cpp` | P2-1, P2-4 | independent state per user, migration |
-| P3-2 | EMBER reads/writes per-user state; remove message-level flags from API | `mail.py`, `schemas.py`, `forge_client.py` | P3-1 | Alice/Bob/Carol scenario |
+| P3-1 | `MailboxState` record (message_id, user_id, read, starred, deleted) + v2 migration from per-message flags | `records.*`, `codec.*`, `storage.*`, `message_service.cpp` | P2-1 | independent state per user, migration |
+| P3-2 | EMBER/FORGE reads and writes per-user state; state-aware mailbox listing and mutation | `server.cpp`, `message_service.cpp`, `mail.py` | P3-1 | Alice/Bob/Carol scenario |
 | P3-3 | BCC visibility rules in listings and detail | `mail.py` (and FORGE enrichment) | P3-1 | explicit BCC tests |
 | P3-4 | Permanent delete = purge caller's copy; global purge only when no participant retains it | `server.cpp`, `mail.py` | P3-1 | multi-participant delete |
 | P3-5 | Auth hardening: rate limit, expiry, error hygiene | `auth.py`, FORGE auth | - | auth negative tests |

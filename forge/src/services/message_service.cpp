@@ -168,7 +168,7 @@ bool MessageService::deleteMessage(uint32_t id) {
         if (!recipientsDeleted || !mailboxStatesDeleted) {
             std::cerr << "Message deletion cleanup was incomplete for message " << id << std::endl;
         }
-        if (indexes_) indexes_->onMessageDeleted(id);
+        if (indexManager_) indexManager_->onMessageDeleted(id);
     }
     return deleted;
 }

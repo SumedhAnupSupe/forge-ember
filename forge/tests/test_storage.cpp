@@ -4,6 +4,7 @@
 #include <fstream>
 #include <cstring>
 #include <vector>
+#include <iterator>
 #include "storage/storage.h"
 #include "utils/codec.h"
 

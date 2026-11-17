@@ -15,12 +15,10 @@ import {
   Sparkles,
   ArrowRight,
   ArrowLeft,
-  Paperclip,
   PanelLeftClose,
   PanelLeftOpen,
   Eye,
   EyeOff,
-  Download,
   Reply,
   Stamp,
   CheckCircle2
@@ -32,7 +30,7 @@ import { mailService } from './services/api';
 import { Message, RecipientType, User } from './types';
 
 type ActiveFolder = 'inbox' | 'starred' | 'sent' | 'trash';
-type FilterCategory = 'all' | 'unread' | 'starred' | 'attachments';
+type FilterCategory = 'all' | 'unread' | 'starred';
 
 export default function App() {
   // Step 1: Starting Animation (runs initially, and whenever user clicks Refresh)
@@ -81,7 +79,6 @@ export default function App() {
   const [composeBcc, setComposeBcc] = useState<string>('');
   const [composeSubject, setComposeSubject] = useState<string>('');
   const [composeBody, setComposeBody] = useState<string>('');
-  const [composeTag, setComposeTag] = useState<string>('General');
 
   // Interactive Send Mail Flight Animation State
   const [activeFlight, setActiveFlight] = useState<{
@@ -91,7 +88,6 @@ export default function App() {
     recipients: { email: string; type: RecipientType }[];
     subject: string;
     body: string;
-    tag: string;
   } | null>(null);
 
   // Toast Notification
@@ -133,9 +129,7 @@ export default function App() {
         list = list.filter(m => !m.is_read);
       } else if (activeCategory === 'starred') {
         list = list.filter(m => m.is_starred);
-      } else if (activeCategory === 'attachments') {
-        list = list.filter(m => !!m.attachment);
-      }
+
 
       setMessages(list);
 
@@ -186,7 +180,7 @@ export default function App() {
 
       if (activeCategory === 'unread') nextPage = nextPage.filter(message => !message.is_read);
       else if (activeCategory === 'starred') nextPage = nextPage.filter(message => message.is_starred);
-      else if (activeCategory === 'attachments') nextPage = nextPage.filter(message => !!message.attachment);
+
       setMessages(previous => [...previous, ...nextPage]);
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Could not load more messages');
@@ -309,7 +303,6 @@ export default function App() {
       recipients,
       subject: composeSubject.trim() || '(No Subject)',
       body: composeBody,
-      tag: composeTag,
     });
     setIsComposeOpen(false);
   };
@@ -322,7 +315,6 @@ export default function App() {
         subject: activeFlight.subject,
         body: activeFlight.body,
         recipients: activeFlight.recipients,
-        tag: activeFlight.tag,
       });
       showToast(`Mail delivered to ${activeFlight.recipientEmail}! 💌`);
       setComposeTo('');
@@ -351,7 +343,6 @@ export default function App() {
       recipients: [{ email: selectedMail.sender.email, type: 'TO' }],
       subject: `Re: ${selectedMail.subject}`,
       body: replyText + `\n\n--- In reply to ${selectedMail.sender.name} ---`,
-      tag: 'Reply',
     });
     setReplyText('');
     setIsReplying(false);
@@ -594,13 +585,12 @@ export default function App() {
             {/* Quick Labels / Categories */}
             <div className="flex flex-col gap-1 pt-3 border-t border-[#E8DFC9]">
               <div className="text-[10px] font-mono tracking-wider font-bold text-[#8C6D53] uppercase px-3 py-1">
-                Tags & Filters
+                Filters
               </div>
 
               {[
                 { id: 'all', label: 'All Correspondence' },
                 { id: 'unread', label: 'Unread Only' },
-                { id: 'attachments', label: 'With Attachments' },
               ].map((cat) => (
                 <button
                   key={cat.id}
@@ -822,20 +812,7 @@ export default function App() {
                           {msg.body.replace(/\n/g, ' ')}
                         </div>
 
-                        {/* Row 4: Tag & Attachment */}
-                        <div className="flex items-center gap-1.5 mt-1">
-                          {msg.tag && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#EAE0CF] text-[#63442C] border border-[#D5C4AF]">
-                              {msg.tag}
-                            </span>
-                          )}
-                          {msg.attachment && (
-                            <span className="text-[9px] font-mono flex items-center gap-1 px-1.5 py-0.5 rounded bg-white text-[#7A5B44] border border-[#D5C4AF]">
-                              <Paperclip className="w-2.5 h-2.5 text-[#C8622A]" />
-                              {msg.attachment.name.slice(0, 14)}...
-                            </span>
-                          )}
-                        </div>
+
                       </div>
                     );
                   })}
@@ -937,29 +914,6 @@ export default function App() {
                 <div className="bg-[#FFFDF9] border border-[#D5C2AA] rounded-2xl p-6 md:p-8 shadow-xs text-sm leading-relaxed text-[#382317] whitespace-pre-wrap font-sans min-h-[220px]">
                   {selectedMail.body}
                 </div>
-
-                {/* Attachment Box if Present */}
-                {selectedMail.attachment && (
-                  <div className="p-4 rounded-2xl bg-[#F4EDE2] border border-[#D5C2AA] flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-white border border-[#D5C2AA] flex items-center justify-center text-[#C8622A]">
-                        <Paperclip className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-[#2D1C13]">{selectedMail.attachment.name}</div>
-                        <div className="text-[10px] font-mono text-[#8C6D53]">{selectedMail.attachment.size}</div>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => showToast(`Downloaded ${selectedMail.attachment?.name}`)}
-                      className="px-3.5 py-1.5 rounded-xl bg-white border border-[#D5C1A6] text-xs font-semibold text-[#4A2D1B] hover:bg-[#EFE3D0] flex items-center gap-1.5 shadow-2xs"
-                    >
-                      <Download className="w-3.5 h-3.5 text-[#C8622A]" />
-                      <span>Download</span>
-                    </button>
-                  </div>
-                )}
 
                 {/* Quick Inline Reply Box */}
                 <form onSubmit={handleQuickInlineReply} className="mt-2 bg-[#F4EDE2] border border-[#D5C2AA] rounded-2xl p-4 flex flex-col gap-3">
@@ -1067,21 +1021,6 @@ export default function App() {
                   placeholder="Subject of correspondence..."
                   className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#D5C1A6] text-xs font-medium text-[#2D1C13] focus:outline-none focus:ring-1 focus:ring-[#C8622A]"
                 />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-[#543825] block mb-1">Tag / Category</label>
-                <select
-                  value={composeTag}
-                  onChange={(e) => setComposeTag(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-white border border-[#D5C1A6] text-xs font-medium text-[#2D1C13]"
-                >
-                  <option value="General">General</option>
-                  <option value="Design">Design</option>
-                  <option value="Engineering">Engineering</option>
-                  <option value="Urgent">Urgent</option>
-                  <option value="Personal">Personal</option>
-                </select>
               </div>
 
               <div>

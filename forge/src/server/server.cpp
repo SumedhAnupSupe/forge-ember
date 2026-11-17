@@ -527,8 +527,8 @@ bool ForgeServer::startInBackground() {
                 json r; r["status"] = "ok";
                 res.set_content(r.dump(), "application/json");
             } else {
-                res.status = 500;
-                json err; err["error"] = "Failed";
+                res.status = 404;
+                json err; err["error"] = "Mailbox copy not found";
                 res.set_content(err.dump(), "application/json");
             }
         } catch (...) {

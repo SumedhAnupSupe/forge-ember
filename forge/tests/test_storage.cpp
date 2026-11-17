@@ -194,10 +194,10 @@ int test_storage() {
         const auto recipientRowBytes = BinaryCodec::serializeRecipient(legacyRecipientRow);
         recipients.write(reinterpret_cast<const char*>(recipientRowBytes.data()), recipientRowBytes.size());
         std::ofstream manifest(legacyDataDir / "format.meta");
-        manifest << "FORGE_STORAGE\\n1\\n"
+        manifest << "FORGE_STORAGE\n1\n"
                  << User::ENCODED_RECORD_SIZE << " "
                  << Message::ENCODED_RECORD_SIZE << " "
-                 << Recipient::ENCODED_RECORD_SIZE << "\\n";
+                 << Recipient::ENCODED_RECORD_SIZE << "\n";
     }
     {
         Storage legacyStateStorage(legacyDataDir.string());

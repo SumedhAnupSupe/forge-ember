@@ -142,6 +142,59 @@ PY
 
 code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $BOB_TOKEN")
 assert_code 200 "$code"
+python3 - "$RESPONSE" "$BOB_ID" <<'PY'
+import json, sys
+r = json.load(open(sys.argv[1]))
+assert [str(x["id"]) for x in r["recipients"]] == [sys.argv[2]]
+PY
+code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $CAROL_TOKEN")
+assert_code 200 "$code"
+python3 - "$RESPONSE" "$BOB_ID" "$CAROL_ID" <<'PY'
+import json, sys
+r = json.load(open(sys.argv[1]))
+assert {str(x["id"]) for x in r["recipients"]} == {sys.argv[2], sys.argv[3]}
+assert any(x["type"] == "BCC" and str(x["id"]) == sys.argv[3] for x in r["recipients"])
+PY
+code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $DAVE_TOKEN")
+assert_code 404 "$code"
+
+# Bob's read and trash state must not change Alice's or Carol's copy.
+code=$(request -X PATCH "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID/state" -H "Authorization: Bearer $BOB_TOKEN" -H 'Content-Type: application/json' -d '{"is_read":true}')
+assert_code 200 "$code"
+code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $ALICE_TOKEN")
+assert_code 200 "$code"
+python3 - "$RESPONSE" <<'PY'
+import json, sys
+assert json.load(open(sys.argv[1]))["is_read"] is False
+PY
+code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $BOB_TOKEN")
+assert_code 200 "$code"
+python3 - "$RESPONSE" <<'PY'
+import json, sys
+assert json.load(open(sys.argv[1]))["is_read"] is True
+PY
+code=$(request -X PATCH "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID/mailbox" -H "Authorization: Bearer $BOB_TOKEN" -H 'Content-Type: application/json' -d '{"is_deleted":true}')
+assert_code 200 "$code"
+code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $ALICE_TOKEN")
+assert_code 200 "$code"
+python3 - "$RESPONSE" <<'PY'
+import json, sys
+assert json.load(open(sys.argv[1]))["is_deleted"] is False
+PY
+code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $BOB_TOKEN")
+assert_code 200 "$code"
+python3 - "$RESPONSE" <<'PY'
+import json, sys
+assert json.load(open(sys.argv[1]))["is_deleted"] is True
+PY
+code=$(request -X DELETE "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID/mailbox" -H "Authorization: Bearer $BOB_TOKEN")
+assert_code 200 "$code"
+code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $BOB_TOKEN")
+assert_code 404 "$code"
+code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $ALICE_TOKEN")
+assert_code 200 "$code"
+code=$(request "http://127.0.0.1:$PORT/api/v1/messages/$MESSAGE_ID" -H "Authorization: Bearer $CAROL_TOKEN")
+assert_code 200 "$code"
 
 # SQL message visibility matches the REST authorization rules.
 code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/query" -H "Authorization: Bearer $BOB_TOKEN" -H 'Content-Type: application/json' -d '{"query":"SELECT id, subject FROM messages;"}')

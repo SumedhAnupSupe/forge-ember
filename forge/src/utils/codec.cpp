@@ -163,4 +163,44 @@ bool BinaryCodec::deserializeRecipient(const std::vector<uint8_t>& data, size_t 
     return true;
 }
 
+
+std::vector<uint8_t> BinaryCodec::serializeMailboxState(const MailboxState& state) {
+    if (state.message_id == 0 || state.user_id == 0)
+        throw std::runtime_error("Invalid mailbox state identity");
+    if ((state.is_read != 0 && state.is_read != 1) ||
+        (state.is_starred != 0 && state.is_starred != 1) ||
+        (state.is_deleted != 0 && state.is_deleted != 1))
+        throw std::runtime_error("Invalid mailbox state flag");
+    std::vector<uint8_t> data;
+    data.reserve(MailboxState::ENCODED_RECORD_SIZE);
+    writeUint32LE(data, state.message_id);
+    writeUint32LE(data, state.user_id);
+    data.push_back(state.is_read);
+    data.push_back(state.is_starred);
+    data.push_back(state.is_deleted);
+    return data;
+}
+
+bool BinaryCodec::deserializeMailboxState(const std::vector<uint8_t>& data, size_t offset,
+                                          MailboxState& state) {
+    if (offset > data.size() || MailboxState::ENCODED_RECORD_SIZE > data.size() - offset)
+        return false;
+    size_t off = offset;
+    uint32_t messageId = 0, userId = 0;
+    if (!readUint32LE(data, off, messageId) || !readUint32LE(data, off, userId))
+        return false;
+    if (off + 3 > data.size() || messageId == 0 || userId == 0) return false;
+    const uint8_t read = data[off++];
+    const uint8_t starred = data[off++];
+    const uint8_t deleted = data[off++];
+    if ((read != 0 && read != 1) || (starred != 0 && starred != 1) ||
+        (deleted != 0 && deleted != 1)) return false;
+    state.message_id = messageId;
+    state.user_id = userId;
+    state.is_read = read;
+    state.is_starred = starred;
+    state.is_deleted = deleted;
+    return true;
+}
+
 } // namespace forge

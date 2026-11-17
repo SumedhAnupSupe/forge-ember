@@ -30,6 +30,7 @@ def test_mailbox_search_sort_and_offset_pagination(monkeypatch) -> None:
 
 def test_mailbox_pagination_bounds_are_declared_in_openapi() -> None:
     from fastapi.testclient import TestClient
+
     from app.main import app
 
     parameters = TestClient(app).get("/openapi.json").json()["paths"]["/api/v1/mail/{folder}"]["get"]["parameters"]

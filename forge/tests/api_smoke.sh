@@ -217,9 +217,24 @@ assert_code 200 "$code"
 python3 - "$RESPONSE" <<'PY'
 import json, sys
 r = json.load(open(sys.argv[1]))
+assert r["row_count"] == 2
+assert [(x["user_id"], x["type"]) for x in r["rows"]] == [("2", "TO"), ("3", "BCC")]
+PY
+code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/query" -H "Authorization: Bearer $BOB_TOKEN" -H 'Content-Type: application/json' -d "{\"query\":\"SELECT message_id, user_id, type FROM recipients WHERE message_id = $MESSAGE_ID ORDER BY user_id ASC LIMIT 10;\"}")
+assert_code 200 "$code"
+python3 - "$RESPONSE" <<'PY'
+import json, sys
+r = json.load(open(sys.argv[1]))
 assert r["row_count"] == 1
-assert r["rows"][0]["user_id"] == "2"
-assert r["rows"][0]["type"] == "TO"
+assert r["rows"][0]["user_id"] == "2" and r["rows"][0]["type"] == "TO"
+PY
+code=$(request -X POST "http://127.0.0.1:$PORT/api/v1/query" -H "Authorization: Bearer $CAROL_TOKEN" -H 'Content-Type: application/json' -d "{\"query\":\"SELECT message_id, user_id, type FROM recipients WHERE message_id = $MESSAGE_ID ORDER BY user_id ASC LIMIT 10;\"}")
+assert_code 200 "$code"
+python3 - "$RESPONSE" <<'PY'
+import json, sys
+r = json.load(open(sys.argv[1]))
+assert r["row_count"] == 2
+assert [(x["user_id"], x["type"]) for x in r["rows"]] == [("2", "TO"), ("3", "BCC")]
 PY
 
 # A non-participant cannot read or delete the message.

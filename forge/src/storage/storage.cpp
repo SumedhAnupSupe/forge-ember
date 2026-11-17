@@ -156,6 +156,182 @@ Storage::~Storage() {
     close();
 }
 
+
+bool Storage::repairTrailingPartialRecord(const std::string& filename, size_t recordSize) {
+    if (recordSize == 0) return false;
+    const auto path = std::filesystem::path(dataDir_) / filename;
+    std::error_code ec;
+    const uintmax_t size = std::filesystem::file_size(path, ec);
+    if (ec) return false;
+    const uintmax_t remainder = size % recordSize;
+    if (remainder == 0) return true;
+    std::filesystem::resize_file(path, size - remainder, ec);
+    if (ec) return false;
+
+    std::fstream* stream = nullptr;
+    if (filename == "messages.dat") stream = &messagesFile_;
+    else if (filename == "recipients.dat") stream = &recipientsFile_;
+    else if (filename == "mailbox_states.dat") stream = &mailboxStatesFile_;
+    else return false;
+
+    stream->close();
+    stream->clear();
+    stream->open(path, std::ios::binary | std::ios::in | std::ios::out);
+    return stream->is_open();
+}
+
+bool Storage::applyMessageTransaction(const Message& message,
+                                      const std::vector<Recipient>& recipients) {
+    if (!isOpen_ || message.id == 0 || recipients.empty()) return false;
+    const auto expectedMessage = BinaryCodec::serializeMessage(message);
+    Message existingMessage{};
+    if (readMessage(message.id, existingMessage)) {
+        if (BinaryCodec::serializeMessage(existingMessage) != expectedMessage) return false;
+    } else if (!createMessage(message)) {
+        return false;
+    }
+
+    std::vector<Recipient> existingRecipients;
+    readRecipientsByMessage(message.id, existingRecipients, true);
+    if (existingRecipients.size() > recipients.size()) return false;
+    std::set<uint32_t> expectedUsers;
+    for (const auto& recipient : recipients) {
+        if (recipient.message_id != message.id || recipient.user_id == 0 ||
+            !expectedUsers.insert(recipient.user_id).second) return false;
+        const auto found = std::find_if(existingRecipients.begin(), existingRecipients.end(),
+            [&](const Recipient& existing) { return existing.user_id == recipient.user_id; });
+        if (found != existingRecipients.end()) {
+            if (std::string(found->type) != std::string(recipient.type)) return false;
+            continue;
+        }
+        if (!createRecipient(recipient)) return false;
+    }
+    return true;
+}
+
+bool Storage::createMessageWithRecipients(const Message& message,
+                                          const std::vector<Recipient>& recipients) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (!isOpen_ || message.id == 0 || recipients.empty() ||
+        recipients.size() > kMaxJournalRecipients) return false;
+
+    const auto journalPath = std::filesystem::path(dataDir_) / "message.txn";
+    const auto temporaryPath = std::filesystem::path(dataDir_) / "message.txn.tmp";
+    std::error_code ec;
+    if (std::filesystem::exists(journalPath, ec) || ec) return false;
+
+    std::vector<uint8_t> payload = BinaryCodec::serializeMessage(message);
+    std::set<uint32_t> uniqueUsers;
+    for (const auto& recipient : recipients) {
+        if (recipient.message_id != message.id || recipient.user_id == 0 ||
+            !uniqueUsers.insert(recipient.user_id).second) return false;
+        const auto bytes = BinaryCodec::serializeRecipient(recipient);
+        payload.insert(payload.end(), bytes.begin(), bytes.end());
+    }
+
+    std::vector<uint8_t> journal;
+    journal.insert(journal.end(), std::begin(kMessageTxnMagic), std::end(kMessageTxnMagic));
+    appendUint32LE(journal, kMessageTxnVersion);
+    appendUint32LE(journal, static_cast<uint32_t>(Message::ENCODED_RECORD_SIZE));
+    appendUint32LE(journal, static_cast<uint32_t>(Recipient::ENCODED_RECORD_SIZE));
+    appendUint32LE(journal, static_cast<uint32_t>(recipients.size()));
+    appendUint32LE(journal, static_cast<uint32_t>(payload.size()));
+    appendUint32LE(journal, messageTxnChecksum(payload));
+    journal.insert(journal.end(), payload.begin(), payload.end());
+
+    {
+        std::ofstream output(temporaryPath, std::ios::binary | std::ios::trunc);
+        if (!output.is_open()) return false;
+        output.write(reinterpret_cast<const char*>(journal.data()),
+                     static_cast<std::streamsize>(journal.size()));
+        output.flush();
+        if (!output.good()) {
+            output.close();
+            std::filesystem::remove(temporaryPath, ec);
+            return false;
+        }
+    }
+    std::filesystem::rename(temporaryPath, journalPath, ec);
+    if (ec) {
+        std::filesystem::remove(temporaryPath, ec);
+        return false;
+    }
+
+    if (!applyMessageTransaction(message, recipients)) return false;
+    std::filesystem::remove(journalPath, ec);
+    return !ec;
+}
+
+bool Storage::recoverPendingMessageTransaction() {
+    const auto journalPath = std::filesystem::path(dataDir_) / "message.txn";
+    const auto temporaryPath = std::filesystem::path(dataDir_) / "message.txn.tmp";
+    std::error_code ec;
+    if (!std::filesystem::exists(journalPath, ec)) {
+        if (ec) return false;
+        std::filesystem::remove(temporaryPath, ec);
+        return !ec;
+    }
+
+    std::ifstream input(journalPath, std::ios::binary | std::ios::ate);
+    if (!input.is_open()) return false;
+    const std::streampos end = input.tellg();
+    if (end < static_cast<std::streamoff>(kMessageTxnHeaderSize)) return false;
+    const auto fileSize = static_cast<size_t>(end);
+    if (fileSize > kMessageTxnHeaderSize +
+        Message::ENCODED_RECORD_SIZE +
+        static_cast<size_t>(kMaxJournalRecipients) * Recipient::ENCODED_RECORD_SIZE) return false;
+    std::vector<uint8_t> journal(fileSize);
+    input.seekg(0, std::ios::beg);
+    input.read(reinterpret_cast<char*>(journal.data()), static_cast<std::streamsize>(journal.size()));
+    if (input.gcount() != static_cast<std::streamsize>(journal.size())) return false;
+    input.close();
+
+    if (!std::equal(std::begin(kMessageTxnMagic), std::end(kMessageTxnMagic), journal.begin()))
+        return false;
+    size_t offset = sizeof(kMessageTxnMagic);
+    uint32_t version = 0, messageSize = 0, recipientSize = 0;
+    uint32_t recipientCount = 0, payloadSize = 0, checksum = 0;
+    if (!readUint32LE(journal, offset, version) ||
+        !readUint32LE(journal, offset, messageSize) ||
+        !readUint32LE(journal, offset, recipientSize) ||
+        !readUint32LE(journal, offset, recipientCount) ||
+        !readUint32LE(journal, offset, payloadSize) ||
+        !readUint32LE(journal, offset, checksum)) return false;
+    const size_t expectedPayloadSize = Message::ENCODED_RECORD_SIZE +
+        static_cast<size_t>(recipientCount) * Recipient::ENCODED_RECORD_SIZE;
+    if (version != kMessageTxnVersion ||
+        messageSize != Message::ENCODED_RECORD_SIZE ||
+        recipientSize != Recipient::ENCODED_RECORD_SIZE ||
+        recipientCount == 0 || recipientCount > kMaxJournalRecipients ||
+        payloadSize != expectedPayloadSize ||
+        offset + payloadSize != journal.size()) return false;
+
+    std::vector<uint8_t> payload(journal.begin() + static_cast<std::ptrdiff_t>(offset), journal.end());
+    if (messageTxnChecksum(payload) != checksum) return false;
+    Message message{};
+    if (!BinaryCodec::deserializeMessage(payload, 0, message) || message.id == 0) return false;
+    std::vector<Recipient> recipients;
+    recipients.reserve(recipientCount);
+    for (uint32_t i = 0; i < recipientCount; ++i) {
+        Recipient recipient{};
+        const size_t recordOffset = Message::ENCODED_RECORD_SIZE +
+            static_cast<size_t>(i) * Recipient::ENCODED_RECORD_SIZE;
+        if (!BinaryCodec::deserializeRecipient(payload, recordOffset, recipient) ||
+            recipient.message_id != message.id) return false;
+        recipients.push_back(recipient);
+    }
+
+    // A crash can interrupt the final append of a fixed-size record. The
+    // durable journal makes truncating only the incomplete tail safe; replay
+    // then writes the complete record again.
+    if (!repairTrailingPartialRecord("messages.dat", Message::ENCODED_RECORD_SIZE) ||
+        !repairTrailingPartialRecord("recipients.dat", Recipient::ENCODED_RECORD_SIZE))
+        return false;
+    if (!applyMessageTransaction(message, recipients)) return false;
+    std::filesystem::remove(journalPath, ec);
+    return !ec;
+}
+
 bool Storage::open() {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (isOpen_) return true;

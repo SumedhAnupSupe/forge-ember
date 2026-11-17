@@ -31,6 +31,35 @@ bool ForgeServer::startInBackground() {
     userService_ = std::make_shared<UserService>(storage_, indexManager_);
     messageService_ = std::make_shared<MessageService>(storage_, indexManager_);
     authManager_ = std::make_shared<AuthManager>();
+
+    // Build a viewer-scoped message envelope in one FORGE response. This
+    // avoids EMBER issuing N+1 user lookups and centralizes BCC visibility.
+    auto appendEnvelope = [&](json& item, const Message& message, uint32_t viewerId) {
+        User sender{};
+        if (userService_->getUserById(message.sender_id, sender)) {
+            item["sender"] = {{"id", sender.id}, {"name", sender.name}, {"email", sender.email}};
+        }
+        json visibleRecipients = json::array();
+        std::vector<Recipient> recipients;
+        if (storage_->readRecipientsByMessage(message.id, recipients, false)) {
+            for (const auto& recipient : recipients) {
+                MailboxState recipientState{};
+                if (!storage_->readMailboxState(message.id, recipient.user_id, recipientState))
+                    continue;
+                const bool isSender = message.sender_id == viewerId;
+                const std::string recipientType(recipient.type);
+                if (!isSender && recipientType == "BCC" && recipient.user_id != viewerId)
+                    continue;
+                User person{};
+                if (!userService_->getUserById(recipient.user_id, person)) continue;
+                visibleRecipients.push_back({
+                    {"id", person.id}, {"name", person.name},
+                    {"email", person.email}, {"type", recipientType}
+                });
+            }
+        }
+        item["recipients"] = std::move(visibleRecipients);
+    };
     
     std::cout << "FORGE Server starting on " << host_ << ":" << port_ << std::endl;
     std::cout << "Data directory: " << dataDir_ << std::endl;
@@ -260,7 +289,11 @@ bool ForgeServer::startInBackground() {
         json arr = json::array();
         for (const auto& m : msgs) {
             json item;
-            item["id"] = m.id; item["sender_id"] = m.sender_id; item["subject"] = m.subject; item["body"] = m.body; item["created_at"] = m.created_at; item["is_read"] = (m.is_read != 0); item["is_starred"] = (m.is_starred != 0); item["is_deleted"] = (m.is_deleted != 0); item["is_read"] = (m.is_read != 0); item["is_starred"] = (m.is_starred != 0); item["is_deleted"] = (m.is_deleted != 0);
+            item["id"] = m.id; item["sender_id"] = m.sender_id; item["subject"] = m.subject; item["body"] = m.body; item["created_at"] = m.created_at;
+            item["is_read"] = (m.is_read != 0);
+            item["is_starred"] = (m.is_starred != 0);
+            item["is_deleted"] = (m.is_deleted != 0);
+            appendEnvelope(item, m, uid);
             arr.push_back(item);
         }
         res.set_content(arr.dump(), "application/json");
@@ -327,6 +360,7 @@ bool ForgeServer::startInBackground() {
             item["is_read"] = mailboxState.is_read != 0;
             item["is_starred"] = mailboxState.is_starred != 0;
             item["is_deleted"] = mailboxState.is_deleted != 0;
+            appendEnvelope(item, m, uid);
             res.set_content(item.dump(), "application/json");
         } catch (...) {
             res.status = 404;

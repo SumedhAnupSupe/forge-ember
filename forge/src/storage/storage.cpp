@@ -285,6 +285,9 @@ bool Storage::migrateMailboxStates() {
     if (!isOpen_) return false;
     const auto messages = getAllMessages(true);
     const auto recipients = getAllRecipients(false);
+    std::set<std::pair<uint32_t, uint32_t>> existingStates;
+    for (const auto& state : getAllMailboxStates())
+        existingStates.insert({state.message_id, state.user_id});
     std::unordered_map<uint32_t, std::set<uint32_t>> participants;
     for (const auto& message : messages) {
         if (message.sender_id != 0) participants[message.id].insert(message.sender_id);
@@ -298,8 +301,8 @@ bool Storage::migrateMailboxStates() {
         const auto found = participants.find(message.id);
         if (found == participants.end()) continue;
         for (const uint32_t userId : found->second) {
+            if (existingStates.find({message.id, userId}) != existingStates.end()) continue;
             MailboxState state{};
-            if (readMailboxState(message.id, userId, state)) continue;
             state.message_id = message.id;
             state.user_id = userId;
             state.is_read = message.is_read;
@@ -309,6 +312,7 @@ bool Storage::migrateMailboxStates() {
                 // A concurrent process may have inserted the same row.
                 if (!readMailboxState(message.id, userId, state)) return false;
             }
+            existingStates.insert({message.id, userId});
         }
     }
     return true;

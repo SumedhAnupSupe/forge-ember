@@ -688,6 +688,24 @@ bool Storage::scanForMaxIds() {
 bool Storage::migrateMailboxStates() {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!isOpen_) return false;
+
+    // This is a one-time v1/legacy migration, not a reconciliation job.
+    // Recreating missing rows in v2 would resurrect a user's permanently
+    // removed mailbox copy on every restart.
+    const auto manifestPath = std::filesystem::path(dataDir_) / "format.meta";
+    std::error_code manifestError;
+    if (std::filesystem::exists(manifestPath, manifestError)) {
+        if (manifestError) return false;
+        std::ifstream manifest(manifestPath);
+        std::string magic;
+        unsigned int version = 0;
+        if (!(manifest >> magic >> version) || magic != "FORGE_STORAGE") return false;
+        if (version >= kStorageFormatVersion) return true;
+        if (version != 1) return false;
+    } else if (manifestError) {
+        return false;
+    }
+
     const auto messages = getAllMessages(true);
     const auto recipients = getAllRecipients(false);
     std::set<std::pair<uint32_t, uint32_t>> existingStates;

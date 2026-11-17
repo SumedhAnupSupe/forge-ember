@@ -11,7 +11,7 @@ def require_token(authorization: str | None) -> str:
     return authorization[7:].strip()
 
 
-async def enrich(token: str, raw: dict, viewer_id: int) -> MessageOut:
+def enrich(raw: dict, viewer_id: int) -> MessageOut:
     sender = raw.get("sender")
     if not isinstance(sender, dict):
         raise HTTPException(status_code=502, detail="FORGE message envelope is incomplete")
@@ -54,7 +54,7 @@ async def list_mail(folder: str, authorization: str | None = Header(default=None
     rows = await forge.messages(token, include_deleted=(folder == "trash"))
     result = []
     for row in rows:
-        message = await enrich(token, row, int(me["id"]))
+        message = enrich(row, int(me["id"]))
         sender = message.sender.id == int(me["id"])
         recipient = any(r.id == int(me["id"]) for r in message.recipients)
         if folder == "inbox" and (sender or not recipient or message.is_deleted): continue
@@ -76,7 +76,7 @@ async def list_mail(folder: str, authorization: str | None = Header(default=None
 async def get_mail(message_id: int, authorization: str | None = Header(default=None)) -> MessageOut:
     token = require_token(authorization)
     me = await forge.me(token)
-    message = await enrich(token, await forge.message(token, message_id), int(me["id"]))
+    message = enrich(await forge.message(token, message_id), int(me["id"]))
     if message.sender.id != int(me["id"]) and all(r.id != int(me["id"]) for r in message.recipients):
         raise HTTPException(status_code=404, detail="Message not found")
     return message

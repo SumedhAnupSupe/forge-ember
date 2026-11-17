@@ -87,5 +87,58 @@ int test_storage() {
         }
     }
     std::filesystem::remove_all(corruptDir);
+
+    // A legacy directory with valid empty record files is upgraded by adding
+    // metadata; the existing record files remain untouched.
+    const auto legacyDir = std::filesystem::temp_directory_path() /
+        ("forge_legacy_storage_test_" + std::to_string(time(nullptr)));
+    std::filesystem::create_directories(legacyDir);
+    for (const char* name : {"users.dat", "messages.dat", "recipients.dat"}) {
+        std::ofstream file(legacyDir / name, std::ios::binary);
+    }
+    {
+        Storage legacyStorage(legacyDir.string());
+        if (legacyStorage.open()) {
+            legacyStorage.close();
+            const auto manifest = legacyDir / "format.meta";
+            std::ifstream input(manifest);
+            std::string magic;
+            unsigned int version = 0;
+            size_t userSize = 0, messageSize = 0, recipientSize = 0;
+            if (input >> magic >> version >> userSize >> messageSize >> recipientSize &&
+                magic == "FORGE_STORAGE" && version == 1 &&
+                userSize == User::ENCODED_RECORD_SIZE &&
+                messageSize == Message::ENCODED_RECORD_SIZE &&
+                recipientSize == Recipient::ENCODED_RECORD_SIZE) {
+                std::cout << "  Legacy storage metadata migration OK" << std::endl;
+            } else {
+                std::cout << "  Legacy storage metadata migration FAILED" << std::endl;
+                failures++;
+            }
+        } else {
+            std::cout << "  Legacy storage metadata migration FAILED" << std::endl;
+            failures++;
+        }
+    }
+    std::filesystem::remove_all(legacyDir);
+
+    const auto invalidManifestDir = std::filesystem::temp_directory_path() /
+        ("forge_invalid_manifest_test_" + std::to_string(time(nullptr)));
+    std::filesystem::create_directories(invalidManifestDir);
+    {
+        std::ofstream manifest(invalidManifestDir / "format.meta");
+        manifest << "NOT_FORGE 99 1 1 1\\n";
+    }
+    {
+        Storage invalidManifestStorage(invalidManifestDir.string());
+        if (!invalidManifestStorage.open()) {
+            std::cout << "  Unsupported storage manifest rejected OK" << std::endl;
+        } else {
+            std::cout << "  Unsupported storage manifest accepted FAILED" << std::endl;
+            failures++;
+            invalidManifestStorage.close();
+        }
+    }
+    std::filesystem::remove_all(invalidManifestDir);
     return failures;
 }

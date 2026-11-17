@@ -21,6 +21,9 @@ public:
     // Recipient serialization
     static std::vector<uint8_t> serializeRecipient(const Recipient& recipient);
     static bool deserializeRecipient(const std::vector<uint8_t>& data, size_t offset, Recipient& recipient);
+    // Per-user mailbox state serialization
+    static std::vector<uint8_t> serializeMailboxState(const MailboxState& state);
+    static bool deserializeMailboxState(const std::vector<uint8_t>& data, size_t offset, MailboxState& state);
     
     // Helper functions for endianness
     static void writeUint32LE(std::vector<uint8_t>& data, uint32_t value);

@@ -84,7 +84,7 @@ int test_query() {
     Recipient dave{};
     dave.message_id = 10;
     dave.user_id = 5;
-    std::strncpy(dave.type, "BCC", sizeof(dave.type) - 1);
+    std::memcpy(dave.type, "BCC", sizeof(dave.type));
     if (!storage->createRecipient(bob) || !storage->createRecipient(carol) ||
         !storage->createRecipient(dave)) {
         std::cerr << "  Could not create test recipients" << std::endl;

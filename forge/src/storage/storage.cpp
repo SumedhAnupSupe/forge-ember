@@ -345,6 +345,166 @@ bool Storage::recoverPendingMessageTransaction() {
     return !ec;
 }
 
+
+bool Storage::applyMessagePurge(uint32_t messageId) {
+    if (!isOpen_ || messageId == 0) return false;
+    const auto base = std::filesystem::path(dataDir_);
+    const auto messagesPath = base / "messages.dat";
+    const auto recipientsPath = base / "recipients.dat";
+    const auto statesPath = base / "mailbox_states.dat";
+    const auto messagesTemp = base / "messages.dat.purge.tmp";
+    const auto recipientsTemp = base / "recipients.dat.purge.tmp";
+    const auto statesTemp = base / "mailbox_states.dat.purge.tmp";
+
+    auto compact = [&](const std::filesystem::path& source,
+                       const std::filesystem::path& temporary,
+                       size_t recordSize,
+                       const auto& shouldKeep) -> bool {
+        std::error_code ec;
+        const uintmax_t fileSize = std::filesystem::file_size(source, ec);
+        if (ec || recordSize == 0 || fileSize % recordSize != 0) return false;
+        std::ifstream input(source, std::ios::binary);
+        std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
+        if (!input.is_open() || !output.is_open()) return false;
+        std::vector<uint8_t> buffer(recordSize);
+        while (input.read(reinterpret_cast<char*>(buffer.data()),
+                          static_cast<std::streamsize>(buffer.size()))) {
+            if (shouldKeep(buffer)) {
+                output.write(reinterpret_cast<const char*>(buffer.data()),
+                             static_cast<std::streamsize>(buffer.size()));
+                if (!output.good()) break;
+            }
+        }
+        const bool complete = input.eof() && input.gcount() == 0;
+        output.flush();
+        const bool written = output.good();
+        input.close();
+        output.close();
+        return complete && written;
+    };
+
+    const bool messagesReady = compact(messagesPath, messagesTemp, Message::ENCODED_RECORD_SIZE,
+        [&](const std::vector<uint8_t>& bytes) {
+            Message message{};
+            return BinaryCodec::deserializeMessage(bytes, 0, message) && message.id != messageId;
+        });
+    const bool recipientsReady = messagesReady &&
+        compact(recipientsPath, recipientsTemp, Recipient::ENCODED_RECORD_SIZE,
+        [&](const std::vector<uint8_t>& bytes) {
+            Recipient recipient{};
+            return BinaryCodec::deserializeRecipient(bytes, 0, recipient) &&
+                   recipient.message_id != messageId;
+        });
+    const bool statesReady = recipientsReady &&
+        compact(statesPath, statesTemp, MailboxState::ENCODED_RECORD_SIZE,
+        [&](const std::vector<uint8_t>& bytes) {
+            MailboxState state{};
+            return BinaryCodec::deserializeMailboxState(bytes, 0, state) &&
+                   state.message_id != messageId;
+        });
+    if (!messagesReady || !recipientsReady || !statesReady) {
+        std::error_code cleanupError;
+        std::filesystem::remove(messagesTemp, cleanupError);
+        std::filesystem::remove(recipientsTemp, cleanupError);
+        std::filesystem::remove(statesTemp, cleanupError);
+        return false;
+    }
+
+    messagesFile_.close();
+    recipientsFile_.close();
+    mailboxStatesFile_.close();
+    const std::pair<std::filesystem::path, std::filesystem::path> replacements[] = {
+        {messagesTemp, messagesPath},
+        {recipientsTemp, recipientsPath},
+        {statesTemp, statesPath},
+    };
+    std::error_code renameError;
+    for (const auto& [temporary, destination] : replacements) {
+        std::filesystem::rename(temporary, destination, renameError);
+        if (renameError) break;
+    }
+
+    messagesFile_.clear();
+    recipientsFile_.clear();
+    mailboxStatesFile_.clear();
+    messagesFile_.open(messagesPath, std::ios::binary | std::ios::in | std::ios::out);
+    recipientsFile_.open(recipientsPath, std::ios::binary | std::ios::in | std::ios::out);
+    mailboxStatesFile_.open(statesPath, std::ios::binary | std::ios::in | std::ios::out);
+    return !renameError && messagesFile_.is_open() && recipientsFile_.is_open() &&
+           mailboxStatesFile_.is_open();
+}
+
+bool Storage::purgeMessageRecords(uint32_t messageId) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (!isOpen_ || messageId == 0) return false;
+    const auto journalPath = std::filesystem::path(dataDir_) / "purge.txn";
+    const auto temporaryPath = std::filesystem::path(dataDir_) / "purge.txn.tmp";
+    std::error_code ec;
+    const bool journalExists = std::filesystem::exists(journalPath, ec);
+    if (ec) return false;
+    if (journalExists && !recoverPendingPurgeTransaction()) return false;
+
+    std::vector<uint8_t> payload;
+    appendUint32LE(payload, messageId);
+    std::vector<uint8_t> journal;
+    const char magic[8] = {'F', 'O', 'R', 'G', 'E', 'P', 'U', 'R'};
+    journal.insert(journal.end(), std::begin(magic), std::end(magic));
+    appendUint32LE(journal, 1);
+    appendUint32LE(journal, static_cast<uint32_t>(payload.size()));
+    appendUint32LE(journal, messageTxnChecksum(payload));
+    journal.insert(journal.end(), payload.begin(), payload.end());
+    {
+        std::ofstream output(temporaryPath, std::ios::binary | std::ios::trunc);
+        if (!output.is_open()) return false;
+        output.write(reinterpret_cast<const char*>(journal.data()),
+                     static_cast<std::streamsize>(journal.size()));
+        output.flush();
+        if (!output.good()) return false;
+    }
+    std::filesystem::rename(temporaryPath, journalPath, ec);
+    if (ec) return false;
+    if (!applyMessagePurge(messageId)) return false;
+    std::filesystem::remove(journalPath, ec);
+    return !ec;
+}
+
+bool Storage::recoverPendingPurgeTransaction() {
+    const auto journalPath = std::filesystem::path(dataDir_) / "purge.txn";
+    const auto temporaryPath = std::filesystem::path(dataDir_) / "purge.txn.tmp";
+    const auto base = std::filesystem::path(dataDir_);
+    std::error_code ec;
+    if (!std::filesystem::exists(journalPath, ec)) {
+        if (ec) return false;
+        std::filesystem::remove(temporaryPath, ec);
+        std::filesystem::remove(base / "messages.dat.purge.tmp", ec);
+        std::filesystem::remove(base / "recipients.dat.purge.tmp", ec);
+        std::filesystem::remove(base / "mailbox_states.dat.purge.tmp", ec);
+        return !ec;
+    }
+    std::ifstream input(journalPath, std::ios::binary | std::ios::ate);
+    if (!input.is_open() || input.tellg() != static_cast<std::streamoff>(24)) return false;
+    std::vector<uint8_t> journal(24);
+    input.seekg(0, std::ios::beg);
+    input.read(reinterpret_cast<char*>(journal.data()), static_cast<std::streamsize>(journal.size()));
+    if (input.gcount() != static_cast<std::streamsize>(journal.size())) return false;
+    input.close();
+    const char magic[8] = {'F', 'O', 'R', 'G', 'E', 'P', 'U', 'R'};
+    if (!std::equal(std::begin(magic), std::end(magic), journal.begin())) return false;
+    size_t offset = sizeof(magic);
+    uint32_t version = 0, payloadSize = 0, checksum = 0, messageId = 0;
+    if (!readUint32LE(journal, offset, version) ||
+        !readUint32LE(journal, offset, payloadSize) ||
+        !readUint32LE(journal, offset, checksum) ||
+        !readUint32LE(journal, offset, messageId)) return false;
+    std::vector<uint8_t> payload;
+    appendUint32LE(payload, messageId);
+    if (version != 1 || payloadSize != sizeof(uint32_t) ||
+        messageId == 0 || messageTxnChecksum(payload) != checksum) return false;
+    if (!applyMessagePurge(messageId)) return false;
+    std::filesystem::remove(journalPath, ec);
+    return !ec;
+}
+
 bool Storage::open() {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (isOpen_) return true;

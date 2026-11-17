@@ -13,7 +13,7 @@ Order follows the master spec. Each task lists affected files, dependencies, and
 | P2-2 | ID counter restore and no wraparound | `storage.cpp`, tests | P2-1 | restart ID scan and `uint32` exhaustion |
 | P2-3 | Index update/delete correctness and collision-chain behavior | `hash_table.cpp`, `indexes.cpp`, tests | - | collision lookup, deduplication, deletion, rebuild |
 | P2-4 | Versioned, checksummed write-ahead journal for message + recipient creation; idempotent replay and incomplete-tail repair | `storage.cpp`, `message_service.cpp`, tests | P2-1 | partial-write recovery, replay idempotency |
-| P2-5 | Synchronization across storage, indexes, and sessions | `storage.cpp`, `indexes.cpp`, auth | P2-4 | concurrent create / ID uniqueness |
+| P2-5 | Synchronization across storage, indexes, and sessions | `storage.cpp`, `indexes.cpp`, auth, tests | P2-4 | 8-thread concurrent create and unique ID test |
 | P2-6 | Startup validation, health endpoint, and process shutdown/restart smoke coverage | `server.cpp`, `main_server.cpp`, CI | P2-1 | API smoke startup, health, restart |
 | P2-7 | Query-engine visibility/edge-case tests | `query.cpp`, tests | - | sender, recipient, BCC, unrelated user |
 

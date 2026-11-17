@@ -1198,6 +1198,20 @@ bool Storage::removeMailboxState(uint32_t messageId, uint32_t userId) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!isOpen_ || messageId == 0 || userId == 0) return false;
 
+    const auto existingStates = getAllMailboxStates();
+    const bool hasCurrentCopy = std::any_of(existingStates.begin(), existingStates.end(),
+        [&](const MailboxState& state) {
+            return state.message_id == messageId && state.user_id == userId;
+        });
+    const bool hasOtherParticipant = std::any_of(existingStates.begin(), existingStates.end(),
+        [&](const MailboxState& state) {
+            return state.message_id == messageId && state.user_id != userId;
+        });
+    if (!hasCurrentCopy) return false;
+    // Commit the purge intent before removing the final state row. If the
+    // process stops at any point after this, startup can finish the purge.
+    if (!hasOtherParticipant) return purgeMessageRecords(messageId);
+
     const auto sourcePath = std::filesystem::path(dataDir_) / "mailbox_states.dat";
     const auto temporaryPath = std::filesystem::path(dataDir_) / "mailbox_states.dat.tmp";
     std::ifstream input(sourcePath, std::ios::binary);
@@ -1250,10 +1264,6 @@ bool Storage::removeMailboxState(uint32_t messageId, uint32_t userId) {
     mailboxStatesFile_.open(sourcePath, std::ios::binary | std::ios::in | std::ios::out);
     if (!mailboxStatesFile_.is_open()) return false;
 
-    const auto remainingStates = getAllMailboxStates();
-    const bool hasOtherParticipant = std::any_of(remainingStates.begin(), remainingStates.end(),
-        [&](const MailboxState& state) { return state.message_id == messageId; });
-    if (!hasOtherParticipant) return purgeMessageRecords(messageId);
     return true;
 }
 

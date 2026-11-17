@@ -1,5 +1,6 @@
 #include "auth/auth.h"
 #include <iostream>
+#include <algorithm>
 #include <random>
 #include <sstream>
 #include <iomanip>
@@ -139,6 +140,43 @@ void AuthManager::invalidateSession(const std::string& token) {
 void AuthManager::logout(const std::string& token) {
     std::lock_guard<std::mutex> lock(mutex_);
     sessions_.erase(token);
+}
+
+bool AuthManager::allowLoginAttempt(const std::string& key) {
+    constexpr auto window = std::chrono::minutes(15);
+    constexpr size_t maxFailures = 5;
+    const auto cutoff = std::chrono::steady_clock::now() - window;
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it = failedLoginAttempts_.find(key);
+    if (it == failedLoginAttempts_.end()) return true;
+    auto& failures = it->second;
+    failures.erase(std::remove_if(failures.begin(), failures.end(),
+        [&](const auto& timestamp) { return timestamp < cutoff; }), failures.end());
+    if (failures.empty()) {
+        failedLoginAttempts_.erase(it);
+        return true;
+    }
+    return failures.size() < maxFailures;
+}
+
+void AuthManager::recordFailedLogin(const std::string& key) {
+    constexpr auto window = std::chrono::minutes(15);
+    const auto now = std::chrono::steady_clock::now();
+    const auto cutoff = now - window;
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (auto it = failedLoginAttempts_.begin(); it != failedLoginAttempts_.end();) {
+        auto& failures = it->second;
+        failures.erase(std::remove_if(failures.begin(), failures.end(),
+            [&](const auto& timestamp) { return timestamp < cutoff; }), failures.end());
+        if (failures.empty()) it = failedLoginAttempts_.erase(it);
+        else ++it;
+    }
+    failedLoginAttempts_[key].push_back(now);
+}
+
+void AuthManager::clearFailedLogins(const std::string& key) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    failedLoginAttempts_.erase(key);
 }
 
 } // namespace forge

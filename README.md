@@ -84,7 +84,7 @@ npm run lint
 npm run build
 ```
 
-A full-stack GitHub Actions workflow is defined in `.github/workflows/full-stack-ci.yml`. Build/test and Docker execution must be verified in the target environment; do not infer success from the presence of workflow or Docker files.
+The full-stack GitHub Actions workflow in `.github/workflows/full-stack-ci.yml` verifies FORGE build/unit/API smoke, EMBER lint/tests, POSTO typecheck/build, and Docker Compose config/image builds. Latest verified run: [run 145](https://github.com/SumedhAnupSupe/forge-ember/actions/runs/43996583436).
 
 ## Current functionality
 
@@ -93,15 +93,17 @@ A full-stack GitHub Actions workflow is defined in `.github/workflows/full-stack
 - Inbox, sent, starred, and trash views.
 - Read/unread, star, trash, restore, and permanent-delete UI actions.
 - Mailbox search, sorting, and offset-based load-more pagination.
-- BCC recipient visibility filtering in EMBER responses.
+- BCC recipient visibility filtering in both FORGE and EMBER responses.
+- Independent read/star/trash state per participant, stored in `mailbox_states.dat`.
+- Batched sender/recipient envelopes returned by FORGE with each message.
 
 ## Known limitations under active implementation
 
-- Per-user read/star/trash state is now stored in FORGE format version 2, with a startup migration from legacy message-level flags. This change and its tests are committed but have not yet been run in this environment.
-- Permanent deletion currently removes the requesting user's mailbox-state row. Physical compaction of shared message/recipient records after the final participant deletes their copy is still outstanding.
-- Multi-record message creation currently uses best-effort rollback, not a crash-safe write-ahead log.
-- Draft persistence, reply-all/threading, batch message enrichment, and full end-to-end coverage remain outstanding.
-- Attachments and tag/wax-seal metadata are not persisted by the current FORGE schema.
-- Newly added format migration, per-user state, BCC, pagination, CI, and Docker changes have not yet been verified by running their test/build workflows in this environment.
+- Permanent deletion removes the requesting user's mailbox-state row. Physical compaction of shared message and recipient records after the final participant removes their copy is still outstanding.
+- Message plus recipient creation uses a checksummed, replayable write-ahead journal. It uses stream flush and atomic rename but does not call OS-level `fsync`, and the journal does not cover every update/delete operation.
+- Login rate limiting and complete session-expiry UX are not implemented.
+- Draft persistence, reply/reply-all/forward, and thread APIs/UI remain outstanding.
+- More concurrency/failure-injection tests, frontend component tests, measured benchmarks, and a reproducible demo/report remain outstanding.
+- Attachments and tag/wax-seal metadata are not persisted by the current FORGE schema; unsupported UI affordances were removed.
 
 See [the implementation audit](docs/IMPLEMENTATION_AUDIT.md) and [implementation plan](docs/IMPLEMENTATION_PLAN.md) for the current status. This project is a compact educational database/application stack, not a production email service.

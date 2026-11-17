@@ -4,6 +4,7 @@
 #include <fstream>
 #include <cstring>
 #include "storage/storage.h"
+#include "utils/codec.h"
 
 using namespace forge;
 
@@ -153,6 +154,69 @@ int test_storage() {
         }
     }
     std::filesystem::remove_all(versionOneDir);
+
+    // Existing message-level flags are copied to the sender and each active
+    // recipient during the version 1 -> 2 mailbox-state migration.
+    const auto legacyDataDir = std::filesystem::temp_directory_path() /
+        ("forge_legacy_state_migration_test_" + std::to_string(time(nullptr)));
+    std::filesystem::create_directories(legacyDataDir);
+    User legacySender{};
+    legacySender.id = 1;
+    strcpy(legacySender.name, "Sender");
+    strcpy(legacySender.email, "sender@example.com");
+    strcpy(legacySender.password_hash, "hash");
+    User legacyRecipient{};
+    legacyRecipient.id = 2;
+    strcpy(legacyRecipient.name, "Recipient");
+    strcpy(legacyRecipient.email, "recipient@example.com");
+    strcpy(legacyRecipient.password_hash, "hash");
+    Message legacyMessage{};
+    legacyMessage.id = 77;
+    legacyMessage.sender_id = 1;
+    strcpy(legacyMessage.subject, "Legacy");
+    strcpy(legacyMessage.body, "Legacy body");
+    legacyMessage.is_read = 1;
+    legacyMessage.is_starred = 1;
+    Recipient legacyRecipientRow{};
+    legacyRecipientRow.message_id = 77;
+    legacyRecipientRow.user_id = 2;
+    strcpy(legacyRecipientRow.type, "TO");
+    {
+        std::ofstream users(legacyDataDir / "users.dat", std::ios::binary);
+        const auto senderBytes = BinaryCodec::serializeUser(legacySender);
+        const auto recipientBytes = BinaryCodec::serializeUser(legacyRecipient);
+        users.write(reinterpret_cast<const char*>(senderBytes.data()), senderBytes.size());
+        users.write(reinterpret_cast<const char*>(recipientBytes.data()), recipientBytes.size());
+        std::ofstream messages(legacyDataDir / "messages.dat", std::ios::binary);
+        const auto messageBytes = BinaryCodec::serializeMessage(legacyMessage);
+        messages.write(reinterpret_cast<const char*>(messageBytes.data()), messageBytes.size());
+        std::ofstream recipients(legacyDataDir / "recipients.dat", std::ios::binary);
+        const auto recipientRowBytes = BinaryCodec::serializeRecipient(legacyRecipientRow);
+        recipients.write(reinterpret_cast<const char*>(recipientRowBytes.data()), recipientRowBytes.size());
+        std::ofstream manifest(legacyDataDir / "format.meta");
+        manifest << "FORGE_STORAGE\\n1\\n"
+                 << User::ENCODED_RECORD_SIZE << " "
+                 << Message::ENCODED_RECORD_SIZE << " "
+                 << Recipient::ENCODED_RECORD_SIZE << "\\n";
+    }
+    {
+        Storage legacyStateStorage(legacyDataDir.string());
+        if (legacyStateStorage.open()) {
+            MailboxState senderState{}, recipientState{};
+            const bool senderMigrated = legacyStateStorage.readMailboxState(77, 1, senderState);
+            const bool recipientMigrated = legacyStateStorage.readMailboxState(77, 2, recipientState);
+            if (senderMigrated && recipientMigrated &&
+                senderState.is_read == 1 && recipientState.is_read == 1 &&
+                senderState.is_starred == 1 && recipientState.is_starred == 1)
+                std::cout << "  Legacy per-message flags migrated to each mailbox OK" << std::endl;
+            else { std::cout << "  Legacy per-message flag migration FAILED" << std::endl; failures++; }
+            legacyStateStorage.close();
+        } else {
+            std::cout << "  Legacy per-message flag migration FAILED" << std::endl;
+            failures++;
+        }
+    }
+    std::filesystem::remove_all(legacyDataDir);
 
     const auto invalidManifestDir = std::filesystem::temp_directory_path() /
         ("forge_invalid_manifest_test_" + std::to_string(time(nullptr)));

@@ -228,7 +228,8 @@ bool Storage::createMessageWithRecipients(const Message& message,
     Message duplicateMessage{};
     if (readMessage(message.id, duplicateMessage)) return false;
     std::vector<Recipient> duplicateRecipients;
-    if (readRecipientsByMessage(message.id, duplicateRecipients, true)) return false;
+    if (readRecipientsByMessage(message.id, duplicateRecipients, true) &&
+        !duplicateRecipients.empty()) return false;
 
     std::vector<uint8_t> payload = BinaryCodec::serializeMessage(message);
     std::set<uint32_t> uniqueUsers;
